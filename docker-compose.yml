@@ -1,0 +1,16 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: petcare_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: petcare_hub
+      POSTGRES_USER: petcare
+      POSTGRES_PASSWORD: petcare123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
