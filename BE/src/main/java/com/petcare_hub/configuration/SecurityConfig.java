@@ -26,6 +26,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -55,17 +56,16 @@ public class SecurityConfig {
                         // Còn lại cần đăng nhập
                         .anyRequest().authenticated()
                 )
+                // OAuth2 Google login
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2SuccessHandler)
+                )
                 .addFilterBefore(jwtAuthFilter,
                         UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /**
-     * Bean này giải quyết lỗi:
-     * "Could not autowire. No beans of PasswordEncoder type found"
-     * AuthServiceImpl inject PasswordEncoder từ đây
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
