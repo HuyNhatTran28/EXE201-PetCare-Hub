@@ -1,11 +1,10 @@
 package com.petcare_hub.controller;
 
-import com.petcare_hub.dto.request.LoginRequest;
-import com.petcare_hub.dto.request.RefreshTokenRequest;
-import com.petcare_hub.dto.request.RegisterRequest;
+import com.petcare_hub.dto.request.*;
 import com.petcare_hub.dto.response.AuthResponse;
 import com.petcare_hub.dto.response.UserResponse;
 import com.petcare_hub.service.AuthService;
+import com.petcare_hub.service.OtpService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -15,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -24,6 +24,7 @@ import java.util.UUID;
 public class AuthController {
 
     private final AuthService authService;
+    private final OtpService otpService;
 
 
     @Operation(summary = "Đăng ký tài khoản mới")
@@ -62,4 +63,27 @@ public class AuthController {
         UUID userId = (UUID) authentication.getPrincipal();
         return ResponseEntity.ok(authService.getMe(userId));
     }
+
+    @Operation(summary = "Gửi OTP qua email (đăng nhập bằng SĐT)")
+    @PostMapping("/otp/send")
+    public ResponseEntity<Map<String, String>> sendOtp(
+            @Valid @RequestBody SendOtpRequest request) {
+
+        otpService.sendOtp(request.getPhone());
+        return ResponseEntity.ok(Map.of(
+                "message", "Mã OTP đã được gửi đến email của bạn"
+        ));
+    }
+
+    @Operation(summary = "Xác thực OTP → đăng nhập")
+    @PostMapping("/otp/verify")
+    public ResponseEntity<AuthResponse> verifyOtp(
+            @Valid @RequestBody VerifyOtpRequest request) {
+
+        return ResponseEntity.ok(
+                otpService.verifyOtp(request.getPhone(), request.getOtpCode())
+        );
+    }
+
+
 }

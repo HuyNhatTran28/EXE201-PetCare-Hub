@@ -19,8 +19,8 @@ public class RegisterRequest {
     private String fullName;
 
     @Pattern(
-            regexp = "^(0|\\+84)[3-9][0-9]{8}$",
-            message = "Số điện thoại không hợp lệ"
+            regexp = "^0[3-9][0-9]{8}$",
+            message = "Số điện thoại phải bắt đầu bằng 0 và có 10 chữ số "
     )
     private String phone;
 
