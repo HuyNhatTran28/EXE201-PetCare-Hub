@@ -1,5 +1,6 @@
 package com.petcare_hub.enums;
 
 public enum DiscountType {
-        PERCENT, FIXED_AMOUNT
-    }
+    PERCENT,      // Giảm %
+    FIXED_AMOUNT  // Giảm số tiền cố định
+}
