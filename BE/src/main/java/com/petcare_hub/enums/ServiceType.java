@@ -1,5 +1,9 @@
 package com.petcare_hub.enums;
 
 public enum ServiceType {
-        SPA, GROOMING, TRANSPORT, FOOD, MEDICATION
-    }
+    SPA,        // Spa, mát xa
+    GROOMING,   // Tắm, cắt tỉa lông
+    TRANSPORT,  // Đưa đón
+    FOOD,       // Thức ăn đặc biệt
+    MEDICATION  // Chăm sóc thuốc
+}
