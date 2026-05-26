@@ -25,10 +25,16 @@ axiosInstance.interceptors.response.use(
     // Access token hết hạn → thử refresh
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
+      const refreshToken = useAuthStore.getState().refreshToken
+      
+      if (!refreshToken) {
+        useAuthStore.getState().logout()
+        return Promise.reject(error)
+      }
+
       try {
-        const refreshToken = useAuthStore.getState().refreshToken
         const res = await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/auth/refresh`,
+          `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/api/auth/refresh`,
           { refreshToken }
         )
         const { accessToken } = res.data

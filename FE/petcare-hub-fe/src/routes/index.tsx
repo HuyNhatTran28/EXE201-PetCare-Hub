@@ -4,6 +4,7 @@ import { Role } from '@/types/enums'
 
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
+import { HomePage } from '@/pages/HomePage'
 import { HotelListPage } from '@/pages/HotelListPage'
 import { HotelDetailPage } from '@/pages/HotelDetailPage'
 import { BookingPage } from '@/pages/BookingPage'
@@ -12,12 +13,16 @@ import { PetProfilePage } from '@/pages/PetProfilePage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
+// Partner Pages
+import { PartnerDashboard } from '@/pages/partner/PartnerDashboard'
+import { RoomManagePage } from '@/pages/partner/RoomManagePage'
+import { ServiceManagePage } from '@/pages/partner/ServiceManagePage'
+import { BookingManagePage } from '@/pages/partner/BookingManagePage'
+
 export const router = createBrowserRouter([
 
-  // Mặc định vào / → redirect về /login
-  { path: '/', element: <Navigate to="/login" replace /> },
-
   // Public
+  { path: '/', element: <HomePage /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/hotels', element: <HotelListPage /> },
@@ -38,6 +43,17 @@ export const router = createBrowserRouter([
     children: [
       { path: '/pets', element: <PetProfilePage /> },
       { path: '/booking/:roomTypeId', element: <BookingPage /> },
+    ],
+  },
+
+  // PARTNER only
+  {
+    element: <PrivateRoute allowedRoles={[Role.PARTNER]} />,
+    children: [
+      { path: '/partner/dashboard', element: <PartnerDashboard /> },
+      { path: '/partner/hotels/:hotelId/rooms', element: <RoomManagePage /> },
+      { path: '/partner/hotels/:hotelId/services', element: <ServiceManagePage /> },
+      { path: '/partner/bookings', element: <BookingManagePage /> },
     ],
   },
 
