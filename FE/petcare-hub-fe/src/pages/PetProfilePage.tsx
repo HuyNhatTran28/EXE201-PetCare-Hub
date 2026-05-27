@@ -5,18 +5,18 @@ import {
   Heart,
   PlusCircle,
   Sparkles,
-  Info,
-  Calendar,
-  AlertCircle,
   FileText,
-  User,
-  LogOut,
+  Calendar,
   Clock,
-  ArrowRight,
   UtensilsCrossed,
   Activity,
   Smile,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle,
+  Plus,
+  Compass,
+  ChevronRight,
+  MessageSquare
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import axiosInstance from '@/lib/axios'
@@ -48,6 +48,7 @@ export const PetProfilePage = () => {
   const [pets, setPets] = useState<PetType[]>([])
   const [selectedPetId, setSelectedPetId] = useState<string>('')
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'health' | 'habits' | 'bookings'>('health')
 
   useEffect(() => {
     const fetchPets = async () => {
@@ -56,12 +57,13 @@ export const PetProfilePage = () => {
         const fetchedPets = response.data.map((p: any) => ({
           ...p,
           status: p.status || 'Tại nhà',
-          personalityTags: p.personalityTags || ['Đã tiêm chủng', 'Khỏe mạnh'],
-          specialNotes: p.specialNotes || 'Chưa có ghi chú chăm sóc đặc biệt.',
-          feedingSchedule: p.feedingSchedule || 'Chạy bộ nhặt bóng ngoài trời 30 phút hằng ngày.',
-          foodType: p.foodType || 'Hạt dinh dưỡng cao cấp trộn thịt bò xay nhuyễn.',
+          personalityTags: p.personalityTags || ['Thân thiện', 'Chỉ trong nhà', 'Năng động'],
+          specialNotes: p.specialNotes || 'Chế độ ăn nhạy cảm, cần hâm ấm nhẹ thức ăn trước khi cho ăn.',
+          feedingSchedule: p.feedingSchedule || 'Hai bữa chính lúc 8:00 và 18:00. Đồ ăn nhẹ vào buổi trưa.',
+          foodType: p.foodType || 'Thức ăn ướt không ngũ cốc (vị Cá hồi) trộn với topping đông khô.',
           vaccines: p.vaccines || [
-            { name: 'Mũi nhắc lại Dại', doctor: 'BS. Nguyễn Minh', status: 'COMPLETED', date: '14/08/2025', nextDate: '14/08/2026' }
+            { name: 'Tiêm nhắc lại Dại', doctor: 'BS. Aris Thorne', status: 'COMPLETED', date: '14/08/2025', nextDate: '14/08/2026' },
+            { name: 'Bạch cầu mèo (FeLV)', doctor: 'BS. Nguyễn Minh', status: 'WARNING', date: '01/05/2026', nextDate: '15/06/2026' }
           ]
         }))
         setPets(fetchedPets)
@@ -80,238 +82,334 @@ export const PetProfilePage = () => {
   // Lấy bé đang được chọn
   const activePet = pets.find(p => p.id === selectedPetId)
 
+  // Style helpers
+  const sunlightShadow = { boxShadow: '0 20px 40px rgba(48, 51, 48, 0.06)' }
+  const primaryGlow = { background: 'linear-gradient(135deg, #a43e24 0%, #ffac98 100%)' }
+
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans selection:bg-[#fa7150] selection:text-white pb-24">
+    <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans selection:bg-[#ffac98] selection:text-[#751c05] pb-24">
       
       {/* ── HEADER ── */}
-      <header className="sticky top-0 z-50 bg-[#faf9f6]/90 backdrop-blur-md border-b border-[#e5d8d0] px-6 py-4 flex items-center justify-between h-20">
-        <Link to="/" className="flex items-center gap-2">
-          <PawPrint size={28} className="text-[#fa7150]" />
-          <span className="text-xl font-bold tracking-tight">Pet Sanctuary</span>
-        </Link>
-        <div className="flex items-center gap-6">
-          <Link to="/" className="text-sm font-semibold text-[#5a5550] hover:text-[#fa7150] transition-colors">Trang chủ</Link>
-          <Link to="/hotels" className="text-sm font-semibold text-[#5a5550] hover:text-[#fa7150] transition-colors">Khách sạn</Link>
-          <Link to="/pets" className="text-sm font-bold text-[#fa7150] border-b-2 border-[#fa7150] pb-1">Thú cưng</Link>
+      <nav className="sticky top-0 z-50 bg-[#faf9f6] border-b border-[#e1e3df] transition-all duration-300">
+        <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto w-full">
+          <Link to="/" className="text-2xl font-black text-[#a43e24] tracking-tight font-headline flex items-center gap-2">
+            <PawPrint className="text-[#a43e24]" />
+            The Pet Sanctuary
+          </Link>
+          <div className="hidden md:flex items-center gap-8 font-medium">
+            <Link to="/" className="text-stone-600 hover:text-[#a43e24] transition-all duration-300">Phòng</Link>
+            <Link to="/hotels" className="text-stone-600 hover:text-[#a43e24] transition-all duration-300">Dịch vụ</Link>
+            <Link to="/pets" className="text-[#a43e24] font-bold border-b-2 border-[#a43e24] pb-1">Nhật ký Thú cưng</Link>
+            <span className="text-stone-600 cursor-default">Thành viên</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link to="/partner/bookings" className="bg-[#a43e24] text-[#fff7f6] px-6 py-2 rounded-full font-medium transition-all hover:opacity-90 hover:scale-[1.02]">
+              Lịch đặt phòng
+            </Link>
+          </div>
         </div>
-      </header>
+      </nav>
 
       {/* ── MAIN CONTENT ── */}
-      <main className="max-w-7xl mx-auto px-6 pt-12">
+      <main className="max-w-7xl mx-auto px-8 pt-12 pb-24">
         
-        {/* Banner tiêu đề */}
+        {/* Header & Add Action */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 text-left">
           <div className="space-y-2">
-            <span className="text-[#fa7150] text-xs font-black tracking-wider uppercase">Bảng điều khiển thành viên</span>
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-[#303330]">
-              Gia Đình Thú Cưng
-            </h1>
-            <p className="text-[#5a5550] text-sm sm:text-base max-w-xl">
-              Quản lý hồ sơ, lịch trình y tế và lịch trình chăm sóc cá nhân hóa cho những người bạn nhỏ của bạn.
-            </p>
+            <span className="text-[#44683b] font-semibold tracking-wider uppercase text-xs">Bảng điều khiển thành viên</span>
+            <h1 className="text-5xl font-extrabold tracking-tight text-[#303330]">Gia đình Thú cưng</h1>
+            <p className="text-[#5d605c] text-lg max-w-lg">Quản lý hồ sơ, lịch sử y tế và lịch chăm sóc cá nhân hóa cho những người bạn đồng hành yêu quý của bạn.</p>
           </div>
-          <button className="bg-[#fa7150] text-white px-8 py-4 rounded-full font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#fa7150]/20 hover:scale-[1.02] active:scale-95 transition-transform cursor-pointer">
-            <PlusCircle size={16} /> Thêm bé mới
+          <button 
+            style={primaryGlow}
+            className="text-[#fff7f6] px-8 py-4 rounded-full font-bold flex items-center gap-3 hover:scale-105 transition-transform shadow-lg shadow-[#a43e24]/10 cursor-pointer"
+          >
+            <PlusCircle size={20} />
+            Thêm Thú cưng mới
           </button>
         </header>
 
-        {/* Bento Grid: Danh sách Pet Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
-          {pets.map((pet) => {
-            const isSelected = selectedPetId === pet.id
-            const petImage = pet.avatarUrl || 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=400'
-            return (
-              <div 
-                key={pet.id}
-                onClick={() => setSelectedPetId(pet.id)}
-                className={`bg-white rounded-3xl p-6 border transition-all cursor-pointer ${
-                  isSelected 
-                    ? 'border-[#fa7150] shadow-xl shadow-[#fa7150]/5 ring-4 ring-[#fa7150]/5' 
-                    : 'border-[#e5d8d0] hover:shadow-lg'
-                }`}
-              >
-                <div className="relative mb-6">
-                  <div className="aspect-square rounded-2xl overflow-hidden relative">
-                    <img 
-                      src={petImage} 
-                      alt={pet.name}
-                      className="w-full h-full object-cover"
-                    />
+        {/* Bento Grid: Pet Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-20">
+          {loading ? (
+            <div className="col-span-full py-12 text-center text-stone-500 font-bold">Đang tải danh sách thú cưng...</div>
+          ) : (
+            pets.map((pet) => {
+              const isSelected = selectedPetId === pet.id
+              const petImage = pet.avatarUrl || 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=400'
+              const borderAccentColor = pet.breed.toLowerCase().includes('mèo') ? 'border-[#c2ebb2]' : 'border-[#ffac98]'
+              return (
+                <div 
+                  key={pet.id}
+                  onClick={() => setSelectedPetId(pet.id)}
+                  className={`bg-white rounded-2xl p-6 transition-all cursor-pointer border-2 relative flex flex-col text-left ${
+                    isSelected 
+                      ? 'border-[#a43e24] ring-2 ring-[#a43e24]/10' 
+                      : 'border-transparent hover:border-[#a43e24]/10'
+                  }`}
+                  style={sunlightShadow}
+                >
+                  <div className="relative mb-6">
+                    <div className={`aspect-square rounded-xl overflow-hidden relative border-4 ${borderAccentColor}`}>
+                      <img 
+                        alt={pet.name} 
+                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" 
+                        src={petImage}
+                      />
+                      <div className="absolute inset-0 bg-[#a43e24]/5 opacity-0 hover:opacity-100 transition-opacity"></div>
+                    </div>
+                    {isSelected && (
+                      <span className="absolute -bottom-3 -right-3 bg-[#ffac98] text-[#751c05] text-xs font-bold px-4 py-1.5 rounded-full shadow-sm">
+                        Đang chọn
+                      </span>
+                    )}
                   </div>
-                  <span className={`absolute -bottom-3 -right-3 text-[10px] font-black px-4 py-1.5 rounded-full shadow-md text-white ${
-                    pet.status === 'Đang lưu trú' ? 'bg-[#44683b]' : 'bg-[#fa7150]'
-                  }`}>
-                    {pet.status}
-                  </span>
+                  <h3 className="text-2xl font-bold text-[#303330] font-headline">{pet.name}</h3>
+                  <p className="text-[#5d605c] font-medium flex items-center gap-2 mb-2 mt-1">
+                    <PawPrint size={14} className="text-[#a43e24]" />
+                    {pet.breed}
+                  </p>
+                  <p className="text-xs font-bold text-[#395c30] bg-[#d0fac0]/50 px-2 py-1 rounded inline-block uppercase w-max">
+                    {pet.ageYears} Tuổi
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold text-[#303330] text-left">{pet.name}</h3>
-                <p className="text-[#8a7e75] text-xs font-semibold flex items-center gap-1.5 mt-1.5 mb-4 justify-start">
-                  <PawPrint size={14} className="text-[#fa7150]" /> {pet.breed} • {pet.ageYears} tuổi
-                </p>
-                <div className="flex gap-2.5 justify-start">
-                  {(pet.personalityTags || []).map((tag, idx) => (
-                    <span key={idx} className="bg-[#f5ede8] px-3 py-1 rounded-lg text-[9px] font-bold text-[#8a7e75] uppercase">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+              )
+            })
+          )}
 
-          {/* Nút thêm bé mới ảo */}
-          <div className="bg-[#f5ede8]/50 rounded-3xl p-6 flex flex-col items-center justify-center text-center border-2 border-dashed border-[#e5d8d0] hover:bg-[#f5ede8] transition-colors cursor-pointer group">
-            <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition-transform">
-              <PlusCircle size={24} className="text-[#fa7150]" />
+          {/* Empty State / Add Placeholder */}
+          <div className="bg-[#eeeeea]/40 rounded-2xl p-6 flex flex-col items-center justify-center text-center border-2 border-dashed border-[#b1b2af] hover:bg-[#eeeeea]/80 transition-colors cursor-pointer group">
+            <div className="w-16 h-16 rounded-full bg-[#eeeeea] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Plus className="text-[#797b78] text-3xl" size={28} />
             </div>
-            <p className="font-bold text-sm text-[#303330]">Thêm bé cưng khác</p>
-            <p className="text-[10px] text-[#8a7e75] mt-1">Giảm giá 10% khi gửi 2 bé trở lên</p>
+            <p className="font-bold text-[#5d605c]">Thêm một người bạn</p>
+            <p className="text-xs text-[#797b78] mt-1">Áp dụng giảm giá cho nhiều thú cưng</p>
           </div>
         </div>
 
-        {/* Thông tin Chi Tiết Bé Đang Chọn */}
+        {/* Detailed View */}
         {activePet && (
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             
-            {/* Sidebar Chỉ số sinh học (Trái) */}
+            {/* Sticky Profile Sidebar */}
             <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-24 text-left">
-              <div className="bg-white p-8 rounded-3xl border border-[#e5d8d0] relative overflow-hidden shadow-xl shadow-[#a43e24]/2">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#d0fac0]/20 rounded-full -mr-16 -mt-16 pointer-events-none" />
-                <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-28 h-28 rounded-full border-4 border-[#f5ede8] overflow-hidden mb-6 shadow-inner">
+              <div className="bg-white p-10 rounded-2xl overflow-hidden relative text-center border border-[#eeeeea]" style={sunlightShadow}>
+                <div className="absolute top-0 right-0 w-40 h-40 bg-[#d0fac0]/20 rounded-full -mr-20 -mt-20"></div>
+                <div className="relative z-10">
+                  <div className="w-48 h-48 rounded-full mx-auto border-8 border-[#c2ebb2] overflow-hidden mb-6 shadow-inner">
                     <img 
-                      src={activePet.avatarUrl || 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=400'} 
-                      alt={activePet.name}
-                      className="w-full h-full object-cover"
+                      alt={activePet.name} 
+                      className="w-full h-full object-cover" 
+                      src={activePet.avatarUrl || 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=400'}
                     />
                   </div>
-                  <h2 className="text-2xl font-black text-[#303330]">Chỉ số của {activePet.name}</h2>
-                  
-                  <div className="grid grid-cols-2 gap-4 w-full mt-8">
-                    <div className="bg-[#fdfaf8] p-4 rounded-2xl text-center border border-[#e5d8d0]/60">
-                      <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1">Cân nặng</span>
-                      <span className="text-lg font-black text-[#303330]">{activePet.weightKg} kg</span>
-                    </div>
-                    <div className="bg-[#fdfaf8] p-4 rounded-2xl text-center border border-[#e5d8d0]/60">
-                      <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1">Tuổi tác</span>
-                      <span className="text-lg font-black text-[#303330]">{activePet.ageYears} tuổi</span>
-                    </div>
-                  </div>
-
-                  <div className="w-full mt-6 space-y-3">
-                    <div className="flex justify-between items-center text-xs p-3 bg-white border-b border-[#e5d8d0]/60">
-                      <span className="text-[#8a7e75] font-bold">Mã Microchip</span>
-                      <span className="font-mono font-black text-[#303330]">{activePet.microchipId || '#Chưa có'}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs p-3 bg-white border-b border-[#e5d8d0]/60">
-                      <span className="text-[#8a7e75] font-bold">Giống loài</span>
-                      <span className="font-black text-[#303330]">{activePet.breed}</span>
-                    </div>
+                  <h2 className="text-4xl font-black text-[#303330] font-headline">{activePet.name}</h2>
+                  <p className="text-[#44683b] font-semibold mt-1">
+                    Người bạn đồng hành {activePet.breed} đáng yêu
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2 mt-8">
+                    {activePet.personalityTags?.map((tag, idx) => (
+                      <span 
+                        key={idx} 
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                          idx % 2 === 0 
+                            ? 'bg-[#eeeeea] text-[#5d605c]' 
+                            : 'bg-[#feeadb] text-[#63564b]'
+                        }`}
+                      >
+                        {tag}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Lịch lưu trú tiếp theo */}
-              <div className="bg-[#1e392a] text-white p-8 rounded-3xl shadow-xl flex flex-col gap-4 text-left">
-                <h4 className="font-black text-lg">Lịch gửi phòng sắp tới</h4>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  {activePet.name} đã được lên lịch nghỉ dưỡng tại phòng <strong>Garden Suite</strong> từ ngày 12/10/2026.
+              <div className="bg-[#44683b] text-[#ebffdf] p-8 rounded-2xl flex flex-col gap-4" style={sunlightShadow}>
+                <h4 className="font-bold text-xl font-headline">Lưu trú hiện tại</h4>
+                <p className="text-sm opacity-90 leading-relaxed">
+                  {activePet.name} hiện đang tận hưởng chuyến nghỉ dưỡng của mình tại <span className="font-bold">Garden Suite</span>. Bé đã nhanh chóng hòa nhập và rất ngoan ngoãn!
                 </p>
-                <button className="bg-[#fa7150] text-white w-full py-3.5 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-[#fa7150]/90 transition-all cursor-pointer">
-                  Quản lý đơn hàng
+                <button className="bg-[#ebffdf] text-[#44683b] w-full py-3 rounded-full font-bold text-sm hover:opacity-90 transition-opacity">
+                  Xem trực tiếp qua Camera
                 </button>
               </div>
             </div>
 
-            {/* Chi tiết chế độ Chăm sóc & Y tế (Phải) */}
-            <div className="lg:col-span-8 space-y-12 text-left">
+            {/* Detailed Content with Tabs */}
+            <div className="lg:col-span-8 space-y-8 text-left">
               
-              {/* Phân hệ ghi chú chăm sóc */}
-              <div className="bg-[#fdfaf8] rounded-3xl p-8 md:p-10 border border-[#e5d8d0]">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-12 h-12 rounded-2xl bg-[#fff0e6] flex items-center justify-center text-[#fa7150]">
-                    <Sparkles size={20} fill="currentColor" />
-                  </div>
-                  <h3 className="text-2xl font-black text-[#303330]">Chế Độ Chăm Sóc Đặc Biệt</h3>
-                </div>
+              {/* Navigation Tabs */}
+              <div className="flex border-b border-[#b1b2af]/30 gap-8 overflow-x-auto">
+                <button 
+                  onClick={() => setActiveTab('health')}
+                  className={`py-4 px-2 font-headline font-bold text-lg flex items-center gap-2 transition-all whitespace-nowrap ${
+                    activeTab === 'health' 
+                      ? 'text-[#a43e24] border-b-3 border-[#a43e24]' 
+                      : 'text-[#5d605c] hover:text-[#a43e24]'
+                  }`}
+                >
+                  <Heart size={20} />
+                  Sức khỏe
+                </button>
+                <button 
+                  onClick={() => setActiveTab('habits')}
+                  className={`py-4 px-2 font-headline font-bold text-lg flex items-center gap-2 transition-all whitespace-nowrap ${
+                    activeTab === 'habits' 
+                      ? 'text-[#a43e24] border-b-3 border-[#a43e24]' 
+                      : 'text-[#5d605c] hover:text-[#a43e24]'
+                  }`}
+                >
+                  <Compass size={20} />
+                  Thói quen
+                </button>
+                <button 
+                  onClick={() => setActiveTab('bookings')}
+                  className={`py-4 px-2 font-headline font-bold text-lg flex items-center gap-2 transition-all whitespace-nowrap ${
+                    activeTab === 'bookings' 
+                      ? 'text-[#a43e24] border-b-3 border-[#a43e24]' 
+                      : 'text-[#5d605c] hover:text-[#a43e24]'
+                  }`}
+                >
+                  <Clock size={20} />
+                  Lịch sử lưu trú
+                </button>
+              </div>
 
-                <div className="space-y-6">
-                  <div className="bg-white p-6 rounded-2xl border border-[#e5d8d0]">
-                    <h4 className="font-black text-sm text-[#303330] mb-2 flex items-center gap-2">
-                      <UtensilsCrossed size={16} className="text-[#fa7150]" /> Quy tắc ăn uống
-                    </h4>
-                    <p className="text-xs text-[#5a5550] leading-relaxed">{activePet.specialNotes || 'Chưa có ghi chú chăm sóc đặc biệt.'}</p>
-                  </div>
-
+              {/* Tab Content: Sức khỏe */}
+              {activeTab === 'health' && (
+                <div className="space-y-10 animate-fadeIn">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-2xl border border-[#e5d8d0] border-l-4 border-l-[#44683b]">
-                      <h4 className="font-black text-sm text-[#303330] mb-2 flex items-center gap-2">
-                        <Activity size={16} className="text-[#44683b]" /> Luyện tập thể chất
-                      </h4>
-                      <p className="text-xs text-[#5a5550] leading-relaxed">{activePet.feedingSchedule || 'Chạy bộ nhặt bóng ngoài trời 30 phút hằng ngày.'}</p>
+                    <div className="bg-[#f4f4f0] p-6 rounded-xl border-l-4 border-[#a43e24]">
+                      <span className="text-xs font-black text-[#a43e24] uppercase tracking-widest mb-2 block">Cân nặng hiện tại</span>
+                      <div className="flex items-end gap-2">
+                        <span className="text-4xl font-headline font-black">{activePet.weightKg}</span>
+                        <span className="text-lg font-bold text-[#5d605c] mb-1">kg</span>
+                      </div>
+                      <p className="text-xs text-[#5d605c] mt-2 font-medium">Ghi nhận định kỳ gần nhất</p>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl border border-[#e5d8d0] border-l-4 border-l-[#a43e24]">
-                      <h4 className="font-black text-sm text-[#303330] mb-2 flex items-center gap-2">
-                        <Smile size={16} className="text-[#a43e24]" /> Tính cách & Thói quen
-                      </h4>
-                      <p className="text-xs text-[#5a5550] leading-relaxed">{activePet.foodType || 'Hạt dinh dưỡng cao cấp trộn thịt bò xay nhuyễn.'}</p>
+                    <div className="bg-[#f4f4f0] p-6 rounded-xl border-l-4 border-[#44683b]">
+                      <span className="text-xs font-black text-[#44683b] uppercase tracking-widest mb-2 block">Tuổi</span>
+                      <div className="flex items-end gap-2">
+                        <span className="text-4xl font-headline font-black">{activePet.ageYears}</span>
+                        <span className="text-lg font-bold text-[#5d605c] mb-1">năm</span>
+                      </div>
+                      <p className="text-xs text-[#5d605c] mt-2 font-medium">Sinh nhật được cập nhật tự động</p>
+                    </div>
+                  </div>
+
+                  {/* Vaccination Schedule */}
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-2xl font-extrabold font-headline">Lịch tiêm phòng</h3>
+                      <button className="text-[#a43e24] font-bold text-sm flex items-center gap-1 hover:underline">
+                        <FileText size={18} />
+                        Cập nhật hồ sơ y tế
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {activePet.vaccines?.map((vaccine, idx) => {
+                        const isCompleted = vaccine.status === 'COMPLETED'
+                        return (
+                          <div 
+                            key={idx}
+                            className={`bg-white p-6 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border ${
+                              isCompleted ? 'border-[#b1b2af]/20' : 'border-2 border-[#a43e24]/10'
+                            }`}
+                            style={sunlightShadow}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                                isCompleted ? 'bg-[#d0fac0] text-[#44683b]' : 'bg-[#ffac98] text-[#a43e24]'
+                              }`}>
+                                {isCompleted ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-lg text-[#303330]">{vaccine.name}</h4>
+                                <p className="text-sm text-[#5d605c]">Thực hiện bởi {vaccine.doctor}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase ${
+                                isCompleted ? 'text-[#2c4e24] bg-[#d0fac0]' : 'text-[#a43e24] bg-[#ffac98]'
+                              }`}>
+                                {isCompleted ? 'Đã hoàn thành' : 'Sắp đến hạn'}
+                              </span>
+                              <p className="text-xs font-semibold text-[#797b78] mt-2">
+                                {isCompleted ? `Hạn tiếp theo: ${vaccine.nextDate}` : 'Còn 14 ngày'}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Lịch sử tiêm chủng */}
-              <div>
-                <div className="flex items-center justify-between mb-8 px-2">
-                  <h3 className="text-2xl font-black text-[#303330]">Lịch Sử Tiêm Chủng</h3>
-                  <button className="text-[#fa7150] font-bold text-xs flex items-center gap-1.5 hover:underline cursor-pointer">
-                    <FileText size={16} /> Tải Sổ Y Tế (PDF)
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {(activePet.vaccines || []).map((v, idx) => {
-                    const isCompleted = v.status === 'COMPLETED'
-                    return (
-                      <div key={idx} className="flex gap-6 group">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white z-10 transition-transform ${
-                            isCompleted ? 'bg-[#44683b]' : 'bg-[#fa7150]'
-                          }`}>
-                            {isCompleted ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                          </div>
-                          {activePet.vaccines && idx < activePet.vaccines.length - 1 && (
-                            <div className="w-0.5 h-full bg-[#e5d8d0] mt-2" />
-                          )}
-                        </div>
-                        
-                        <div className={`bg-white flex-grow p-6 rounded-3xl border transition-all ${
-                          isCompleted ? 'border-[#e5d8d0]' : 'border-[#fa7150]/30 shadow-md shadow-[#fa7150]/2'
-                        }`}>
-                          <div className="flex justify-between items-start gap-2">
-                            <div>
-                              <h4 className="font-black text-base text-[#303330]">{v.name}</h4>
-                              <p className="text-xs text-[#8a7e75] mt-1">Bác sĩ phụ trách: {v.doctor}</p>
-                            </div>
-                            <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${
-                              isCompleted 
-                                ? 'bg-[#d0fac0] text-[#2c4e24]' 
-                                : 'bg-[#fdf0ec] text-[#a43e24]'
-                            }`}>
-                              {isCompleted ? 'Đã tiêm phòng' : 'Sắp đến hạn'}
-                            </span>
-                          </div>
-
-                          <div className="mt-4 flex items-center gap-4 text-[10px] font-bold text-[#8a7e75] border-t border-[#e5d8d0]/60 pt-4">
-                            <span className="flex items-center gap-1"><Calendar size={12} /> Ngày tiêm: {v.date}</span>
-                            <span className="flex items-center gap-1"><Clock size={12} /> Lịch hẹn kế: {v.nextDate}</span>
-                          </div>
-                        </div>
+              {/* Tab Content: Thói quen */}
+              {activeTab === 'habits' && (
+                <div className="space-y-8 animate-fadeIn">
+                  <div className="bg-white/70 backdrop-blur-md p-8 rounded-xl border border-[#b1b2af]/20" style={sunlightShadow}>
+                    <div className="flex items-center gap-3 mb-6">
+                      <UtensilsCrossed className="text-[#a43e24]" size={22} />
+                      <h4 className="font-headline font-bold text-xl">Hồ sơ ăn uống</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <h5 className="font-bold text-sm text-[#44683b] uppercase tracking-widest mb-3">Loại thức ăn ưa thích</h5>
+                        <p className="text-[#5d605c] leading-relaxed">{activePet.foodType}</p>
                       </div>
-                    )
-                  })}
+                      <div>
+                        <h5 className="font-bold text-sm text-[#44683b] uppercase tracking-widest mb-3">Lịch trình & Khẩu phần</h5>
+                        <p className="text-[#5d605c] leading-relaxed">{activePet.feedingSchedule}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#f4f4f0] p-8 rounded-xl">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Smile className="text-[#6a5d51]" size={22} />
+                      <h4 className="font-headline font-bold text-xl">Cá tính & Đặc điểm</h4>
+                    </div>
+                    <div className="space-y-4 text-[#5d605c] leading-relaxed">
+                      <p>
+                        {activePet.name} là một bé cưng vô cùng ngoan ngoãn. Bé có tính cách thân thiện, rất thích được vuốt ve và nhanh chóng làm thân với các nhân viên chăm sóc. Bé thích vận động nhẹ nhàng và ngủ sâu giấc.
+                      </p>
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        <span className="bg-[#e1e3df] px-3 py-1 rounded text-xs font-semibold text-[#303330]">Thân thiện</span>
+                        <span className="bg-[#e1e3df] px-3 py-1 rounded text-xs font-semibold text-[#303330]">Dễ gần</span>
+                        <span className="bg-[#e1e3df] px-3 py-1 rounded text-xs font-semibold text-[#303330]">Ngoan ngoãn</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Tab Content: Lịch sử lưu trú */}
+              {activeTab === 'bookings' && (
+                <div className="space-y-4 animate-fadeIn">
+                  <h4 className="font-headline font-bold text-xl mb-4 px-2">Các lần đặt phòng gần đây</h4>
+                  <div className="bg-white p-6 rounded-xl flex items-center justify-between border border-[#b1b2af]/20" style={sunlightShadow}>
+                    <div>
+                      <p className="font-bold text-[#303330]">Phòng Cozy Corner Suite</p>
+                      <p className="text-xs text-[#5d605c]">12 tháng 8 — 18 tháng 8, 2025</p>
+                    </div>
+                    <button className="text-[#a43e24] font-bold text-sm hover:underline flex items-center gap-1">
+                      Xem báo cáo <ChevronRight size={14} />
+                    </button>
+                  </div>
+                  <div className="bg-white p-6 rounded-xl flex items-center justify-between border border-[#b1b2af]/20" style={sunlightShadow}>
+                    <div>
+                      <p className="font-bold text-[#303330]">Phòng Playful Paws Room</p>
+                      <p className="text-xs text-[#5d605c]">05 tháng 5 — 12 tháng 5, 2025</p>
+                    </div>
+                    <button className="text-[#a43e24] font-bold text-sm hover:underline flex items-center gap-1">
+                      Xem báo cáo <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
 
             </div>
 
@@ -319,6 +417,49 @@ export const PetProfilePage = () => {
         )}
 
       </main>
+
+      {/* Floating Chat Support */}
+      <button 
+        style={primaryGlow} 
+        className="fixed bottom-8 right-8 w-16 h-16 rounded-full flex items-center justify-center text-[#fff7f6] z-50 hover:scale-110 transition-transform shadow-lg cursor-pointer"
+      >
+        <MessageSquare size={28} />
+      </button>
+
+      {/* Footer */}
+      <footer className="bg-[#f4f4f0] border-t border-[#b1b2af]/20 py-12 px-8 text-sm text-[#5d605c] mt-24 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto w-full">
+          <div className="space-y-4">
+            <div className="text-xl font-bold text-[#303330] font-headline">The Pet Sanctuary</div>
+            <p className="text-stone-600">Tạo ra những kỳ nghỉ cá nhân hóa và hạnh phúc nhất cho những người bạn bốn chân của bạn.</p>
+          </div>
+          <div className="space-y-4">
+            <h5 className="font-bold text-[#303330]">Khám phá</h5>
+            <ul class="space-y-2">
+              <li><Link to="/" className="hover:text-[#a43e24]">Về chúng tôi</Link></li>
+              <li><Link to="/hotels" className="hover:text-[#a43e24]">Các khách sạn</Link></li>
+            </ul>
+          </div>
+          <div className="space-y-4">
+            <h5 className="font-bold text-[#303330]">Hỗ trợ</h5>
+            <ul class="space-y-2">
+              <li><span className="cursor-pointer hover:text-[#a43e24]">Trung tâm giúp đỡ</span></li>
+              <li><span className="cursor-pointer hover:text-[#a43e24]">Điều khoản & Chính sách</span></li>
+            </ul>
+          </div>
+          <div className="space-y-4">
+            <h5 className="font-bold text-[#303330]">Bản tin</h5>
+            <p className="text-stone-600">Nhận những mẹo chăm sóc thú cưng hữu ích hàng tuần.</p>
+            <div className="flex gap-2">
+              <input className="bg-white rounded-md border-none px-4 py-2 w-full text-xs placeholder:text-stone-400 focus:outline-[#a43e24]" placeholder="Địa chỉ Email" type="email"/>
+              <button className="bg-[#a43e24] text-white px-4 py-2 rounded-md font-bold text-xs hover:opacity-90">Đăng ký</button>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto w-full mt-12 pt-8 border-t border-[#b1b2af]/20 text-center text-stone-500">
+          © 2026 The Pet Sanctuary. Bảo lưu mọi quyền.
+        </div>
+      </footer>
 
     </div>
   )
