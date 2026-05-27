@@ -17,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -106,5 +107,20 @@ public class HotelController {
 
         return ResponseEntity.ok(
                 hotelService.findNearbyHotels(lat, lng, radius));
+    }
+
+    // ── GET /api/hotels/search — Tìm kiếm KS có bộ lọc tích hợp ────────
+    @Operation(summary = "Tìm kiếm khách sạn có bộ lọc tích hợp")
+    @GetMapping("/search")
+    public ResponseEntity<List<HotelResponse>> searchHotels(
+            @RequestParam Double lat,
+            @RequestParam Double lng,
+            @RequestParam(defaultValue = "10") Double radius,
+            @RequestParam(required = false) String petType,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice) {
+
+        return ResponseEntity.ok(
+            hotelService.searchHotels(lat, lng, radius, petType, minPrice, maxPrice));
     }
 }

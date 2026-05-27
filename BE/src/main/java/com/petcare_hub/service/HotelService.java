@@ -6,6 +6,7 @@ import com.petcare_hub.enums.HotelStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,4 +32,7 @@ public interface HotelService {
 
     // Tìm KS gần vị trí GPS
     List<HotelResponse> findNearbyHotels(Double lat, Double lng, Double radiusKm);
+
+    // Tìm kiếm KS có bộ lọc tích hợp
+    List<HotelResponse> searchHotels(Double lat, Double lng, Double radiusKm, String petType, BigDecimal minPrice, BigDecimal maxPrice);
 }

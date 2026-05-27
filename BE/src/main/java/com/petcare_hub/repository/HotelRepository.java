@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,5 +44,29 @@ public interface HotelRepository extends
         @Param("lat") Double lat,
         @Param("lng") Double lng,
         @Param("radiusKm") Double radiusKm
+    );
+
+    // Thêm vào HotelRepository query filter tổng hợp
+    @Query("""
+        SELECT DISTINCT h FROM Hotel h
+        LEFT JOIN h.roomTypes rt
+        WHERE h.status = 'ACTIVE'
+        AND (:petType IS NULL OR :petType MEMBER OF rt.allowedPetTypes)
+        AND (:minPrice IS NULL OR rt.pricePerNight >= :minPrice)
+        AND (:maxPrice IS NULL OR rt.pricePerNight <= :maxPrice)
+        AND (6371 * acos(
+            cos(radians(:lat)) * cos(radians(h.locationLat)) *
+            cos(radians(h.locationLong) - radians(:lng)) +
+            sin(radians(:lat)) * sin(radians(h.locationLat))
+        )) <= :radiusKm
+        ORDER BY h.averageRating DESC
+    """)
+    List<Hotel> findHotelsWithFilter(
+        @Param("lat") Double lat,
+        @Param("lng") Double lng,
+        @Param("radiusKm") Double radiusKm,
+        @Param("petType") String petType,
+        @Param("minPrice") BigDecimal minPrice,
+        @Param("maxPrice") BigDecimal maxPrice
     );
 }
