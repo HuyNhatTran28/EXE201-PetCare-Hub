@@ -106,16 +106,16 @@ export const HomePage = () => {
                           <Link 
                             to="/pets" 
                             onClick={() => setShowProfileDropdown(false)}
-                            className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center gap-2"
+                            className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                           >
-                            🐾 Hồ sơ Thú cưng
+                            Hồ sơ Thú cưng
                           </Link>
                           <Link 
                             to="/my-bookings" 
                             onClick={() => setShowProfileDropdown(false)}
-                            className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center gap-2"
+                            className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                           >
-                            📅 Đơn hàng của tôi
+                            Lịch đặt phòng
                           </Link>
                         </>
                       )}
@@ -124,18 +124,18 @@ export const HomePage = () => {
                         <Link 
                           to="/partner/dashboard" 
                           onClick={() => setShowProfileDropdown(false)}
-                          className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center gap-2"
+                          className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                         >
-                          📊 Kênh Đối Tác (Partner)
+                          Kênh Đối Tác (Partner)
                         </Link>
                       )}
 
                       <Link 
                         to="/profile" 
                         onClick={() => setShowProfileDropdown(false)}
-                        className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center gap-2"
+                        className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                       >
-                        👤 Thông tin cá nhân
+                        Thông tin cá nhân
                       </Link>
                     </div>
 
@@ -145,9 +145,9 @@ export const HomePage = () => {
                         setShowProfileDropdown(false);
                         handleLogout();
                       }}
-                      className="w-full bg-[#fa7150]/10 hover:bg-[#fa7150] text-[#fa7150] hover:text-white px-4 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full bg-[#fa7150]/10 hover:bg-[#fa7150] text-[#fa7150] hover:text-white px-4 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer"
                     >
-                      <LogOut size={14} /> Đăng xuất
+                      Đăng xuất
                     </button>
                   </div>
                 )}
