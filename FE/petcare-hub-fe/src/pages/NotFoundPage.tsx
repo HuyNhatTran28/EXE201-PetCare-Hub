@@ -11,7 +11,7 @@ export const NotFoundPage = () => {
         {/* Logo */}
         <div className="flex justify-center items-center gap-2">
           <PawPrint size={32} className="text-[#fa7150] animate-bounce" />
-          <span className="text-2xl font-black tracking-tight">Pet Sanctuary</span>
+          <span className="text-2xl font-black tracking-tight">PetCare Hub</span>
         </div>
 
         {/* Cảnh báo 404 hình ảnh dễ thương */}

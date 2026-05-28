@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CMS &amp; Content Management - The Pet Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary-fixed-variant": "#81240d",
+                        "on-primary-container": "#751c05",
+                        "on-surface-variant": "#5d605c",
+                        "inverse-primary": "#ff8162",
+                        "tertiary-fixed-dim": "#efdccd",
+                        "background": "#faf9f6",
+                        "tertiary": "#6a5d51",
+                        "secondary": "#44683b",
+                        "outline": "#797b78",
+                        "on-secondary-fixed-variant": "#486b3e",
+                        "error-dim": "#821a01",
+                        "secondary-fixed": "#d0fac0",
+                        "primary": "#a43e24",
+                        "surface-container-high": "#e8e8e4",
+                        "on-tertiary-fixed": "#504439",
+                        "surface-dim": "#d9dbd6",
+                        "surface-container-highest": "#e1e3df",
+                        "tertiary-fixed": "#feeadb",
+                        "on-background": "#303330",
+                        "on-tertiary-container": "#63564b",
+                        "secondary-dim": "#395c30",
+                        "surface": "#faf9f6",
+                        "secondary-container": "#d0fac0",
+                        "on-error-container": "#671200",
+                        "primary-dim": "#943219",
+                        "on-secondary-container": "#3e6135",
+                        "surface-tint": "#a43e24",
+                        "inverse-on-surface": "#9d9d9a",
+                        "primary-fixed-dim": "#ff987e",
+                        "tertiary-container": "#feeadb",
+                        "surface-bright": "#faf9f6",
+                        "on-error": "#fff7f6",
+                        "on-tertiary-fixed-variant": "#6e6054",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#fa7150",
+                        "on-tertiary": "#fff7f4",
+                        "on-surface": "#303330",
+                        "surface-container-low": "#f4f4f0",
+                        "primary-container": "#ffac98",
+                        "outline-variant": "#b1b2af",
+                        "on-secondary-fixed": "#2c4e24",
+                        "on-primary": "#fff7f6",
+                        "error": "#aa371c",
+                        "tertiary-dim": "#5e5145",
+                        "primary-fixed": "#ffac98",
+                        "on-primary-fixed": "#520d00",
+                        "secondary-fixed-dim": "#c2ebb2",
+                        "surface-variant": "#e1e3df",
+                        "surface-container": "#eeeeea",
+                        "on-secondary": "#ebffdf",
+                        "inverse-surface": "#0d0f0d"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Be Vietnam Pro"],
+                        "label": ["Be Vietnam Pro"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #faf9f6;
+            color: #303330;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background">
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-0 h-full flex flex-col py-6 px-4 h-screen w-64 border-r-0 bg-stone-50 dark:bg-stone-900 shadow-[20px_0px_40px_rgba(48,51,48,0.06)] z-50">
+<div class="mb-10 px-4">
+<h1 class="text-lg font-bold text-orange-800 dark:text-orange-400 tracking-tight">Sanctuary Admin</h1>
+<p class="text-xs font-semibold uppercase tracking-widest opacity-60 mt-1">Premium Pet Care</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center px-4 py-3 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 rounded-r-full" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="dashboard">dashboard</span>
+<span class="text-sm font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center px-4 py-3 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 rounded-r-full" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="pets">pets</span>
+<span class="text-sm font-semibold">Sanctuary Management</span>
+</a>
+<!-- Active Tab: CMS & Content -->
+<a class="flex items-center px-4 py-3 text-orange-900 dark:text-orange-200 font-bold bg-stone-200/50 dark:bg-stone-800 rounded-r-full" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="edit_note">edit_note</span>
+<span class="text-sm font-semibold">CMS &amp; Content</span>
+</a>
+<a class="flex items-center px-4 py-3 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 rounded-r-full" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="campaign">campaign</span>
+<span class="text-sm font-semibold">Marketing Hub</span>
+</a>
+<a class="flex items-center px-4 py-3 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 rounded-r-full" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="terminal">terminal</span>
+<span class="text-sm font-semibold">System Logs</span>
+</a>
+<a class="flex items-center px-4 py-3 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 rounded-r-full" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="handshake">handshake</span>
+<span class="text-sm font-semibold">Partners</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-stone-200/20 space-y-1">
+<a class="flex items-center px-4 py-2 text-stone-500 hover:text-stone-900 text-xs font-semibold" href="#">
+<span class="material-symbols-outlined mr-3 text-sm" data-icon="settings">settings</span>
+                Settings
+            </a>
+<a class="flex items-center px-4 py-2 text-stone-500 hover:text-stone-900 text-xs font-semibold" href="#">
+<span class="material-symbols-outlined mr-3 text-sm" data-icon="help">help</span>
+                Support
+            </a>
+</div>
+</aside>
+<!-- TopNavBar (Shared Component) -->
+<header class="flex items-center justify-between px-8 ml-64 w-[calc(100%-16rem)] h-16 sticky top-0 z-40 bg-white/70 dark:bg-stone-900/70 backdrop-blur-md border-b border-stone-200/20 dark:border-stone-700/20 shadow-sm">
+<div class="flex items-center gap-6">
+<h2 class="text-xl font-black text-stone-800 dark:text-stone-100 tracking-tight">Management Portal</h2>
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" data-icon="search">search</span>
+<input class="pl-10 pr-4 py-1.5 bg-surface-container-high border-none rounded-md text-sm focus:ring-2 focus:ring-secondary/20 w-64" placeholder="Search content..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex gap-6">
+<a class="text-stone-500 dark:text-stone-400 text-sm font-medium hover:text-orange-600 transition-all duration-300" href="#">Analytics</a>
+<a class="text-stone-500 dark:text-stone-400 text-sm font-medium hover:text-orange-600 transition-all duration-300" href="#">Alerts</a>
+<a class="text-stone-500 dark:text-stone-400 text-sm font-medium hover:text-orange-600 transition-all duration-300" href="#">Schedules</a>
+</nav>
+<div class="flex items-center gap-3">
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-600">
+<span class="material-symbols-outlined" data-icon="notifications_active">notifications_active</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-600">
+<span class="material-symbols-outlined" data-icon="dns">dns</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-stone-200 overflow-hidden border border-stone-300/30">
+<img alt="Admin User Avatar" class="w-full h-full object-cover" data-alt="Portrait of a smiling male administrator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9P1A2_kI-phT98xVLPjCYTrHyScMV5QgGh5TXbSs0XyevxEVMc74H8_tBAnHlGGFspbpFnvqnloCmW0yBLqoJ02QuX7eoYQ_7vKIQ5aZY4J8S8UsmQ2mEo47M3Twqdgmw7mg7033oYC0S8DV4qfA4XoJReS4sAUY3bqU_0el9mjN3O6lk6krj_h1-8IEqFQFixAlvbqsfbjoVi6sK9FQNtf7wRJd67JFqnqqmg-Dk2jDwMJo4m8Q-txu4xR1tf8k6iLSI1W0iieHG"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 p-10 min-h-screen">
+<!-- Header Section -->
+<div class="flex items-end justify-between mb-12">
+<div>
+<span class="text-secondary font-bold text-xs tracking-widest uppercase mb-2 block">Content Studio</span>
+<h1 class="text-4xl font-extrabold text-on-background tracking-tight">CMS &amp; Content Management</h1>
+<p class="text-on-surface-variant mt-2 max-w-md">Control the digital face of The Pet Sanctuary. Manage editorials, visual assets, and community feedback.</p>
+</div>
+<button class="px-6 py-3 bg-primary text-on-primary rounded-full font-semibold shadow-lg hover:bg-primary-dim transition-all scale-100 active:scale-95 flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                Create New Post
+            </button>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<!-- Left Column: Blog Management & Reviews -->
+<div class="col-span-12 lg:col-span-8 space-y-10">
+<!-- Blog Entries Bento Section -->
+<section class="bg-surface-container-lowest rounded-xl p-8 shadow-[0_20px_40px_rgba(0,0,0,0.03)] border border-outline-variant/10">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-xl font-bold flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="article">article</span>
+                            Recent Blog Entries
+                        </h3>
+<a class="text-sm font-semibold text-secondary hover:underline underline-offset-4" href="#">View All Posts</a>
+</div>
+<div class="space-y-4">
+<!-- Blog Item 1 -->
+<div class="group flex items-center justify-between p-4 bg-surface rounded-lg hover:bg-surface-container-low transition-all border border-transparent hover:border-outline-variant/20">
+<div class="flex items-center gap-5">
+<div class="w-16 h-16 rounded-lg bg-stone-200 overflow-hidden">
+<img alt="Golden Retriever" class="w-full h-full object-cover" data-alt="A golden retriever playing in a sun-drenched garden" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqmMP8B706HRcpK_Bvc1SZlZ7kgLLWVCbS-9_lmE7XZj2DhX1BaPEchVLSZAAKEbhntefJFNGMHPrLu3D293hMD09f8XYMXk6oKMP6PD1ZwaQvlJz0H2w5zA-UUTO8IOQ8tF1V3y90wjv-xUDOzK5uNSE_JcLWOX2bJy_aqdFLyIlA9sGqzm_YjqJuVVf5hadK9cSsaSruFVlpTDDj5A4zDD1KrOXwyQe4sj0MZaLrb50dF8ufloS1z1lswT6BEN8TMS19x4K1_mJa"/>
+</div>
+<div>
+<h4 class="font-bold text-on-background group-hover:text-primary transition-colors">The Art of Holistic Pet Care in 2024</h4>
+<p class="text-xs text-on-surface-variant mt-1">Last edited 2 hours ago by Sarah J.</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider rounded-full">Published</span>
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Blog Item 2 -->
+<div class="group flex items-center justify-between p-4 bg-surface rounded-lg hover:bg-surface-container-low transition-all border border-transparent hover:border-outline-variant/20">
+<div class="flex items-center gap-5">
+<div class="w-16 h-16 rounded-lg bg-stone-200 overflow-hidden">
+<img alt="Calico Cat" class="w-full h-full object-cover" data-alt="Close up of a calico cat looking out of a window" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYskq8H8dWnd1GEnEP_Kz_XwrOZOu5IPdgAXyJplRDjS3Fb56twT1HH5LqwlZV84BsISU-TzTM471t5tUmS3Hvj4LxKCYhmiiOQTtCiTGx8JH1GMEEfgSboXmY_NMzfthiFxNzJ41U99B1SVEUXYei7-wJBOBWfcwZ2cUREEH3BE9dbxFHOSzQTezmzk0jrX_GvHOZG_-cSK1LdwFf1IpUZcNiAQHGzABXUmoiVnbQdrmM4VqLkXWCJ_beLIQG_QjU3PzgD9SSisS5"/>
+</div>
+<div>
+<h4 class="font-bold text-on-background group-hover:text-primary transition-colors">Why Your Feline Friend Needs Adventure</h4>
+<p class="text-xs text-on-surface-variant mt-1">Saved 14 hours ago</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="px-3 py-1 bg-surface-container-high text-on-surface-variant text-[10px] font-bold uppercase tracking-wider rounded-full">Draft</span>
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Blog Item 3 -->
+<div class="group flex items-center justify-between p-4 bg-surface rounded-lg hover:bg-surface-container-low transition-all border border-transparent hover:border-outline-variant/20">
+<div class="flex items-center gap-5">
+<div class="w-16 h-16 rounded-lg bg-stone-200 overflow-hidden">
+<img alt="Rabbit" class="w-full h-full object-cover" data-alt="A fluffy rabbit eating a organic carrot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlNWtRqoITas-Eyyh6zvQnaILr1TrRqmFsgv2CjQ0baIRz1Dcdq8hJOhtRdU59ttPVbLSTYMFduiBsaCurZoc6_UccSQ4QsPvBccey0RaUMQGf14aPGiiS3OX_UDH7XpK7d-ioDe64obF_xZvDzWVChn7UVYlKe12aPEdipgXUnS70kgkLYWoSF7aSKA-Ybw-FuJKbj_Pizm0UKnia8-ZHvVrDFKfxobFdhxzLI-pdXWmzJFKCu8PV8noZl7k84ED3yszStB26Q0Xq"/>
+</div>
+<div>
+<h4 class="font-bold text-on-background group-hover:text-primary transition-colors">Designing the Perfect Small Pet Habitat</h4>
+<p class="text-xs text-on-surface-variant mt-1">Scheduled for tomorrow, 9:00 AM</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="px-3 py-1 bg-tertiary-container text-on-tertiary-container text-[10px] font-bold uppercase tracking-wider rounded-full">Scheduled</span>
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Reviews Moderation Queue -->
+<section class="bg-surface-container-low rounded-xl p-8 border border-outline-variant/5">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h3 class="text-xl font-bold flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="forum">forum</span>
+                                Customer Reviews Moderation
+                            </h3>
+<p class="text-sm text-on-surface-variant mt-1">4 pending reviews require your attention</p>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Review 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg shadow-sm border border-outline-variant/10 relative overflow-hidden group">
+<div class="flex gap-1 mb-3 text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="text-sm italic text-on-background leading-relaxed">"The sanctuary took such wonderful care of Luna. She came back calmer than ever. Truly a premium experience!"</p>
+<div class="mt-4 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center text-[10px] font-bold">EM</div>
+<span class="text-xs font-semibold text-on-surface-variant">Elena Miller</span>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 text-xs font-bold text-error hover:bg-error/5 rounded-full transition-colors">Reject</button>
+<button class="px-4 py-1.5 text-xs font-bold bg-secondary text-on-secondary rounded-full hover:bg-secondary-dim transition-colors">Approve</button>
+</div>
+</div>
+</div>
+<!-- Review 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg shadow-sm border border-outline-variant/10 relative overflow-hidden group">
+<div class="flex gap-1 mb-3 text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" data-icon="star">star</span>
+</div>
+<p class="text-sm italic text-on-background leading-relaxed">"Great staff, though the check-in process was a bit slow this Tuesday. Otherwise, everything was top-notch."</p>
+<div class="mt-4 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center text-[10px] font-bold">DT</div>
+<span class="text-xs font-semibold text-on-surface-variant">David Thompson</span>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 text-xs font-bold text-error hover:bg-error/5 rounded-full transition-colors">Reject</button>
+<button class="px-4 py-1.5 text-xs font-bold bg-secondary text-on-secondary rounded-full hover:bg-secondary-dim transition-colors">Approve</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Banner Upload & Dimensions -->
+<div class="col-span-12 lg:col-span-4 space-y-10">
+<!-- Website Banner Management -->
+<section class="bg-surface-container-high rounded-xl p-8 border border-outline-variant/10 h-full">
+<h3 class="text-xl font-bold flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary" data-icon="image">image</span>
+                        Banner Hub
+                    </h3>
+<div class="space-y-6">
+<!-- Preview Card -->
+<div class="relative group cursor-pointer">
+<div class="aspect-[16/9] rounded-lg bg-stone-200 overflow-hidden relative border-2 border-dashed border-outline-variant/50 flex flex-col items-center justify-center group-hover:bg-stone-300 transition-all">
+<img alt="Hero Banner" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-700" data-alt="Wide shot of a pet playing in a modern luxury living room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC378QhH_oWhTzjkvPcQUnT0dlPTiQycIcgS6SYiueOYEeq5LF1_DE_JCvkmPUPzUhoFH3mlRQO6hXuck9-wjTSTu_vvy87xwbluIwBUyNXTS2VXUP21MB-yX0m3G0o46BE9xDnt7rUvjaQLHqE-Arf6rFv6FSFwrHhfCERoZ60V4Rd-jzwaAHG91HoqDAecjtMkfFf5S4nhq2GSJQJ68Xs3PL0c3IUcLDjcUNlaTk5HsUg2byrXhPyivDfne15jmBnw_Xr7HQ2abmy"/>
+<div class="relative z-10 flex flex-col items-center text-on-surface">
+<span class="material-symbols-outlined text-3xl mb-2" data-icon="cloud_upload">cloud_upload</span>
+<span class="font-bold text-sm">Replace Main Hero</span>
+<span class="text-[10px] uppercase font-bold tracking-widest mt-1 opacity-60">1920 x 1080 px</span>
+</div>
+</div>
+<div class="mt-4 p-4 bg-surface-container-lowest rounded-lg border border-outline-variant/10">
+<div class="flex justify-between items-center mb-1">
+<span class="text-xs font-bold text-on-background">hero_banner_winter.jpg</span>
+<span class="text-[10px] text-secondary font-bold">Active</span>
+</div>
+<div class="w-full h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="w-full h-full bg-secondary"></div>
+</div>
+</div>
+</div>
+<!-- Sub-Banner Grid -->
+<div class="grid grid-cols-2 gap-4">
+<div class="aspect-square rounded-lg bg-surface-container-lowest border border-outline-variant/20 flex flex-col items-center justify-center p-4 text-center hover:bg-white transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-stone-400 mb-2" data-icon="add_photo_alternate">add_photo_alternate</span>
+<span class="text-[10px] font-bold leading-tight">Secondary<br/>Banner 1</span>
+<span class="text-[8px] mt-2 text-on-surface-variant">800x800 px</span>
+</div>
+<div class="aspect-square rounded-lg bg-surface-container-lowest border border-outline-variant/20 flex flex-col items-center justify-center p-4 text-center hover:bg-white transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-stone-400 mb-2" data-icon="add_photo_alternate">add_photo_alternate</span>
+<span class="text-[10px] font-bold leading-tight">Secondary<br/>Banner 2</span>
+<span class="text-[8px] mt-2 text-on-surface-variant">800x800 px</span>
+</div>
+</div>
+<div class="pt-6 border-t border-outline-variant/20">
+<h4 class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">Upload Guidelines</h4>
+<ul class="space-y-3">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="check_circle">check_circle</span>
+<span class="text-xs leading-relaxed text-on-surface-variant">Format: JPG or WebP preferred for speed.</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="check_circle">check_circle</span>
+<span class="text-xs leading-relaxed text-on-surface-variant">Max Size: 2MB per image to maintain performance.</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="check_circle">check_circle</span>
+<span class="text-xs leading-relaxed text-on-surface-variant">Aspect Ratio: Maintain 16:9 for main banners.</span>
+</li>
+</ul>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Floating Quick Action (Optional Contextual FAB) -->
+<div class="fixed bottom-10 right-10">
+<button class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-[0_20px_40px_rgba(164,62,36,0.25)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group">
+<span class="material-symbols-outlined text-3xl" data-icon="auto_awesome">auto_awesome</span>
+<!-- Tooltip -->
+<span class="absolute right-20 bg-on-background text-surface text-xs font-bold py-2 px-4 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    AI Content Optimizer
+                </span>
+</button>
+</div>
+</main>
+</body></html>

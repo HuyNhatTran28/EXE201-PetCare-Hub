@@ -1,19 +1,15 @@
 import { useState } from 'react'
-import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
-  PawPrint,
   CheckCircle,
-  CreditCard,
   Building,
   ShieldCheck,
-  Calendar,
-  XCircle,
   ArrowRight,
   PlusCircle,
-  Info,
-  Sparkles,
   QrCode
 } from 'lucide-react'
+
+import { Header } from '@/components/Header'
 
 // Mock Data Thú Cưng có sẵn của User
 const USER_PETS = [
@@ -27,7 +23,6 @@ export const BookingPage = () => {
   
   // Trích xuất các tham số truyền từ trang detail
   const nights = Number(searchParams.get('nights')) || 1
-  const selectedServices = searchParams.get('services')?.split(',') || []
   const initialTotal = Number(searchParams.get('total')) || 750000
 
   // Trạng thái đơn hàng
@@ -49,17 +44,7 @@ export const BookingPage = () => {
     <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans selection:bg-[#fa7150] selection:text-white pb-24">
       
       {/* ── HEADER ── */}
-      <header className="sticky top-0 z-50 bg-[#faf9f6]/90 backdrop-blur-md border-b border-[#e5d8d0] px-6 py-4 flex items-center justify-between h-20">
-        <Link to="/" className="flex items-center gap-2">
-          <PawPrint size={28} className="text-[#fa7150]" />
-          <span className="text-xl font-bold tracking-tight">Pet Sanctuary</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link to="/hotels" className="text-sm font-semibold text-[#5a5550] hover:text-[#fa7150] transition-colors">
-            Hủy bỏ và quay lại
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       {/* MODAL THÀNH CÔNG (Sau khi click hoàn tất) */}
       {isSuccess && (
@@ -70,7 +55,7 @@ export const BookingPage = () => {
             </div>
             <h3 className="text-2xl font-black text-[#303330] mb-2">Đặt phòng thành công!</h3>
             <p className="text-xs text-[#5a5550] leading-relaxed mb-6">
-              Đơn hàng của bạn đã được tiếp nhận. Đội ngũ nhân viên bảo mẫu của Pet Sanctuary sẽ liên hệ với bạn trong vòng 10 phút để xác nhận thủ tục nhận bé cưng.
+              Đơn hàng của bạn đã được tiếp nhận. Đội ngũ nhân viên bảo mẫu của PetCare Hub sẽ liên hệ với bạn trong vòng 10 phút để xác nhận thủ tục nhận bé cưng.
             </p>
             
             {/* Ảnh QR MoMo / VietQR ảo nếu thanh toán qua Ví */}
@@ -256,7 +241,7 @@ export const BookingPage = () => {
                   <div>
                     <h4 className="font-bold text-sm text-[#44683b]">Thanh toán Bảo mật SSL 256-bit</h4>
                     <p className="text-xs text-[#8a7e75] mt-1 leading-relaxed">
-                      Thông tin giao dịch của bạn được mã hóa an toàn tuyệt đối. Pet Sanctuary không bao giờ lưu trữ thông tin chi tiết tài chính hay thẻ ngân hàng của bạn trên hệ thống.
+                      Thông tin giao dịch của bạn được mã hóa an toàn tuyệt đối. PetCare Hub không bao giờ lưu trữ thông tin chi tiết tài chính hay thẻ ngân hàng của bạn trên hệ thống.
                     </p>
                   </div>
                 </div>
@@ -322,7 +307,7 @@ export const BookingPage = () => {
                 </button>
               </form>
               <p className="text-center text-[9px] text-[#8a7e75] mt-4 leading-relaxed">
-                Bằng việc nhấp hoàn tất đặt lịch, bạn đồng ý với <a href="#" className="underline text-[#fa7150]">Điều khoản dịch vụ</a> và <a href="#" className="underline text-[#fa7150]">Chính sách hủy đơn</a> của Pet Sanctuary.
+                Bằng việc nhấp hoàn tất đặt lịch, bạn đồng ý với <a href="#" className="underline text-[#fa7150]">Điều khoản dịch vụ</a> và <a href="#" className="underline text-[#fa7150]">Chính sách hủy đơn</a> của PetCare Hub.
               </p>
 
             </div>

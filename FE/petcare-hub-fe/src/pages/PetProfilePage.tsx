@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Header } from '@/components/Header'
 import {
   PawPrint,
   Heart,
   PlusCircle,
-  Sparkles,
   FileText,
-  Calendar,
   Clock,
   UtensilsCrossed,
-  Activity,
   Smile,
   CheckCircle2,
   AlertCircle,
@@ -18,7 +16,6 @@ import {
   ChevronRight,
   MessageSquare
 } from 'lucide-react'
-import { useAuthStore } from '@/store/authStore'
 import axiosInstance from '@/lib/axios'
 
 interface PetType {
@@ -44,7 +41,6 @@ interface PetType {
 }
 
 export const PetProfilePage = () => {
-  const { user } = useAuthStore()
   const [pets, setPets] = useState<PetType[]>([])
   const [selectedPetId, setSelectedPetId] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -90,25 +86,7 @@ export const PetProfilePage = () => {
     <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans selection:bg-[#ffac98] selection:text-[#751c05] pb-24">
       
       {/* ── HEADER ── */}
-      <nav className="sticky top-0 z-50 bg-[#faf9f6] border-b border-[#e1e3df] transition-all duration-300">
-        <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto w-full">
-          <Link to="/" className="text-2xl font-black text-[#a43e24] tracking-tight font-headline flex items-center gap-2">
-            <PawPrint className="text-[#a43e24]" />
-            The Pet Sanctuary
-          </Link>
-          <div className="hidden md:flex items-center gap-8 font-medium">
-            <Link to="/" className="text-stone-600 hover:text-[#a43e24] transition-all duration-300">Phòng</Link>
-            <Link to="/hotels" className="text-stone-600 hover:text-[#a43e24] transition-all duration-300">Dịch vụ</Link>
-            <Link to="/pets" className="text-[#a43e24] font-bold border-b-2 border-[#a43e24] pb-1">Nhật ký Thú cưng</Link>
-            <span className="text-stone-600 cursor-default">Thành viên</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link to="/partner/bookings" className="bg-[#a43e24] text-[#fff7f6] px-6 py-2 rounded-full font-medium transition-all hover:opacity-90 hover:scale-[1.02]">
-              Lịch đặt phòng
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       {/* ── MAIN CONTENT ── */}
       <main className="max-w-7xl mx-auto px-8 pt-12 pb-24">
@@ -430,19 +408,19 @@ export const PetProfilePage = () => {
       <footer className="bg-[#f4f4f0] border-t border-[#b1b2af]/20 py-12 px-8 text-sm text-[#5d605c] mt-24 text-left">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto w-full">
           <div className="space-y-4">
-            <div className="text-xl font-bold text-[#303330] font-headline">The Pet Sanctuary</div>
+            <div className="text-xl font-bold text-[#303330] font-headline">PetCare Hub</div>
             <p className="text-stone-600">Tạo ra những kỳ nghỉ cá nhân hóa và hạnh phúc nhất cho những người bạn bốn chân của bạn.</p>
           </div>
           <div className="space-y-4">
             <h5 className="font-bold text-[#303330]">Khám phá</h5>
-            <ul class="space-y-2">
+            <ul className="space-y-2">
               <li><Link to="/" className="hover:text-[#a43e24]">Về chúng tôi</Link></li>
               <li><Link to="/hotels" className="hover:text-[#a43e24]">Các khách sạn</Link></li>
             </ul>
           </div>
           <div className="space-y-4">
             <h5 className="font-bold text-[#303330]">Hỗ trợ</h5>
-            <ul class="space-y-2">
+            <ul className="space-y-2">
               <li><span className="cursor-pointer hover:text-[#a43e24]">Trung tâm giúp đỡ</span></li>
               <li><span className="cursor-pointer hover:text-[#a43e24]">Điều khoản & Chính sách</span></li>
             </ul>
@@ -457,7 +435,7 @@ export const PetProfilePage = () => {
           </div>
         </div>
         <div className="max-w-7xl mx-auto w-full mt-12 pt-8 border-t border-[#b1b2af]/20 text-center text-stone-500">
-          © 2026 The Pet Sanctuary. Bảo lưu mọi quyền.
+          © 2026 PetCare Hub. Bảo lưu mọi quyền.
         </div>
       </footer>
 

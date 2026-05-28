@@ -51,7 +51,6 @@ public interface HotelRepository extends
         SELECT DISTINCT h FROM Hotel h
         LEFT JOIN h.roomTypes rt
         WHERE h.status = 'ACTIVE'
-        AND (:petType IS NULL OR :petType MEMBER OF rt.allowedPetTypes)
         AND (:minPrice IS NULL OR rt.pricePerNight >= :minPrice)
         AND (:maxPrice IS NULL OR rt.pricePerNight <= :maxPrice)
         AND (6371 * acos(
@@ -65,7 +64,6 @@ public interface HotelRepository extends
         @Param("lat") Double lat,
         @Param("lng") Double lng,
         @Param("radiusKm") Double radiusKm,
-        @Param("petType") String petType,
         @Param("minPrice") BigDecimal minPrice,
         @Param("maxPrice") BigDecimal maxPrice
     );

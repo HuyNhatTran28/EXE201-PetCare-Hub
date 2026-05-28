@@ -2,11 +2,12 @@ package com.petcare_hub.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import com.petcare_hub.enums.OperationStatus;
+import com.petcare_hub.enums.HotelStatus;
 import com.petcare_hub.base.BaseEntity;
 
 @Entity
@@ -15,6 +16,7 @@ import com.petcare_hub.base.BaseEntity;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Hotel extends BaseEntity {
 
     @ManyToOne
@@ -30,10 +32,19 @@ public class Hotel extends BaseEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> amenities;
 
-    private String standardCheckInTime;
-    private String standardCheckOutTime;
+    private String checkInTime;
+    private String checkOutTime;
+
+    @Builder.Default
+    private Integer totalReviews = 0;
 
     @Enumerated(EnumType.STRING)
-    private OperationStatus status;
+    @Builder.Default
+    private HotelStatus status = HotelStatus.PENDING;
+
     private Double averageRating;
+
+    @OneToMany(mappedBy = "hotel", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<RoomType> roomTypes = new ArrayList<>();
 }

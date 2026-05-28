@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>System Settings | The Pet Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-fixed": "#ffac98",
+              "error": "#aa371c",
+              "on-secondary-fixed-variant": "#486b3e",
+              "background": "#faf9f6",
+              "primary-dim": "#943219",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed-dim": "#ff987e",
+              "surface-dim": "#d9dbd6",
+              "on-secondary": "#ebffdf",
+              "outline": "#797b78",
+              "surface-container-high": "#e8e8e4",
+              "on-secondary-fixed": "#2c4e24",
+              "error-dim": "#821a01",
+              "on-primary-fixed": "#520d00",
+              "on-primary": "#fff7f6",
+              "surface-tint": "#a43e24",
+              "surface-variant": "#e1e3df",
+              "on-tertiary-container": "#63564b",
+              "surface": "#faf9f6",
+              "tertiary-fixed-dim": "#efdccd",
+              "tertiary-fixed": "#feeadb",
+              "surface-container-low": "#f4f4f0",
+              "on-tertiary": "#fff7f4",
+              "on-tertiary-fixed": "#504439",
+              "inverse-surface": "#0d0f0d",
+              "on-error": "#fff7f6",
+              "on-surface": "#303330",
+              "tertiary-container": "#feeadb",
+              "secondary-container": "#d0fac0",
+              "inverse-primary": "#ff8162",
+              "inverse-on-surface": "#9d9d9a",
+              "secondary-fixed-dim": "#c2ebb2",
+              "outline-variant": "#b1b2af",
+              "on-background": "#303330",
+              "surface-bright": "#faf9f6",
+              "secondary-fixed": "#d0fac0",
+              "primary-container": "#ffac98",
+              "tertiary-dim": "#5e5145",
+              "tertiary": "#6a5d51",
+              "primary": "#a43e24",
+              "on-primary-fixed-variant": "#81240d",
+              "on-secondary-container": "#3e6135",
+              "surface-container-highest": "#e1e3df",
+              "surface-container": "#eeeeea",
+              "secondary": "#44683b",
+              "on-error-container": "#671200",
+              "secondary-dim": "#395c30",
+              "on-primary-container": "#751c05",
+              "error-container": "#fa7150",
+              "on-tertiary-fixed-variant": "#6e6054",
+              "on-surface-variant": "#5d605c"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Be Vietnam Pro"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-shift-only { border: none !important; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface">
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-0 flex flex-col h-full py-8 z-50 bg-[#f4f4f0] dark:bg-[#3c3f3c] h-screen w-72 rounded-r-[3rem] overflow-hidden shadow-[20px_0_40px_rgba(48,51,48,0.06)]">
+<div class="px-8 mb-10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined">pets</span>
+</div>
+<div>
+<h2 class="font-['Plus_Jakarta_Sans'] font-extrabold text-[#303330] dark:text-[#faf9f6] text-lg leading-tight">Sanctuary Admin</h2>
+<p class="text-xs text-secondary opacity-80 uppercase tracking-widest">Premium Pet Care</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center text-[#44683b] dark:text-[#b1b2af] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 dark:hover:bg-white/5 rounded-full transition-all mx-4" href="#">
+<span class="material-symbols-outlined mr-3">calendar_month</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Bookings</span>
+</a>
+<a class="flex items-center text-[#44683b] dark:text-[#b1b2af] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 dark:hover:bg-white/5 rounded-full transition-all mx-4" href="#">
+<span class="material-symbols-outlined mr-3">inventory_2</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Inventory</span>
+</a>
+<a class="flex items-center text-[#44683b] dark:text-[#b1b2af] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 dark:hover:bg-white/5 rounded-full transition-all mx-4" href="#">
+<span class="material-symbols-outlined mr-3">groups</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">CRM</span>
+</a>
+<a class="flex items-center text-[#44683b] dark:text-[#b1b2af] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 dark:hover:bg-white/5 rounded-full transition-all mx-4" href="#">
+<span class="material-symbols-outlined mr-3">analytics</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Analytics</span>
+</a>
+<a class="flex items-center text-[#44683b] dark:text-[#b1b2af] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 dark:hover:bg-white/5 rounded-full transition-all mx-4" href="#">
+<span class="material-symbols-outlined mr-3">workspace_premium</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Loyalty</span>
+</a>
+<a class="flex items-center text-[#44683b] dark:text-[#b1b2af] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 dark:hover:bg-white/5 rounded-full transition-all mx-4" href="#">
+<span class="material-symbols-outlined mr-3">badge</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Staff Management</span>
+</a>
+<a class="flex items-center bg-white dark:bg-[#303330] text-[#a43e24] rounded-full mx-4 shadow-sm font-bold px-8 py-3 transition-all" href="#">
+<span class="material-symbols-outlined mr-3">settings</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Settings</span>
+</a>
+</nav>
+<div class="px-8 mt-auto pt-8 border-t border-outline-variant/10">
+<a class="flex items-center text-[#44683b] py-2 hover:text-primary transition-colors mb-2" href="#">
+<span class="material-symbols-outlined mr-3">contact_support</span>
+<span class="text-sm">Support</span>
+</a>
+<a class="flex items-center text-[#44683b] py-2 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mr-3">logout</span>
+<span class="text-sm">Logout</span>
+</a>
+</div>
+</aside>
+<main class="ml-72 min-h-screen">
+<!-- TopNavBar (Shared Component) -->
+<header class="flex justify-between items-center px-8 py-4 w-full sticky top-0 z-40 bg-[#faf9f6] dark:bg-[#303330] shadow-none">
+<div class="flex items-center bg-surface-container-high rounded-full px-4 py-2 w-96">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full ml-2 font-body" placeholder="Search settings..." type="text"/>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 text-[#44683b] dark:text-[#b1b2af]">
+<span class="material-symbols-outlined cursor-pointer hover:bg-[#e8e8e4] p-2 rounded-full transition-colors">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:bg-[#e8e8e4] p-2 rounded-full transition-colors">chat_bubble</span>
+<span class="material-symbols-outlined cursor-pointer hover:bg-[#e8e8e4] p-2 rounded-full transition-colors">help_outline</span>
+</div>
+<div class="h-10 w-10 rounded-full overflow-hidden border-2 border-primary-fixed">
+<img class="w-full h-full object-cover" data-alt="Admin Profile Avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAg8P4cMs8VR-Vup-Tf8RvD1UQUZJOIkOMF9UEZF8LEaM_n1ckCdipIS7zY0udUm9wtp1JSSC0dhR62g1IbEswbGK64mf-o-uRCMgKVYp75KLBJcXKZJc5Qb71d_ux4mTvBm6UzU6WbPtMnx3jyEIzqqKfCImwvgi0bNZfC2alQ3fqDF1E8PKSyXD6hs0NgjyyTfECt4Z7YTYrl4P4BKV3fwzI1jNovBJg8GF_RlsvA4uGERH8EG3_Y-wZm-ybYlO9j1ZcPs1Ezj0Ia"/>
+</div>
+</div>
+</header>
+<div class="p-10 max-w-6xl mx-auto">
+<div class="mb-12">
+<h1 class="font-headline text-4xl font-bold text-on-surface mb-2 tracking-tight">System Settings</h1>
+<p class="text-on-surface-variant font-body">Configure your sanctuary's automated systems and global parameters.</p>
+</div>
+<!-- Settings Tabs -->
+<div class="flex gap-4 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+<button class="px-6 py-3 rounded-full bg-white text-primary font-bold shadow-sm whitespace-nowrap">
+                    Communication Channels
+                </button>
+<button class="px-6 py-3 rounded-full bg-surface-container-low text-secondary hover:bg-surface-container-high transition-all whitespace-nowrap">
+                    Notification Templates
+                </button>
+<button class="px-6 py-3 rounded-full bg-surface-container-low text-secondary hover:bg-surface-container-high transition-all whitespace-nowrap">
+                    General Parameters
+                </button>
+<button class="px-6 py-3 rounded-full bg-surface-container-low text-secondary hover:bg-surface-container-high transition-all whitespace-nowrap">
+                    Access Control
+                </button>
+</div>
+<!-- Bento Grid Content -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Communication Channels Section -->
+<div class="col-span-12 lg:col-span-7 space-y-8">
+<section class="bg-surface-container-lowest p-8 rounded-xl shadow-[0_20px_40px_rgba(48,51,48,0.03)] relative overflow-hidden">
+<div class="absolute -right-10 -top-10 w-40 h-40 bg-secondary-container/20 rounded-full blur-3xl"></div>
+<h3 class="font-headline text-xl font-bold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">sensors</span>
+                            Active Channels
+                        </h3>
+<div class="space-y-6">
+<!-- Channel: Email -->
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg group hover:bg-white transition-all">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">mail</span>
+</div>
+<div>
+<p class="font-bold">Email Notifications</p>
+<p class="text-sm text-on-surface-variant">Transactional emails via SendGrid</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-outline-variant rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Channel: SMS -->
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg group hover:bg-white transition-all">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">sms</span>
+</div>
+<div>
+<p class="font-bold">SMS (Twilio)</p>
+<p class="text-sm text-on-surface-variant">Instant alerts for check-ins</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-outline-variant rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Channel: Zalo -->
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg group hover:bg-white transition-all border border-transparent hover:border-secondary/10">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">chat</span>
+</div>
+<div>
+<p class="font-bold">Zalo Official Account</p>
+<p class="text-sm text-on-surface-variant">Regional integration for Vietnam</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-outline-variant rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</section>
+<!-- General Parameters -->
+<section class="bg-surface-container-lowest p-8 rounded-xl shadow-[0_20px_40px_rgba(48,51,48,0.03)]">
+<h3 class="font-headline text-xl font-bold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">tune</span>
+                            General Parameters
+                        </h3>
+<div class="grid grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-secondary">Global Currency</label>
+<select class="w-full bg-surface-container-high border-none rounded-md p-3 font-body focus:ring-2 focus:ring-secondary/20 transition-all">
+<option>USD ($) - United States Dollar</option>
+<option>VND (₫) - Vietnamese Dong</option>
+<option>EUR (€) - Euro</option>
+</select>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-secondary">Timezone</label>
+<select class="w-full bg-surface-container-high border-none rounded-md p-3 font-body focus:ring-2 focus:ring-secondary/20 transition-all">
+<option>(GMT+07:00) Bangkok, Hanoi</option>
+<option>(GMT-08:00) Pacific Time</option>
+<option>(GMT+00:00) London</option>
+</select>
+</div>
+<div class="space-y-2 col-span-2">
+<label class="text-xs font-bold uppercase tracking-widest text-secondary">Booking Buffer Time (Minutes)</label>
+<div class="flex items-center gap-4">
+<input class="w-full accent-primary" max="120" min="15" step="15" type="range" value="45"/>
+<span class="font-bold text-primary w-12">45m</span>
+</div>
+<p class="text-xs text-on-surface-variant">Minimum time between consecutive room bookings for cleaning.</p>
+</div>
+</div>
+</section>
+</div>
+<!-- Template Editor Section -->
+<div class="col-span-12 lg:col-span-5">
+<section class="bg-primary/5 p-8 rounded-xl h-full border border-primary/10 relative">
+<div class="absolute top-8 right-8 text-primary/20">
+<span class="material-symbols-outlined text-6xl" style="font-variation-settings: 'FILL' 1;">edit_note</span>
+</div>
+<h3 class="font-headline text-xl font-bold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">auto_fix_high</span>
+                            Notification Templates
+                        </h3>
+<div class="space-y-6">
+<div>
+<label class="text-sm font-bold block mb-2">Template to Edit</label>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-primary text-on-primary rounded-full text-xs font-medium cursor-pointer">Check-in confirmation</span>
+<span class="px-3 py-1 bg-white text-on-surface-variant rounded-full text-xs font-medium cursor-pointer border border-outline-variant/30">Birthday wishes</span>
+<span class="px-3 py-1 bg-white text-on-surface-variant rounded-full text-xs font-medium cursor-pointer border border-outline-variant/30">Vaccine reminders</span>
+</div>
+</div>
+<div class="bg-white p-6 rounded-lg shadow-sm border border-outline-variant/10">
+<div class="mb-4">
+<label class="text-xs font-bold uppercase text-outline">Subject Line</label>
+<input class="w-full mt-1 border-none bg-surface-container-low rounded p-2 text-sm font-body focus:ring-0" type="text" value="Woohoo! {{pet_name}} is booked for their stay!"/>
+</div>
+<div>
+<label class="text-xs font-bold uppercase text-outline">Message Body</label>
+<div class="mt-2 text-xs flex gap-2 mb-2">
+<span class="bg-secondary-container px-2 py-0.5 rounded text-on-secondary-container cursor-pointer">{{pet_name}}</span>
+<span class="bg-secondary-container px-2 py-0.5 rounded text-on-secondary-container cursor-pointer">{{check_in_date}}</span>
+<span class="bg-secondary-container px-2 py-0.5 rounded text-on-secondary-container cursor-pointer">{{room_type}}</span>
+</div>
+<textarea class="w-full border-none bg-surface-container-low rounded p-4 text-sm font-body focus:ring-0 leading-relaxed" rows="6">Hi {{owner_name}},
+
+We're so excited to welcome {{pet_name}} to The Pet Sanctuary on {{check_in_date}}! 
+
+Your {{room_type}} is all prepared with fresh linens and their favorite toys. Please remember to bring their current vaccination records if you haven't uploaded them yet.
+
+Warmly,
+The Sanctuary Team</textarea>
+</div>
+</div>
+<div class="flex gap-4">
+<button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-full hover:bg-primary-dim transition-all active:scale-95">
+                                    Save Template
+                                </button>
+<button class="px-4 bg-white text-secondary rounded-full border border-outline-variant/20 hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer Actions -->
+<div class="col-span-12 flex justify-end gap-4 mt-8 pt-8 border-t border-outline-variant/10">
+<button class="px-8 py-3 rounded-full text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors">
+                        Discard Changes
+                    </button>
+<button class="px-12 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+                        Apply Global Settings
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Chatbot Anchor (Contextual) -->
+<div class="fixed bottom-8 right-8 z-50">
+<button class="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-xl flex items-center justify-center hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">smart_toy</span>
+</button>
+</div>
+</body></html>

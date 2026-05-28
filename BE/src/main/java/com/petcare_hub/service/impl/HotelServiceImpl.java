@@ -36,9 +36,11 @@ public class HotelServiceImpl implements HotelService {
             Double lat, Double lng, Double radiusKm,
             String petType, BigDecimal minPrice, BigDecimal maxPrice) {
         
-        return hotelRepository
-                .findHotelsWithFilter(lat, lng, radiusKm, petType, minPrice, maxPrice)
-                .stream()
+        List<Hotel> hotels = hotelRepository.findHotelsWithFilter(lat, lng, radiusKm, minPrice, maxPrice);
+
+        return hotels.stream()
+                .filter(h -> petType == null || (h.getRoomTypes() != null && h.getRoomTypes().stream()
+                        .anyMatch(rt -> rt.getAllowedPetTypes() != null && rt.getAllowedPetTypes().contains(petType))))
                 .map(this::toResponse)
                 .toList();
     }
@@ -166,6 +168,15 @@ public class HotelServiceImpl implements HotelService {
     }
 
     private HotelResponse toResponse(Hotel hotel) {
+        BigDecimal minPrice = null;
+        if (hotel.getRoomTypes() != null) {
+            minPrice = hotel.getRoomTypes().stream()
+                    .filter(rt -> rt.getPricePerNight() != null)
+                    .map(com.petcare_hub.entity.RoomType::getPricePerNight)
+                    .min(BigDecimal::compareTo)
+                    .orElse(null);
+        }
+
         return HotelResponse.builder()
                 .id(hotel.getId())
                 .partnerId(hotel.getPartner().getId())
@@ -181,6 +192,7 @@ public class HotelServiceImpl implements HotelService {
                 .status(hotel.getStatus())
                 .averageRating(hotel.getAverageRating())
                 .totalReviews(hotel.getTotalReviews())
+                .minPrice(minPrice)
                 .createdAt(hotel.getCreatedAt())
                 .build();
     }

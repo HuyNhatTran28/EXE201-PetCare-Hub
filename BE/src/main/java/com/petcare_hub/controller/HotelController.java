@@ -97,30 +97,4 @@ public class HotelController {
         return ResponseEntity.ok(hotelService.updateHotel(id, partnerId, request));
     }
 
-    // ── GET /api/hotels/nearby — Tìm KS gần GPS ───────────────
-    @Operation(summary = "Tìm khách sạn gần vị trí hiện tại")
-    @GetMapping("/nearby")
-    public ResponseEntity<List<HotelResponse>> findNearby(
-            @RequestParam Double lat,
-            @RequestParam Double lng,
-            @RequestParam(defaultValue = "5") Double radius) {
-
-        return ResponseEntity.ok(
-                hotelService.findNearbyHotels(lat, lng, radius));
-    }
-
-    // ── GET /api/hotels/search — Tìm kiếm KS có bộ lọc tích hợp ────────
-    @Operation(summary = "Tìm kiếm khách sạn có bộ lọc tích hợp")
-    @GetMapping("/search")
-    public ResponseEntity<List<HotelResponse>> searchHotels(
-            @RequestParam Double lat,
-            @RequestParam Double lng,
-            @RequestParam(defaultValue = "10") Double radius,
-            @RequestParam(required = false) String petType,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice) {
-
-        return ResponseEntity.ok(
-            hotelService.searchHotels(lat, lng, radius, petType, minPrice, maxPrice));
-    }
 }
