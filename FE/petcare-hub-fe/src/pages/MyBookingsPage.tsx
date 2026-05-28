@@ -1,23 +1,14 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Header } from '@/components/Header'
 import {
-  PawPrint,
   Heart,
-  Calendar,
-  Camera,
-  MessageSquare,
-  Sparkles,
-  Info,
-  CheckCircle2,
   Smile,
   Activity,
   Utensils,
   Video,
   Phone,
   Send,
-  PlusCircle,
-  FileImage,
-  ArrowLeft
+  PlusCircle
 } from 'lucide-react'
 
 // Mock Chat history
@@ -66,17 +57,7 @@ export const MyBookingsPage = () => {
     <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans selection:bg-[#fa7150] selection:text-white pb-24">
       
       {/* ── HEADER ── */}
-      <header className="sticky top-0 z-50 bg-[#faf9f6]/90 backdrop-blur-md border-b border-[#e5d8d0] px-6 py-4 flex items-center justify-between h-20">
-        <Link to="/" className="flex items-center gap-2">
-          <PawPrint size={28} className="text-[#fa7150]" />
-          <span className="text-xl font-bold tracking-tight">Pet Sanctuary</span>
-        </Link>
-        <div className="flex items-center gap-6">
-          <Link to="/" className="text-sm font-semibold text-[#5a5550] hover:text-[#fa7150] transition-colors">Trang chủ</Link>
-          <Link to="/hotels" className="text-sm font-semibold text-[#5a5550] hover:text-[#fa7150] transition-colors">Khách sạn</Link>
-          <Link to="/my-bookings" className="text-sm font-bold text-[#fa7150] border-b-2 border-[#fa7150] pb-1">Nhật ký</Link>
-        </div>
-      </header>
+      <Header />
 
       {/* ── MAIN CONTENT ── */}
       <main className="max-w-7xl mx-auto px-6 py-10">

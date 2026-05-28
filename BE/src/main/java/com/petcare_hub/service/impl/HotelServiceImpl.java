@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,6 +28,22 @@ public class HotelServiceImpl implements HotelService {
 
     private final HotelRepository hotelRepository;
     private final UserRepository userRepository;
+
+    // ── Tìm kiếm KS có bộ lọc tích hợp ─────────────────────────
+    @Override
+    @Transactional(readOnly = true)
+    public List<HotelResponse> searchHotels(
+            Double lat, Double lng, Double radiusKm,
+            String petType, BigDecimal minPrice, BigDecimal maxPrice) {
+        
+        List<Hotel> hotels = hotelRepository.findHotelsWithFilter(lat, lng, radiusKm, minPrice, maxPrice);
+
+        return hotels.stream()
+                .filter(h -> petType == null || (h.getRoomTypes() != null && h.getRoomTypes().stream()
+                        .anyMatch(rt -> rt.getAllowedPetTypes() != null && rt.getAllowedPetTypes().contains(petType))))
+                .map(this::toResponse)
+                .toList();
+    }
 
     // ── Tạo KS mới ────────────────────────────────────────────
 
@@ -151,6 +168,15 @@ public class HotelServiceImpl implements HotelService {
     }
 
     private HotelResponse toResponse(Hotel hotel) {
+        BigDecimal minPrice = null;
+        if (hotel.getRoomTypes() != null) {
+            minPrice = hotel.getRoomTypes().stream()
+                    .filter(rt -> rt.getPricePerNight() != null)
+                    .map(com.petcare_hub.entity.RoomType::getPricePerNight)
+                    .min(BigDecimal::compareTo)
+                    .orElse(null);
+        }
+
         return HotelResponse.builder()
                 .id(hotel.getId())
                 .partnerId(hotel.getPartner().getId())
@@ -166,6 +192,7 @@ public class HotelServiceImpl implements HotelService {
                 .status(hotel.getStatus())
                 .averageRating(hotel.getAverageRating())
                 .totalReviews(hotel.getTotalReviews())
+                .minPrice(minPrice)
                 .createdAt(hotel.getCreatedAt())
                 .build();
     }

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pet Profiles | The Pet Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-dim": "#821a01",
+              "on-tertiary-container": "#63564b",
+              "outline": "#797b78",
+              "primary-fixed-dim": "#ff987e",
+              "surface-container": "#eeeeea",
+              "tertiary": "#6a5d51",
+              "surface-variant": "#e1e3df",
+              "tertiary-fixed": "#feeadb",
+              "on-secondary-fixed-variant": "#486b3e",
+              "on-surface-variant": "#5d605c",
+              "surface-container-high": "#e8e8e4",
+              "on-background": "#303330",
+              "secondary-container": "#d0fac0",
+              "surface-tint": "#a43e24",
+              "on-surface": "#303330",
+              "surface-dim": "#d9dbd6",
+              "on-tertiary-fixed": "#504439",
+              "surface-container-highest": "#e1e3df",
+              "on-error": "#fff7f6",
+              "surface": "#faf9f6",
+              "primary-container": "#ffac98",
+              "secondary-fixed": "#d0fac0",
+              "surface-container-low": "#f4f4f0",
+              "on-primary": "#fff7f6",
+              "on-secondary-fixed": "#2c4e24",
+              "surface-container-lowest": "#ffffff",
+              "on-secondary-container": "#3e6135",
+              "primary-fixed": "#ffac98",
+              "inverse-primary": "#ff8162",
+              "outline-variant": "#b1b2af",
+              "primary": "#a43e24",
+              "tertiary-dim": "#5e5145",
+              "error": "#aa371c",
+              "error-container": "#fa7150",
+              "tertiary-container": "#feeadb",
+              "on-tertiary": "#fff7f4",
+              "tertiary-fixed-dim": "#efdccd",
+              "secondary-fixed-dim": "#c2ebb2",
+              "inverse-surface": "#0d0f0d",
+              "on-error-container": "#671200",
+              "on-secondary": "#ebffdf",
+              "primary-dim": "#943219",
+              "secondary-dim": "#395c30",
+              "on-primary-fixed-variant": "#81240d",
+              "background": "#faf9f6",
+              "inverse-on-surface": "#9d9d9a",
+              "on-primary-fixed": "#520d00",
+              "surface-bright": "#faf9f6",
+              "on-primary-container": "#751c05",
+              "secondary": "#44683b",
+              "on-tertiary-fixed-variant": "#6e6054"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Be Vietnam Pro"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      .sunlight-shadow {
+        box-shadow: 0 20px 40px rgba(48, 51, 48, 0.06);
+      }
+      .primary-glow {
+        background: linear-gradient(135deg, #a43e24 0%, #ffac98 100%);
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        vertical-align: middle;
+      }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar Shell -->
+<nav class="docked full-width top-0 z-50 no-border bg-[#faf9f6] dark:bg-stone-950 transition-all duration-300">
+<div class="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto w-full">
+<div class="text-2xl font-bold text-[#a43e24] tracking-tight font-headline">The Pet Sanctuary</div>
+<div class="hidden md:flex items-center gap-8 font-['Plus_Jakarta_Sans'] text-base font-medium">
+<a class="text-stone-600 dark:text-stone-300 hover:text-[#a43e24] transition-all duration-300 hover:opacity-80" href="#">Rooms</a>
+<a class="text-stone-600 dark:text-stone-300 hover:text-[#a43e24] transition-all duration-300 hover:opacity-80" href="#">Services</a>
+<a class="text-[#a43e24] font-bold border-b-2 border-[#a43e24] pb-1" href="#">Pet Diary</a>
+<a class="text-stone-600 dark:text-stone-300 hover:text-[#a43e24] transition-all duration-300 hover:opacity-80" href="#">Loyalty</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden sm:block text-[#a43e24] font-medium transition-all duration-300 hover:opacity-80">Login</button>
+<button class="bg-[#a43e24] text-[#fff7f6] px-6 py-2 rounded-full font-medium transition-transform scale-102 hover:opacity-90">Book Now</button>
+</div>
+</div>
+</nav>
+<main class="max-w-7xl mx-auto px-8 pt-12 pb-24">
+<!-- Header & Add Action -->
+<header class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+<div class="space-y-2">
+<span class="text-secondary font-label font-semibold tracking-wider uppercase text-xs">Member Dashboard</span>
+<h1 class="text-5xl font-extrabold font-headline tracking-tight text-on-surface">Your Pet Family</h1>
+<p class="text-on-surface-variant text-lg max-w-lg">Manage profiles, medical history, and personalized care schedules for your beloved companions.</p>
+</div>
+<button class="primary-glow text-on-primary px-8 py-4 rounded-full font-bold flex items-center gap-3 sunlight-shadow hover:scale-105 transition-transform group">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+                Add New Pet
+            </button>
+</header>
+<!-- Bento Grid: Pet Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-20">
+<!-- LuLu Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 sunlight-shadow group cursor-pointer border-2 border-transparent hover:border-primary/10 transition-all">
+<div class="relative mb-6">
+<div class="aspect-square rounded-lg overflow-hidden relative">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Happy Corgi dog sitting on a rug" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-nQegGnO3kXZ_lQIy4oZyrZaWJdZh0pSmKO-Ce0ADsziFAy5Hs1w7p54wqkxj-S7OnKCKgn4_GKY-Wlb1lHV68k4ZNfrSQMkz-PjvivJvuG83RakEaIiIPIRIi4tAVxa-SZHEAl2rMsboziK2iUp2rL5lx8GHfPleTcpQOCgtVGi2Vz1fVGapJPotIO38YsBlRxZQ1gd2ds2FEFYPBB1m5bHVPSpEZN8ovdw288P2BEgPjiWCS8dU0484cm_tgnVkE3HcrQy2InBJ"/>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<span class="absolute -bottom-3 -right-3 bg-secondary-container text-on-secondary-container text-xs font-bold px-4 py-1.5 rounded-full shadow-sm">Active Guest</span>
+</div>
+<h3 class="font-headline text-2xl font-bold text-on-surface">LuLu</h3>
+<p class="text-on-surface-variant font-medium flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-sm" data-icon="pets">pets</span>
+                    Corgi • 4 Years
+                </p>
+<div class="flex gap-2">
+<span class="bg-surface-container-high px-3 py-1 rounded-md text-xs font-semibold text-on-surface-variant">Healthy</span>
+<span class="bg-surface-container-high px-3 py-1 rounded-md text-xs font-semibold text-on-surface-variant">Vaccinated</span>
+</div>
+</div>
+<!-- Mimi Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 sunlight-shadow group cursor-pointer border-2 border-transparent hover:border-primary/10 transition-all scale-105 ring-2 ring-primary/20">
+<div class="relative mb-6">
+<div class="aspect-square rounded-lg overflow-hidden relative">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Elegant grey cat looking at camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxzowkYfXQyI160i0uiICBX-iCMcEtcA2PLG46zJv2TN0xqmefTm3N3la6lQqfVd8OPkgT2jAMU0IyC1ECaAv0F1Kaj5f6gIcQLp-v_aUhIJyGz4x-fhLTjlDfhIWPDXw4M3fta4WSA7dXh61Hzi2O-I4ZuFtbjwa59Z0jx8cc_ASJCKEQeZarRCCqa4Y1lnKrLLld2tItJMvUs-J64iibH4slxo5_4x1KTGF2hMYMeaA68ixZ9e5flw-hxGYkIdqEoxDDzKQAmjTP"/>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<span class="absolute -bottom-3 -right-3 bg-primary-container text-on-primary-container text-xs font-bold px-4 py-1.5 rounded-full shadow-sm">Selected</span>
+</div>
+<h3 class="font-headline text-2xl font-bold text-on-surface">Mimi</h3>
+<p class="text-on-surface-variant font-medium flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-sm" data-icon="pets">pets</span>
+                    Siamese Cat • 2 Years
+                </p>
+<div class="flex gap-2">
+<span class="bg-surface-container-high px-3 py-1 rounded-md text-xs font-semibold text-on-surface-variant">Indoor</span>
+<span class="bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-md text-xs font-semibold">Special Diet</span>
+</div>
+</div>
+<!-- Empty State / Add Placeholder -->
+<div class="bg-surface-container-low rounded-xl p-6 flex flex-col items-center justify-center text-center border-2 border-dashed border-outline-variant hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="w-16 h-16 rounded-full bg-surface-container-highest flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-outline text-3xl" data-icon="add">add</span>
+</div>
+<p class="font-headline font-bold text-on-surface-variant">Add Another Friend</p>
+<p class="text-xs text-outline mt-1">Multi-pet discount applies</p>
+</div>
+</div>
+<!-- Detailed View (Asymmetric Layout) -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+<!-- Sticky Profile Sidebar -->
+<div class="lg:col-span-4 space-y-8 lg:sticky lg:top-24">
+<div class="bg-surface-container-lowest p-8 rounded-xl sunlight-shadow overflow-hidden relative">
+<div class="absolute top-0 right-0 w-32 h-32 bg-secondary-container/30 rounded-full -mr-16 -mt-16"></div>
+<div class="relative z-10 flex flex-col items-center">
+<div class="w-32 h-32 rounded-full border-4 border-surface-container-low overflow-hidden mb-6">
+<img class="w-full h-full object-cover" data-alt="Close up of Siamese cat profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZlSRNQKOvhFslxGLFmoqubp9G0lg22Dyt93T55MSEM3mTt9exhOjf8kPlV9DakpH1FA_unjCrHD4jg5x7QRje6l2ET3pPR8OUcZvKLiXAhhtiIf0U6rWeYGgBSmUvSuc9mnLcOOienGXhjdn-QCyVGmequH4QBHxv3duOCKHOt-LHFdEe0Zx8wa-G5sjpLjBTifck5p0skJx_KU2D5r80GQc1M2Kz-z-QLtXcpu5L80mXYpud80_V1VW3KBMSEWpOK91Q7HDZvKQ-"/>
+</div>
+<h2 class="text-3xl font-bold font-headline text-on-surface">Mimi's Stats</h2>
+<div class="grid grid-cols-2 gap-4 w-full mt-8">
+<div class="bg-surface-container-low p-4 rounded-lg text-center">
+<span class="block text-xs font-bold text-secondary uppercase mb-1">Weight</span>
+<span class="text-xl font-headline font-bold">4.2 kg</span>
+</div>
+<div class="bg-surface-container-low p-4 rounded-lg text-center">
+<span class="block text-xs font-bold text-secondary uppercase mb-1">Age</span>
+<span class="text-xl font-headline font-bold">2.5 Yrs</span>
+</div>
+</div>
+<div class="w-full mt-6 space-y-4">
+<div class="flex justify-between items-center text-sm p-3 bg-surface-container-lowest border-b border-outline-variant/10">
+<span class="text-on-surface-variant">Microchip ID</span>
+<span class="font-mono font-bold">#8821-XP</span>
+</div>
+<div class="flex justify-between items-center text-sm p-3 bg-surface-container-lowest border-b border-outline-variant/10">
+<span class="text-on-surface-variant">Breed</span>
+<span class="font-bold">Siamese</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="bg-secondary text-on-secondary p-8 rounded-xl sunlight-shadow flex flex-col gap-4">
+<h4 class="font-headline font-bold text-xl">Next Stay</h4>
+<p class="text-sm opacity-90">Mimi is scheduled for the "Garden Suite" on Oct 12th.</p>
+<button class="bg-on-secondary text-secondary w-full py-3 rounded-full font-bold text-sm hover:opacity-90 transition-opacity">Manage Booking</button>
+</div>
+</div>
+<!-- Detailed Content -->
+<div class="lg:col-span-8 space-y-12">
+<!-- Health Notes Section -->
+<div class="bg-surface-container-low rounded-xl p-8 md:p-12 relative overflow-hidden">
+<div class="flex items-center gap-4 mb-8">
+<div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" data-icon="clinical_notes">clinical_notes</span>
+</div>
+<h3 class="text-3xl font-extrabold font-headline">Health &amp; Care Notes</h3>
+</div>
+<div class="space-y-6">
+<div class="glass-card p-6 rounded-lg sunlight-shadow">
+<h4 class="font-bold text-lg mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="restaurant">restaurant</span>
+                                Dietary Requirements
+                            </h4>
+<p class="text-on-surface-variant leading-relaxed">Mimi requires grain-free wet food twice daily. Prefers slightly warmed salmon topper. Please avoid any chicken-based treats as she has a mild sensitivity.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-surface-container-lowest p-6 rounded-lg border-l-4 border-secondary">
+<h4 class="font-bold mb-2">Exercise Routine</h4>
+<p class="text-sm text-on-surface-variant">High-energy play sessions for 15 minutes twice a day. Loves feather wands and laser pointers.</p>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-lg border-l-4 border-tertiary">
+<h4 class="font-bold mb-2">Social Temperament</h4>
+<p class="text-sm text-on-surface-variant">Friendly but shy at first. Prefers a quiet environment away from large dogs. Enjoys vertical spaces.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Vaccination Timeline -->
+<div>
+<div class="flex items-center justify-between mb-8 px-4">
+<h3 class="text-3xl font-extrabold font-headline">Vaccination History</h3>
+<button class="text-primary font-bold flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined" data-icon="upload_file">upload_file</span>
+                            Upload PDF
+                        </button>
+</div>
+<div class="space-y-4">
+<!-- Record 1 -->
+<div class="flex gap-6 group">
+<div class="flex flex-col items-center">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-secondary z-10 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-sm" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="w-0.5 h-full bg-outline-variant/30 mt-2"></div>
+</div>
+<div class="bg-surface-container-lowest flex-1 p-6 rounded-lg sunlight-shadow mb-4">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-lg">Rabies Booster</h4>
+<p class="text-sm text-on-surface-variant">Administered by Dr. Aris Thorne</p>
+</div>
+<span class="text-xs font-bold text-secondary bg-secondary-fixed-dim px-3 py-1 rounded-full uppercase tracking-tighter">Completed</span>
+</div>
+<div class="mt-4 flex items-center gap-4 text-xs font-semibold text-outline">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="calendar_today">calendar_today</span> Aug 14, 2023</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="refresh">refresh</span> Next Due: Aug 2026</span>
+</div>
+</div>
+</div>
+<!-- Record 2 -->
+<div class="flex gap-6 group">
+<div class="flex flex-col items-center">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-secondary z-10 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-sm" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="w-0.5 h-full bg-outline-variant/30 mt-2"></div>
+</div>
+<div class="bg-surface-container-lowest flex-1 p-6 rounded-lg sunlight-shadow mb-4">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-lg">FVRCP Vaccination</h4>
+<p class="text-sm text-on-surface-variant">Core cat vaccine (Distemper)</p>
+</div>
+<span class="text-xs font-bold text-secondary bg-secondary-fixed-dim px-3 py-1 rounded-full uppercase tracking-tighter">Completed</span>
+</div>
+<div class="mt-4 flex items-center gap-4 text-xs font-semibold text-outline">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="calendar_today">calendar_today</span> Mar 02, 2024</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="refresh">refresh</span> Next Due: Mar 2025</span>
+</div>
+</div>
+</div>
+<!-- Record 3 (Pending) -->
+<div class="flex gap-6 group">
+<div class="flex flex-col items-center">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-primary z-10 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-sm" data-icon="notifications" style="font-variation-settings: 'FILL' 1;">notifications</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest flex-1 p-6 rounded-lg sunlight-shadow border-2 border-primary/10">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-lg">Feline Leukemia (FeLV)</h4>
+<p class="text-sm text-on-surface-variant">Recommended for outdoor exposure</p>
+</div>
+<span class="text-xs font-bold text-primary bg-primary-container px-3 py-1 rounded-full uppercase tracking-tighter">Due Soon</span>
+</div>
+<p class="mt-4 text-sm font-medium text-error flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="event_busy">event_busy</span>
+                                    Expires in 14 days. Book a vet visit via sanctuary.
+                                </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Nurture Chatbot -->
+<button class="fixed bottom-8 right-8 w-16 h-16 primary-glow rounded-full sunlight-shadow flex items-center justify-center text-on-primary z-50 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl" data-icon="chat_bubble">chat_bubble</span>
+</button>
+<!-- Footer Shell -->
+<footer class="bg-[#f4f4f0] dark:bg-stone-900 full-width py-12 px-8 font-['Be_Vietnam_Pro'] text-sm leading-relaxed border-t border-outline-variant/10">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto w-full">
+<div class="space-y-4">
+<div class="text-xl font-bold text-[#303330] dark:text-white font-headline">The Pet Sanctuary</div>
+<p class="text-stone-600 dark:text-stone-400">Crafting personalized retreats for your furry companions since 2018.</p>
+</div>
+<div class="space-y-4">
+<h5 class="font-bold text-on-surface">Explore</h5>
+<ul class="space-y-2">
+<li><a class="text-stone-600 dark:text-stone-400 hover:text-[#44683b] hover:translate-x-1 transition-transform inline-block" href="#">About Us</a></li>
+<li><a class="text-stone-600 dark:text-stone-400 hover:text-[#44683b] hover:translate-x-1 transition-transform inline-block" href="#">Contact</a></li>
+<li><a class="text-stone-600 dark:text-stone-400 hover:text-[#44683b] hover:translate-x-1 transition-transform inline-block" href="#">FAQ</a></li>
+</ul>
+</div>
+<div class="space-y-4">
+<h5 class="font-bold text-on-surface">Legal</h5>
+<ul class="space-y-2">
+<li><a class="text-stone-600 dark:text-stone-400 hover:text-[#44683b] hover:translate-x-1 transition-transform inline-block" href="#">Privacy Policy</a></li>
+<li><a class="text-stone-600 dark:text-stone-400 hover:text-[#44683b] hover:translate-x-1 transition-transform inline-block" href="#">Terms of Service</a></li>
+</ul>
+</div>
+<div class="space-y-4">
+<h5 class="font-bold text-on-surface">Newsletter</h5>
+<p class="text-stone-600 dark:text-stone-400 mb-4">Tips for happy pets in your inbox.</p>
+<div class="flex gap-2">
+<input class="bg-surface-container-high rounded-md border-none px-4 py-2 w-full text-xs" placeholder="Email" type="email"/>
+<button class="bg-secondary text-on-secondary px-4 py-2 rounded-md font-bold text-xs">Join</button>
+</div>
+</div>
+</div>
+<div class="max-w-7xl mx-auto w-full mt-12 pt-8 border-t border-outline-variant/10 text-center text-stone-500">
+            © 2024 The Pet Sanctuary. All rights reserved.
+        </div>
+</footer>
+</body></html>

@@ -2,24 +2,16 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   PawPrint,
-  Heart,
-  Star,
   MapPin,
-  Clock,
   Sparkles,
-  Camera,
-  Coffee,
   CheckCircle,
-  Scissors,
-  Truck,
   ArrowRight,
   Info,
-  ChevronLeft,
-  XCircle,
-  PlusCircle,
-  QrCode
+  QrCode,
+  ChevronDown
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
+import { Header } from '@/components/Header'
 
 interface RoomType {
   id: string
@@ -230,23 +222,12 @@ export const HotelDetailPage = () => {
 
   // Style helpers
   const sunlightShadow = { boxShadow: '0 20px 40px rgba(48, 51, 48, 0.06)' }
-  const primaryGradient = { background: 'linear-gradient(135deg, #a43e24 0%, #ffac98 100%)' }
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans selection:bg-[#ffac98] selection:text-[#751c05] pb-24 text-left">
       
       {/* ── HEADER ── */}
-      <nav className="sticky top-0 z-50 bg-[#faf9f6] border-b border-[#e1e3df] transition-all duration-300">
-        <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto w-full">
-          <Link to="/" className="text-2xl font-black text-[#a43e24] tracking-tight font-headline flex items-center gap-2">
-            <PawPrint className="text-[#a43e24]" />
-            The Pet Sanctuary
-          </Link>
-          <Link to="/hotels" className="flex items-center gap-1.5 text-sm font-semibold text-stone-600 hover:text-[#a43e24] transition-colors">
-            <ChevronLeft size={16} /> Quay lại danh sách
-          </Link>
-        </div>
-      </nav>
+      <Header />
 
       {/* MODAL ĐẶT PHÒNG THÀNH CÔNG */}
       {isSuccess && (

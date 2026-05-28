@@ -53,6 +53,9 @@ public class SecurityConfig {
                                 "/api/reviews/**"
                         ).permitAll()
 
+                        // Pets
+                        .requestMatchers("/api/pets/**").hasRole("OWNER")
+
                         // Còn lại cần đăng nhập
                         .anyRequest().authenticated()
                 )

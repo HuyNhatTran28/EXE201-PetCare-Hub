@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
-  Search,
   Star,
-  MapPin,
   Sparkles,
-  ArrowRight,
-  PawPrint,
   Compass,
   Smile
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
+
+import { Header } from '@/components/Header'
 
 interface HotelType {
   id: string
@@ -25,104 +23,102 @@ interface HotelType {
   isLuxury?: boolean
 }
 
-const MOCK_HOTELS = [
-  {
-    id: '9472cf9d-d27b-42dc-8361-f1e10b2a1084',
-    name: 'Zen Cat Loft',
-    address: 'Đường Nguyễn Thị Minh Khai, Quận 1, TP. HCM',
-    distance: '1.2 km',
-    area: 'Quận 1',
-    rating: 4.9,
-    price: 450000,
-    tags: ['British Shorthair', 'Ragdoll'],
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuABxHktaS5nJDegnqExeOW6p503wyn9bzBKpGpRONq3vzlD7vTHHoXFTA8rkiw5N8YzJJutiPToZgjVKhrPCsyQcr8DSf4nNIJ6r-dAyQF7ZBa9M5yOlScqcE587gqJrSYKeoOTi2VZOZUOEvzgzP0KEMMY3Ckq242HujjmnCsTa-67mD4ARtLF-_bbvb1e9lecXpqb3wTLbd64c924fz09-l3Y10tCNSTecVcKUWL10F_aOYLnMKdbytixsYS3g6AUCivjILTw_6MR',
-    isLuxury: true
-  },
-  {
-    id: '2',
-    name: 'Deluxe Garden Suite',
-    address: 'Đường Thảo Điền, Quận 2, TP. Thủ Đức',
-    distance: '2.5 km',
-    area: 'Thảo Điền',
-    rating: 5.0,
-    price: 750000,
-    tags: ['Golden Retriever', 'Husky'],
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuARBsWtsWewrdsB2obZbAbXn2po_wK5odNt5ljTeTOTgg_D9sj6ZUEAz3zCqJCRhoZMvA00XKoksIAHg--Wb0Z7ReeeW2AQE2dcE05tK0Vt-pE7xSX1XIcdM9Prb7wFNcirJUNCZqaNr-gfY0muoA9YS47oPk0Vt9M0CcEMdf6AD5aZIDjAXcHwERyHZpD47emS1Tb8apI4CQ-Vy_buRVA9gBba03RTyFEdPssBD_rHNpnxzRAGRTZoTlNC0JKD6Fb_YfGyBfY_aUdw',
-    isLuxury: false
-  },
-  {
-    id: '3',
-    name: 'Tiny Paws Studio',
-    address: 'Đường Nguyễn Văn Linh, Quận 7, TP. HCM',
-    distance: '3.8 km',
-    area: 'Quận 7',
-    rating: 4.8,
-    price: 320000,
-    tags: ['Thỏ', 'Hamster'],
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBZmWA2PZNHDcMnZRFJsBw-wJ6XChRJqNatNPFw2WaJIGpHHSJAk0VUXTKVFj1WvQBGhFCg702Onwmnp7jBZo_XhpO9gAGpT0YyRrdoGhyR6euAPaMUG9H4350a1PkVwQE0_onyBbXNKjLQ5OlvvB5swKGF2R7Ep_U43q9MCsGto8zrv0uIoFvGvy0CrkHl97DtiTL-lufFxqGNYo8yr4JsVKXdp2i-Sz2IQXiT_yeN2ptxKkbhk5IiEP705LIvf5IUDviR9HIMRtWT',
-    isLuxury: false
-  }
-]
-
 export const HotelListPage = () => {
   const navigate = useNavigate()
   const [hotels, setHotels] = useState<HotelType[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Geolocation state
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
+
   // State bộ lọc tìm kiếm
   const [searchQuery, setSearchQuery] = useState('')
-  const [petType, setPetType] = useState('DOG') // DOG, CAT, SMALL
+  const [petType, setPetType] = useState<string | null>(null) // null, DOG, CAT, SMALL
   const [priceRange, setPriceRange] = useState(1000000)
   const [amenityGarden, setAmenityGarden] = useState(false)
   const [amenityAC, setAmenityAC] = useState(false)
   const [amenityBed, setAmenityBed] = useState(true)
 
+  // State bộ lọc đã áp dụng
+  const [appliedPetType, setAppliedPetType] = useState<string | null>(null)
+  const [appliedPriceRange, setAppliedPriceRange] = useState(1000000)
+
+  // Get geolocation on mount
   useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        })
+      },
+      () => {
+        // Fallback: tọa độ HCM nếu user từ chối hoặc lỗi GPS
+        setLocation({ lat: 10.7769, lng: 106.7009 })
+      }
+    )
+  }, [])
+
+  useEffect(() => {
+    if (!location) return
+
     const fetchHotels = async () => {
       setLoading(true)
       try {
-        // Gọi API tìm kiếm tổng hợp tích hợp bộ lọc
-        // lat=10.77&lng=106.70&radius=10 là GPS Quận 1, HCMC mặc định
-        const response = await axiosInstance.get('/api/hotels/search', {
-          params: {
-            lat: 10.77,
-            lng: 106.70,
-            radius: 10,
-            petType: petType,
-            minPrice: 0,
-            maxPrice: priceRange
-          }
-        })
+        let response
+        const resolvedPetType = appliedPetType === 'SMALL' ? 'RABBIT' : appliedPetType
+
+        // Nếu không có bộ lọc thú cưng cụ thể nào và giá ở mức tối đa, gọi nearby
+        if (!resolvedPetType && appliedPriceRange === 1000000) {
+          response = await axiosInstance.get('/api/hotels/nearby', {
+            params: {
+              lat: location.lat,
+              lng: location.lng,
+              radius: 10
+            }
+          })
+        } else {
+          // Ngược lại gọi search với bộ lọc tương ứng
+          response = await axiosInstance.get('/api/hotels/search', {
+            params: {
+              lat: location.lat,
+              lng: location.lng,
+              radius: 10,
+              petType: resolvedPetType || undefined,
+              minPrice: 0,
+              maxPrice: appliedPriceRange < 1000000 ? appliedPriceRange : undefined
+            }
+          })
+        }
         
         if (response.data && response.data.length > 0) {
           const list = response.data.map((h: any) => ({
             id: h.id,
             name: h.name,
             address: h.address || 'Hồ Chí Minh, Việt Nam',
-            distance: '1.2 km',
+            distance: '— km',
             area: 'Trung tâm',
-            rating: h.averageRating || 4.9,
-            price: h.price || 450000,
-            tags: h.amenities || ['Y tế 24/7', 'Camera 24/7'],
-            image: h.images && h.images.length > 0 ? h.images[0] : MOCK_HOTELS[0].image,
-            isLuxury: true
+            rating: h.averageRating || 0,
+            price: h.minPrice || 0,
+            tags: h.allowedPetTypes || [],
+            image: (h.images && h.images.length > 0)
+              ? h.images[0]
+              : 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800',
+            isLuxury: false
           }))
           setHotels(list)
         } else {
-          // Trả về mock data được lọc nếu API không trả về phần tử nào
-          const filteredMock = MOCK_HOTELS.filter(h => h.price <= priceRange)
-          setHotels(filteredMock)
+          setHotels([])
         }
       } catch (error) {
-        console.error('Failed to fetch hotels from search API, falling back to mock filters', error)
-        const filteredMock = MOCK_HOTELS.filter(h => h.price <= priceRange)
-        setHotels(filteredMock)
+        console.error('Failed to fetch hotels from API', error)
+        setHotels([])
       } finally {
         setLoading(false)
       }
     }
     fetchHotels()
-  }, [petType, priceRange])
+  }, [location, appliedPetType, appliedPriceRange])
 
   // Lọc cục bộ dựa trên tìm kiếm từ khóa
   const filteredHotels = hotels.filter(h => {
@@ -139,37 +135,7 @@ export const HotelListPage = () => {
     <div className="min-h-screen flex flex-col font-sans bg-[#faf9f6] text-[#303330] selection:bg-[#ffac98] selection:text-[#751c05] pb-24">
       
       {/* ── HEADER ── */}
-      <nav className="w-full sticky top-0 z-50 bg-[#faf9f6] border-b border-[#e1e3df] shrink-0">
-        <div className="flex justify-between items-center px-8 py-4 max-w-screen-2xl mx-auto w-full">
-          <div className="flex items-center gap-12">
-            <Link to="/" className="text-2xl font-black text-[#a43e24] tracking-tight font-headline flex items-center gap-2">
-              <PawPrint className="text-[#a43e24]" />
-              The Pet Sanctuary
-            </Link>
-            <div className="hidden md:flex items-center gap-8 font-medium">
-              <Link to="/hotels" className="text-[#a43e24] font-bold border-b-2 border-[#a43e24] pb-1">Tìm phòng</Link>
-              <Link to="/pets" className="text-stone-600 hover:text-[#a43e24] transition-all">Nhật ký Thú cưng</Link>
-              <span className="text-stone-600 cursor-default">Dịch vụ</span>
-              <span className="text-stone-600 cursor-default">Về chúng tôi</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="relative hidden lg:block">
-              <input 
-                className="bg-[#e8e8e4] border-none rounded-md py-2 px-4 pr-10 text-sm focus:ring-2 focus:ring-[#a43e24]/20 w-64 transition-all" 
-                placeholder="Tìm kiếm phòng..." 
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5d605c] w-4.5 h-4.5" />
-            </div>
-            <Link to="/partner/bookings" className="bg-[#a43e24] text-[#fff7f6] px-6 py-2 rounded-full font-medium transition-all hover:opacity-90 hover:scale-[1.02]">
-              Lịch đặt phòng
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       {/* ── BẢN ĐỒ & DANH SÁCH ── */}
       <main className="max-w-screen-2xl mx-auto flex gap-8 px-8 py-10 w-full">
@@ -186,7 +152,7 @@ export const HotelListPage = () => {
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#44683b]">Loại Thú Cưng</h3>
             <div className="flex flex-col gap-2">
               <button 
-                onClick={() => setPetType('DOG')}
+                onClick={() => setPetType(petType === 'DOG' ? null : 'DOG')}
                 className={`flex items-center gap-3 rounded-full px-6 py-3 font-bold hover:translate-x-1 duration-200 transition-all ${
                   petType === 'DOG' 
                     ? 'bg-white text-[#a43e24] shadow-sm' 
@@ -197,7 +163,7 @@ export const HotelListPage = () => {
                 <span>Dogs</span>
               </button>
               <button 
-                onClick={() => setPetType('CAT')}
+                onClick={() => setPetType(petType === 'CAT' ? null : 'CAT')}
                 className={`flex items-center gap-3 rounded-full px-6 py-3 font-bold hover:translate-x-1 duration-200 transition-all ${
                   petType === 'CAT' 
                     ? 'bg-white text-[#a43e24] shadow-sm' 
@@ -208,7 +174,7 @@ export const HotelListPage = () => {
                 <span>Cats</span>
               </button>
               <button 
-                onClick={() => setPetType('SMALL')}
+                onClick={() => setPetType(petType === 'SMALL' ? null : 'SMALL')}
                 className={`flex items-center gap-3 rounded-full px-6 py-3 font-bold hover:translate-x-1 duration-200 transition-all ${
                   petType === 'SMALL' 
                     ? 'bg-white text-[#a43e24] shadow-sm' 
@@ -278,13 +244,27 @@ export const HotelListPage = () => {
 
           <button 
             onClick={() => {
+              setAppliedPetType(petType)
+              setAppliedPriceRange(priceRange)
+            }}
+            style={primaryGradient}
+            className="w-full py-3.5 px-6 rounded-full text-[#fff7f6] font-bold text-xs shadow-lg shadow-[#a43e24]/10 hover:scale-[1.02] active:scale-95 transition-all text-center mt-6 cursor-pointer"
+          >
+            Tìm kiếm
+          </button>
+
+          <button 
+            onClick={() => {
               setSearchQuery('')
+              setPetType(null)
               setPriceRange(1000000)
               setAmenityGarden(false)
               setAmenityAC(false)
               setAmenityBed(true)
+              setAppliedPetType(null)
+              setAppliedPriceRange(1000000)
             }}
-            className="mt-6 text-[#a43e24] text-xs font-bold hover:underline text-center w-full"
+            className="mt-4 text-[#a43e24] text-xs font-bold hover:underline text-center w-full cursor-pointer"
           >
             Clear All Filters
           </button>
@@ -309,9 +289,33 @@ export const HotelListPage = () => {
 
           {/* Grid Resort Cards */}
           {loading ? (
-            <div className="text-center py-20 font-bold text-[#a43e24]">Đang tải danh sách resort kết nối API...</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl overflow-hidden border border-[#e1e3df] p-8 space-y-4 animate-pulse text-left" style={sunlightShadow}>
+                  <div className="h-48 bg-[#eeeeea] rounded-xl w-full"></div>
+                  <div className="space-y-3">
+                    <div className="h-6 bg-[#eeeeea] rounded w-2/3"></div>
+                    <div className="h-4 bg-[#eeeeea] rounded w-1/3"></div>
+                  </div>
+                  <div className="pt-4 flex gap-3 border-t border-[#b1b2af]/10 mt-auto">
+                    <div className="h-10 bg-[#eeeeea] rounded-full flex-grow"></div>
+                    <div className="h-10 bg-[#eeeeea] rounded-full flex-grow"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {!loading && filteredHotels.length === 0 && (
+                <div className="lg:col-span-3 text-center py-20">
+                  <p className="text-[#a43e24] font-bold">
+                    Không tìm thấy khách sạn phù hợp trong khu vực của bạn.
+                  </p>
+                  <p className="text-[#5d605c] text-sm mt-2">
+                    Thử mở rộng bán kính tìm kiếm hoặc thay đổi bộ lọc.
+                  </p>
+                </div>
+              )}
               {filteredHotels.map((hotel) => {
                 return (
                   <div 
@@ -326,7 +330,7 @@ export const HotelListPage = () => {
                         alt={hotel.name}
                       />
                       <div className="absolute top-4 right-4 bg-white/70 backdrop-blur-md px-4 py-1.5 rounded-full text-[#a43e24] font-black text-xs shadow-sm">
-                        {hotel.price.toLocaleString('vi-VN')}đ/đêm
+                        {(hotel.price ?? 0).toLocaleString('vi-VN')}đ/đêm
                       </div>
                     </div>
                     <div className="p-8 space-y-4 text-left flex-grow flex flex-col justify-between">

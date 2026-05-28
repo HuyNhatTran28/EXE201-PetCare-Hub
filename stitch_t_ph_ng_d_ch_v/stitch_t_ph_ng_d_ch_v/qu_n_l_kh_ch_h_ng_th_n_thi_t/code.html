@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Loyalty &amp; Rewards Configuration | The Pet Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-fixed": "#ffac98",
+              "error": "#aa371c",
+              "on-secondary-fixed-variant": "#486b3e",
+              "background": "#faf9f6",
+              "primary-dim": "#943219",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed-dim": "#ff987e",
+              "surface-dim": "#d9dbd6",
+              "on-secondary": "#ebffdf",
+              "outline": "#797b78",
+              "surface-container-high": "#e8e8e4",
+              "on-secondary-fixed": "#2c4e24",
+              "error-dim": "#821a01",
+              "on-primary-fixed": "#520d00",
+              "on-primary": "#fff7f6",
+              "surface-tint": "#a43e24",
+              "surface-variant": "#e1e3df",
+              "on-tertiary-container": "#63564b",
+              "surface": "#faf9f6",
+              "tertiary-fixed-dim": "#efdccd",
+              "tertiary-fixed": "#feeadb",
+              "surface-container-low": "#f4f4f0",
+              "on-tertiary": "#fff7f4",
+              "on-tertiary-fixed": "#504439",
+              "inverse-surface": "#0d0f0d",
+              "on-error": "#fff7f6",
+              "on-surface": "#303330",
+              "tertiary-container": "#feeadb",
+              "secondary-container": "#d0fac0",
+              "inverse-primary": "#ff8162",
+              "inverse-on-surface": "#9d9d9a",
+              "secondary-fixed-dim": "#c2ebb2",
+              "outline-variant": "#b1b2af",
+              "on-background": "#303330",
+              "surface-bright": "#faf9f6",
+              "secondary-fixed": "#d0fac0",
+              "primary-container": "#ffac98",
+              "tertiary-dim": "#5e5145",
+              "tertiary": "#6a5d51",
+              "primary": "#a43e24",
+              "on-primary-fixed-variant": "#81240d",
+              "on-secondary-container": "#3e6135",
+              "surface-container-highest": "#e1e3df",
+              "surface-container": "#eeeeea",
+              "secondary": "#44683b",
+              "on-error-container": "#671200",
+              "secondary-dim": "#395c30",
+              "on-primary-container": "#751c05",
+              "error-container": "#fa7150",
+              "on-tertiary-fixed-variant": "#6e6054",
+              "on-surface-variant": "#5d605c"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Be Vietnam Pro"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body selection:bg-primary-container">
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-0 flex flex-col h-full py-8 z-50 h-screen w-72 rounded-r-[3rem] bg-[#f4f4f0] shadow-[20px_0_40px_rgba(48,51,48,0.06)] overflow-hidden">
+<div class="px-8 mb-10 flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pets</span>
+</div>
+<div>
+<h1 class="font-headline font-extrabold text-[#303330] leading-none text-lg">Sanctuary Admin</h1>
+<p class="text-xs text-secondary opacity-70">Premium Pet Care</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center text-[#44683b] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 transition-all" href="#">
+<span class="material-symbols-outlined mr-4">calendar_month</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Bookings</span>
+</a>
+<a class="flex items-center text-[#44683b] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 transition-all" href="#">
+<span class="material-symbols-outlined mr-4">inventory_2</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Inventory</span>
+</a>
+<a class="flex items-center text-[#44683b] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 transition-all" href="#">
+<span class="material-symbols-outlined mr-4">groups</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">CRM</span>
+</a>
+<a class="flex items-center text-[#44683b] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 transition-all" href="#">
+<span class="material-symbols-outlined mr-4">analytics</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Analytics</span>
+</a>
+<!-- Active State: Loyalty -->
+<a class="flex items-center bg-white text-[#a43e24] rounded-full mx-4 shadow-sm font-bold px-8 py-3" href="#">
+<span class="material-symbols-outlined mr-4" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Loyalty</span>
+</a>
+<a class="flex items-center text-[#44683b] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 transition-all" href="#">
+<span class="material-symbols-outlined mr-4">badge</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Staff Management</span>
+</a>
+<a class="flex items-center text-[#44683b] hover:text-[#a43e24] px-8 py-3 hover:bg-white/50 transition-all" href="#">
+<span class="material-symbols-outlined mr-4">settings</span>
+<span class="font-['Be_Vietnam_Pro'] text-sm tracking-wide">Settings</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full bg-primary text-on-primary py-4 rounded-full font-headline font-bold hover:bg-primary-dim transition-transform active:scale-95 duration-150 shadow-lg shadow-primary/20">
+                Quick Book
+            </button>
+<div class="mt-6 border-t border-outline-variant/20 pt-6 space-y-1">
+<a class="flex items-center text-[#44683b] hover:text-[#a43e24] px-8 py-3 transition-all" href="#">
+<span class="material-symbols-outlined mr-4">contact_support</span>
+<span class="text-sm">Support</span>
+</a>
+<a class="flex items-center text-error hover:opacity-80 px-8 py-3 transition-all" href="#">
+<span class="material-symbols-outlined mr-4">logout</span>
+<span class="text-sm">Logout</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-72 min-h-screen p-12">
+<!-- Header Section -->
+<header class="flex justify-between items-end mb-16">
+<div class="max-w-2xl">
+<nav class="flex gap-2 text-sm text-secondary mb-4 font-label">
+<span>Admin</span>
+<span>/</span>
+<span class="font-bold text-primary">Loyalty &amp; Rewards</span>
+</nav>
+<h2 class="font-headline text-5xl font-extrabold text-on-surface tracking-tight mb-4">Loyalty Program Configuration</h2>
+<p class="text-on-surface-variant text-lg leading-relaxed">Design the ultimate rewarding experience for your premium pet owners. Balance tier progression with meaningful value exchange.</p>
+</div>
+<div class="flex gap-4">
+<button class="px-8 py-4 bg-surface-container-high rounded-full font-bold hover:bg-surface-container-highest transition-colors">Discard Changes</button>
+<button class="px-8 py-4 bg-primary text-on-primary rounded-full font-bold shadow-xl shadow-primary/20 hover:scale-105 transition-transform">Publish Rules</button>
+</div>
+</header>
+<!-- Points Earning Rule (Organic Asymmetry Hero) -->
+<section class="relative mb-20">
+<div class="bg-gradient-to-br from-primary to-primary-container rounded-xl p-12 flex items-center justify-between overflow-hidden shadow-2xl shadow-primary/10">
+<div class="relative z-10 max-w-lg">
+<span class="bg-white/20 text-white px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-6 inline-block backdrop-blur-md">Core Engine</span>
+<h3 class="font-headline text-3xl font-bold text-on-primary mb-6">Points Earning Rules</h3>
+<div class="flex items-center gap-6 bg-white/10 p-6 rounded-2xl backdrop-blur-xl border border-white/10">
+<div class="flex-1">
+<label class="block text-white/70 text-xs font-bold mb-2 uppercase tracking-tighter">Base Currency</label>
+<div class="flex items-center gap-3">
+<span class="text-2xl font-bold text-white">10,000 VND</span>
+<span class="text-white/50 text-xl font-light">=</span>
+<div class="bg-white px-4 py-1 rounded-lg text-primary font-extrabold text-xl">1 Point</div>
+</div>
+</div>
+<button class="w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center hover:rotate-90 transition-transform">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+</div>
+<!-- Asymmetric Decorative Element -->
+<div class="absolute -right-20 -bottom-20 w-96 h-96 bg-secondary-container opacity-20 rounded-full blur-3xl"></div>
+<div class="relative hidden lg:block">
+<div class="w-64 h-64 bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 flex flex-col items-center justify-center transform rotate-6 shadow-2xl">
+<span class="material-symbols-outlined text-6xl text-white mb-4" style="font-variation-settings: 'FILL' 1;">currency_exchange</span>
+<p class="text-white font-bold text-center px-6">Direct conversion active across all services</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Membership Tiers (Cards with Tonal Layering) -->
+<section class="mb-20">
+<div class="flex justify-between items-center mb-10">
+<h3 class="font-headline text-2xl font-bold">Membership Tiers</h3>
+<button class="text-primary font-bold flex items-center gap-2 hover:underline">
+<span class="material-symbols-outlined">add_circle</span>
+                    Add New Tier
+                </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Silver Tier -->
+<div class="bg-surface-container-low p-8 rounded-xl border border-outline-variant/10 hover:shadow-xl transition-all group">
+<div class="w-16 h-16 bg-surface-variant rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-outline text-3xl">stars</span>
+</div>
+<h4 class="font-headline text-2xl font-bold mb-2">Silver</h4>
+<p class="text-secondary font-label font-bold text-sm mb-6">Entry Level</p>
+<div class="space-y-4 mb-8">
+<div class="flex items-center justify-between py-3 border-b border-outline-variant/10">
+<span class="text-sm opacity-70">Spend Threshold</span>
+<span class="font-bold">0 VND</span>
+</div>
+<div class="flex items-center justify-between py-3 border-b border-outline-variant/10">
+<span class="text-sm opacity-70">Point Multiplier</span>
+<span class="font-bold">1.0x</span>
+</div>
+</div>
+<ul class="space-y-3 mb-10">
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-secondary text-lg">check_circle</span>
+                            Standard Room Access
+                        </li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-secondary text-lg">check_circle</span>
+                            Newsletter Updates
+                        </li>
+</ul>
+<button class="w-full py-3 bg-surface-container-highest rounded-full text-sm font-bold hover:bg-outline-variant/20">Edit Details</button>
+</div>
+<!-- Gold Tier -->
+<div class="bg-white p-8 rounded-xl shadow-[0_20px_40px_rgba(48,51,48,0.06)] border border-primary/10 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4">
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase">Most Popular</span>
+</div>
+<div class="w-16 h-16 bg-tertiary-container rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-on-tertiary-fixed text-3xl" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+</div>
+<h4 class="font-headline text-2xl font-bold mb-2">Gold</h4>
+<p class="text-secondary font-label font-bold text-sm mb-6">Loyal Guest</p>
+<div class="space-y-4 mb-8">
+<div class="flex items-center justify-between py-3 border-b border-outline-variant/10">
+<span class="text-sm opacity-70">Spend Threshold</span>
+<span class="font-bold">5,000,000 VND</span>
+</div>
+<div class="flex items-center justify-between py-3 border-b border-outline-variant/10">
+<span class="text-sm opacity-70">Point Multiplier</span>
+<span class="font-bold">1.2x</span>
+</div>
+</div>
+<ul class="space-y-3 mb-10">
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-secondary text-lg">check_circle</span>
+                            Priority Booking
+                        </li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-secondary text-lg">check_circle</span>
+                            Free Spa Bath (Monthly)
+                        </li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-secondary text-lg">check_circle</span>
+                            10% Off Retail Shop
+                        </li>
+</ul>
+<button class="w-full py-3 bg-primary text-on-primary rounded-full text-sm font-bold shadow-lg shadow-primary/10">Edit Details</button>
+</div>
+<!-- Platinum Tier -->
+<div class="bg-on-surface p-8 rounded-xl text-white relative overflow-hidden group">
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
+<div class="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform backdrop-blur-md">
+<span class="material-symbols-outlined text-white text-3xl" style="font-variation-settings: 'FILL' 1;">diamond</span>
+</div>
+<h4 class="font-headline text-2xl font-bold mb-2">Platinum</h4>
+<p class="text-primary-fixed font-label font-bold text-sm mb-6">Sanctuary Elite</p>
+<div class="space-y-4 mb-8">
+<div class="flex items-center justify-between py-3 border-b border-white/10">
+<span class="text-sm text-white/60">Spend Threshold</span>
+<span class="font-bold">20,000,000 VND</span>
+</div>
+<div class="flex items-center justify-between py-3 border-b border-white/10">
+<span class="text-sm text-white/60">Point Multiplier</span>
+<span class="font-bold">1.5x</span>
+</div>
+</div>
+<ul class="space-y-3 mb-10">
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary-fixed text-lg">verified</span>
+                            Concierge Support
+                        </li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary-fixed text-lg">verified</span>
+                            Unlimited Deluxe Upgrades
+                        </li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary-fixed text-lg">verified</span>
+                            Pet Birthday Celebrations
+                        </li>
+</ul>
+<button class="w-full py-3 bg-white text-on-surface rounded-full text-sm font-bold hover:bg-white/90">Edit Details</button>
+</div>
+</div>
+</section>
+<!-- Redemption Catalog (Bento/Table Layout) -->
+<section class="mb-20">
+<div class="flex justify-between items-center mb-10">
+<div>
+<h3 class="font-headline text-2xl font-bold">Redemption Catalog</h3>
+<p class="text-on-surface-variant text-sm mt-1">Set the cost for points-to-service redemption.</p>
+</div>
+<div class="flex gap-4">
+<div class="bg-surface-container-high rounded-full px-4 flex items-center">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm py-2" placeholder="Search rewards..." type="text"/>
+</div>
+<button class="px-6 py-2 bg-secondary text-on-secondary rounded-full font-bold text-sm">Add Reward</button>
+</div>
+</div>
+<div class="bg-white rounded-xl overflow-hidden shadow-sm border border-outline-variant/10">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low">
+<th class="px-8 py-6 text-xs font-bold uppercase tracking-wider text-secondary">Reward Item</th>
+<th class="px-8 py-6 text-xs font-bold uppercase tracking-wider text-secondary">Category</th>
+<th class="px-8 py-6 text-xs font-bold uppercase tracking-wider text-secondary text-right">Points Cost</th>
+<th class="px-8 py-6 text-xs font-bold uppercase tracking-wider text-secondary">Status</th>
+<th class="px-8 py-6 text-xs font-bold uppercase tracking-wider text-secondary text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-tertiary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-container">spa</span>
+</div>
+<span class="font-bold text-on-surface">Free Spa Session</span>
+</div>
+</td>
+<td class="px-8 py-6 text-sm">Grooming</td>
+<td class="px-8 py-6 text-right font-headline font-bold text-primary">50 pts</td>
+<td class="px-8 py-6">
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full uppercase">Active</span>
+</td>
+<td class="px-8 py-6 text-right">
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors"><span class="material-symbols-outlined text-on-surface-variant">more_vert</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container">hotel</span>
+</div>
+<span class="font-bold text-on-surface">One Night Stay Upgrade</span>
+</div>
+</td>
+<td class="px-8 py-6 text-sm">Accommodation</td>
+<td class="px-8 py-6 text-right font-headline font-bold text-primary">120 pts</td>
+<td class="px-8 py-6">
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full uppercase">Active</span>
+</td>
+<td class="px-8 py-6 text-right">
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors"><span class="material-symbols-outlined text-on-surface-variant">more_vert</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-primary-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">lunch_dining</span>
+</div>
+<span class="font-bold text-on-surface">Gourmet Meal Add-on</span>
+</div>
+</td>
+<td class="px-8 py-6 text-sm">Dining</td>
+<td class="px-8 py-6 text-right font-headline font-bold text-primary">30 pts</td>
+<td class="px-8 py-6">
+<span class="px-3 py-1 bg-surface-variant text-on-surface-variant text-[10px] font-bold rounded-full uppercase">Draft</span>
+</td>
+<td class="px-8 py-6 text-right">
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors"><span class="material-symbols-outlined text-on-surface-variant">more_vert</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-outline-variant/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-outline">airport_shuttle</span>
+</div>
+<span class="font-bold text-on-surface">Priority Airport Shuttle</span>
+</div>
+</td>
+<td class="px-8 py-6 text-sm">Transport</td>
+<td class="px-8 py-6 text-right font-headline font-bold text-primary">200 pts</td>
+<td class="px-8 py-6">
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full uppercase">Active</span>
+</td>
+<td class="px-8 py-6 text-right">
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors"><span class="material-symbols-outlined text-on-surface-variant">more_vert</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="p-6 bg-surface-container-low/30 flex justify-center border-t border-outline-variant/10">
+<button class="text-secondary font-bold text-sm hover:text-primary transition-colors">View All Rewards (24)</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Chatbot (Nurture Chat) -->
+<div class="fixed bottom-8 right-8 z-50">
+<button class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</button>
+</div>
+</body></html>

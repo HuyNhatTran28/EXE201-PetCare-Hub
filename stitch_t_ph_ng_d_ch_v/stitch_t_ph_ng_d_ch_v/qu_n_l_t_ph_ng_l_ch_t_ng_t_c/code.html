@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-dim": "#395c30",
+              "on-tertiary-fixed-variant": "#6e6054",
+              "secondary": "#44683b",
+              "outline": "#797b78",
+              "surface-container-highest": "#e1e3df",
+              "on-background": "#303330",
+              "primary": "#a43e24",
+              "surface-container-low": "#f4f4f0",
+              "on-secondary": "#ebffdf",
+              "secondary-container": "#d0fac0",
+              "secondary-fixed": "#d0fac0",
+              "tertiary-fixed": "#feeadb",
+              "on-primary-fixed": "#520d00",
+              "on-primary-fixed-variant": "#81240d",
+              "outline-variant": "#b1b2af",
+              "on-error-container": "#671200",
+              "surface-variant": "#e1e3df",
+              "primary-dim": "#943219",
+              "error-container": "#fa7150",
+              "surface-bright": "#faf9f6",
+              "on-primary-container": "#751c05",
+              "tertiary-container": "#feeadb",
+              "on-tertiary-container": "#63564b",
+              "on-secondary-container": "#3e6135",
+              "on-error": "#fff7f6",
+              "surface-container-high": "#e8e8e4",
+              "error-dim": "#821a01",
+              "surface-tint": "#a43e24",
+              "on-tertiary-fixed": "#504439",
+              "primary-fixed-dim": "#ff987e",
+              "on-primary": "#fff7f6",
+              "tertiary": "#6a5d51",
+              "on-surface-variant": "#5d605c",
+              "on-tertiary": "#fff7f4",
+              "inverse-primary": "#ff8162",
+              "surface-container-lowest": "#ffffff",
+              "background": "#faf9f6",
+              "surface-dim": "#d9dbd6",
+              "on-surface": "#303330",
+              "inverse-surface": "#0d0f0d",
+              "tertiary-dim": "#5e5145",
+              "primary-container": "#ffac98",
+              "tertiary-fixed-dim": "#efdccd",
+              "surface": "#faf9f6",
+              "error": "#aa371c",
+              "primary-fixed": "#ffac98",
+              "surface-container": "#eeeeea",
+              "on-secondary-fixed-variant": "#486b3e",
+              "inverse-on-surface": "#9d9d9a",
+              "secondary-fixed-dim": "#c2ebb2",
+              "on-secondary-fixed": "#2c4e24"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Be Vietnam Pro"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Be Vietnam Pro', sans-serif; }
+        .font-plus-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .gantt-grid {
+            display: grid;
+            grid-template-columns: 160px repeat(7, 1fr);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- SideNavBar (Authority Source: JSON) -->
+<aside class="fixed left-0 top-0 h-full w-64 z-50 bg-stone-50 dark:bg-stone-950 border-r border-stone-200 dark:border-stone-800 flex flex-col h-screen py-6">
+<div class="px-6 mb-8">
+<h1 class="font-plus-jakarta font-extrabold text-stone-900 dark:text-white text-xl">The Pet Sanctuary</h1>
+<p class="text-xs text-stone-500 font-medium">Admin Portal</p>
+</div>
+<nav class="flex-1 space-y-1">
+<div class="flex items-center gap-3 text-stone-600 dark:text-stone-400 px-4 py-3 mx-2 hover:bg-stone-200/30 dark:hover:bg-stone-800/30 rounded-xl transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-be-vietnam text-sm">Dashboard</span>
+</div>
+<div class="flex items-center gap-3 text-stone-600 dark:text-stone-400 px-4 py-3 mx-2 hover:bg-stone-200/30 dark:hover:bg-stone-800/30 rounded-xl transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-be-vietnam text-sm">Inventory</span>
+</div>
+<div class="flex items-center gap-3 bg-stone-200/50 dark:bg-stone-800/50 text-orange-900 dark:text-orange-300 rounded-xl px-4 py-3 mx-2 transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="font-be-vietnam text-sm font-semibold">Bookings</span>
+</div>
+<div class="flex items-center gap-3 text-stone-600 dark:text-stone-400 px-4 py-3 mx-2 hover:bg-stone-200/30 dark:hover:bg-stone-800/30 rounded-xl transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">group</span>
+<span class="font-be-vietnam text-sm">Customers</span>
+</div>
+<div class="flex items-center gap-3 text-stone-600 dark:text-stone-400 px-4 py-3 mx-2 hover:bg-stone-200/30 dark:hover:bg-stone-800/30 rounded-xl transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-be-vietnam text-sm">Reports</span>
+</div>
+<div class="flex items-center gap-3 text-stone-600 dark:text-stone-400 px-4 py-3 mx-2 hover:bg-stone-200/30 dark:hover:bg-stone-800/30 rounded-xl transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-be-vietnam text-sm">Settings</span>
+</div>
+</nav>
+<div class="mt-auto border-t border-stone-100 dark:border-stone-800 pt-4">
+<div class="flex items-center gap-3 text-stone-600 dark:text-stone-400 px-4 py-3 mx-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl cursor-pointer">
+<span class="material-symbols-outlined">help</span>
+<span class="font-be-vietnam text-sm">Support</span>
+</div>
+<div class="flex items-center gap-3 text-stone-600 dark:text-stone-400 px-4 py-3 mx-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl cursor-pointer">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-be-vietnam text-sm">Logout</span>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-64 min-h-screen">
+<!-- TopNavBar (Authority Source: JSON) -->
+<header class="bg-white/70 dark:bg-stone-900/70 backdrop-blur-xl docked full-width top-0 z-40 sticky shadow-sm dark:shadow-none flex justify-between items-center px-6 py-3 w-full border-b border-stone-200/50 dark:border-stone-800/50">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">search</span>
+<input class="w-full bg-stone-100 dark:bg-stone-800 border-none rounded-full py-2 pl-10 pr-4 focus:ring-2 ring-orange-200 text-sm" placeholder="Tìm kiếm đơn đặt phòng, khách hàng..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors relative">
+<span class="material-symbols-outlined text-stone-600">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></span>
+</button>
+<button class="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
+<span class="material-symbols-outlined text-stone-600">mail</span>
+</button>
+<div class="h-8 w-px bg-stone-200 dark:bg-stone-800 mx-2"></div>
+<div class="flex items-center gap-3 pl-2">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold text-stone-800">Hotel Owner</p>
+<p class="text-[10px] text-stone-500">Premium Account</p>
+</div>
+<img class="w-10 h-10 rounded-full object-cover border-2 border-orange-100" data-alt="Profile avatar for hotel owner" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBW0vneCVeYtPi3mNaE2omNIk1NQ741TMgbZYatC3M-aRxZogMFA5QVlKaZKG9DAEDbtaNiS9FKbw2retyRPHHjh4D9wonzhHCayz6exf0B7kg1CtKXlC50HtIw7a9LrTqmWXZOt0bUYKGIeZqAWLyFWQwlHUyxMZNVcSoVqDAyl_vY3lg1frLirrfvZ7_eny75oHK0TjCNZira9U3dqVNp66G9KZ1NMEXEg0Uu8_GhNasQVemEIuMd25LUo1oOFAM7CdlK3DrAbwho"/>
+</div>
+</div>
+</header>
+<div class="p-8 max-w-7xl mx-auto space-y-8">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h2 class="font-plus-jakarta text-3xl font-extrabold text-stone-900 tracking-tight">Interactive Booking Calendar</h2>
+<p class="text-stone-500 mt-2">Quản lý trạng thái phòng và lịch trình đón thú cưng trong tuần này.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 bg-surface-container-high px-4 py-2.5 rounded-full font-medium text-sm hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-lg">calendar_today</span>
+<span>Hôm nay: 24 Tháng 5</span>
+</button>
+<button class="flex items-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-lg">add</span>
+<span>Tạo Đơn Mới</span>
+</button>
+</div>
+</div>
+<!-- Status Tabs (Filter) -->
+<div class="flex items-center gap-2 p-1.5 bg-surface-container-low rounded-2xl w-fit">
+<button class="px-6 py-2 rounded-xl text-sm font-semibold bg-white shadow-sm text-primary transition-all">Tất cả</button>
+<button class="px-6 py-2 rounded-xl text-sm font-medium text-stone-500 hover:text-stone-800 transition-all">Chờ xác nhận</button>
+<button class="px-6 py-2 rounded-xl text-sm font-medium text-stone-500 hover:text-stone-800 transition-all">Đã xác nhận</button>
+<button class="px-6 py-2 rounded-xl text-sm font-medium text-stone-500 hover:text-stone-800 transition-all">Đang lưu trú</button>
+<button class="px-6 py-2 rounded-xl text-sm font-medium text-stone-500 hover:text-stone-800 transition-all">Đã hoàn thành</button>
+</div>
+<!-- Gantt Chart Calendar -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-stone-100">
+<!-- Calendar Header -->
+<div class="gantt-grid bg-stone-50 border-b border-stone-200">
+<div class="p-4 border-r border-stone-200 font-bold text-stone-400 text-xs uppercase tracking-widest">Phòng / Ngày</div>
+<div class="p-4 text-center">
+<p class="text-[10px] text-stone-400 font-bold uppercase">Thứ 2</p>
+<p class="text-lg font-extrabold text-stone-800">20</p>
+</div>
+<div class="p-4 text-center bg-orange-50/50">
+<p class="text-[10px] text-orange-800 font-bold uppercase">Thứ 3</p>
+<p class="text-lg font-extrabold text-orange-800">21</p>
+</div>
+<div class="p-4 text-center">
+<p class="text-[10px] text-stone-400 font-bold uppercase">Thứ 4</p>
+<p class="text-lg font-extrabold text-stone-800">22</p>
+</div>
+<div class="p-4 text-center">
+<p class="text-[10px] text-stone-400 font-bold uppercase">Thứ 5</p>
+<p class="text-lg font-extrabold text-stone-800">23</p>
+</div>
+<div class="p-4 text-center bg-stone-100">
+<p class="text-[10px] text-stone-400 font-bold uppercase">Thứ 6</p>
+<p class="text-lg font-extrabold text-stone-800">24</p>
+</div>
+<div class="p-4 text-center">
+<p class="text-[10px] text-stone-400 font-bold uppercase">Thứ 7</p>
+<p class="text-lg font-extrabold text-stone-800">25</p>
+</div>
+<div class="p-4 text-center">
+<p class="text-[10px] text-stone-400 font-bold uppercase">Chủ Nhật</p>
+<p class="text-lg font-extrabold text-stone-800">26</p>
+</div>
+</div>
+<!-- Calendar Body Rows -->
+<div class="divide-y divide-stone-100">
+<!-- Row VIP01 -->
+<div class="gantt-grid group">
+<div class="p-4 border-r border-stone-200 bg-stone-50/30 flex flex-col justify-center">
+<span class="text-sm font-bold text-stone-800">VIP01 - Deluxe</span>
+<span class="text-[10px] text-secondary font-semibold">Dành cho Mèo</span>
+</div>
+<div class="relative h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair">
+<!-- Booking Block: Đã thanh toán (Xanh) -->
+<div class="absolute inset-y-2 left-4 right-[-50%] z-10 bg-secondary-container text-on-secondary-container rounded-xl p-2 shadow-sm border border-secondary/10 flex items-center gap-2 overflow-hidden">
+<img class="w-8 h-8 rounded-lg object-cover" data-alt="Small cat avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6vqTWt_5qee7I_077vX9LyrhoJmjXoqGXMaJWmgaaQ4RmyR-DYh35BnT-dzSel6V8wuxkMIkyd5404AKfvNgGqYwYdkxdGi-JGjAqK9UrSt5PhZ015mAwDsYIJNKDSAbshj82MFaQnONZddSy4jrnFZ5VYljxbUp1TYlO1bmzyYQXUtjsO3WFkfIxkv9Olm_6eI-n6KiZMlPRyEO-W5SAiwAhw6auWxLNHhiKjBHqFSMmvGkJUXOq2Z0KuYX68ST5vy2ltWVTwa53"/>
+<div class="min-w-0">
+<p class="text-xs font-bold truncate">Mimi (Mrs. Lan)</p>
+<p class="text-[9px] opacity-70">Đã thanh toán 100%</p>
+</div>
+</div>
+</div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+</div>
+<!-- Row VIP02 -->
+<div class="gantt-grid group">
+<div class="p-4 border-r border-stone-200 bg-stone-50/30 flex flex-col justify-center">
+<span class="text-sm font-bold text-stone-800">VIP02 - Royal</span>
+<span class="text-[10px] text-primary font-semibold">Dành cho Chó</span>
+</div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="relative h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair">
+<!-- Booking Block: Đặt cọc (Vàng) -->
+<div class="absolute inset-y-2 left-10 right-[-100%] z-10 bg-tertiary-container text-on-tertiary-container rounded-xl p-2 shadow-sm border border-tertiary/10 flex items-center gap-2 overflow-hidden">
+<img class="w-8 h-8 rounded-lg object-cover" data-alt="Small dog avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_qu4yjaEXo8-JVUpHNGC_2y7JGRZZFO_v5SgCmWyi-B8r9DPvzcmEoEgwXAdx5xqOn6BHESSuNc6e-qPYvbh4fadTUxBZXPYuDs_laGHMuNcogUbH9OG4udhi3bVRgI6s9uHioJ5q12J79xBQz4hoCTUH_-qTO7Iht2qxEnFNkPMW5AmbA-Foq4-kmnZZk1v3K5HMC5T7OFXno1whiLtYOHu5vFvdpR-RPbCpDKG13u9_Adz_aYPBum7S8xBlh3YynWbJJT3qxbRV"/>
+<div class="min-w-0">
+<p class="text-xs font-bold truncate">LuLu (Mr. Nam)</p>
+<p class="text-[9px] opacity-70">Đặt cọc 50%</p>
+</div>
+</div>
+</div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+</div>
+<!-- Row STD01 -->
+<div class="gantt-grid group">
+<div class="p-4 border-r border-stone-200 bg-stone-50/30 flex flex-col justify-center">
+<span class="text-sm font-bold text-stone-800">STD01 - Cozy</span>
+<span class="text-[10px] text-stone-500 font-semibold">Phòng tiêu chuẩn</span>
+</div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="relative h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair">
+<!-- Booking Block: Sắp trả phòng (Đỏ) -->
+<div class="absolute inset-y-2 left-0 right-[-20%] z-10 bg-error-container text-on-error-container rounded-xl p-2 shadow-sm border border-error/10 flex items-center gap-2 overflow-hidden">
+<div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm">warning</span>
+</div>
+<div class="min-w-0">
+<p class="text-xs font-bold truncate">Bông (Ms. Vy)</p>
+<p class="text-[9px] opacity-70 font-bold uppercase">Sắp trả phòng</p>
+</div>
+</div>
+</div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+</div>
+<!-- Row STD02 -->
+<div class="gantt-grid group">
+<div class="p-4 border-r border-stone-200 bg-stone-50/30 flex flex-col justify-center">
+<span class="text-sm font-bold text-stone-800">STD02 - Cozy</span>
+<span class="text-[10px] text-stone-500 font-semibold">Phòng tiêu chuẩn</span>
+</div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 border-r border-stone-100 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+<div class="h-20 hover:bg-orange-50/30 transition-colors cursor-crosshair"></div>
+</div>
+</div>
+</div>
+<!-- Dashboard Bento Summary -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="md:col-span-2 bg-secondary-container rounded-3xl p-6 flex items-center justify-between overflow-hidden relative group">
+<div class="relative z-10">
+<p class="text-on-secondary-container font-medium opacity-80 mb-1">Công suất phòng</p>
+<h3 class="text-4xl font-extrabold text-on-secondary-container">84%</h3>
+<p class="text-xs text-on-secondary-container mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                            +12% so với hôm qua
+                        </p>
+</div>
+<div class="w-32 h-32 bg-secondary/10 rounded-full -mr-10 -mb-10 absolute bottom-0 right-0 group-hover:scale-125 transition-transform"></div>
+<span class="material-symbols-outlined text-6xl text-on-secondary-container/10 absolute right-4 top-4">pets</span>
+</div>
+<div class="bg-surface-container-high rounded-3xl p-6 border border-stone-200/50">
+<p class="text-stone-500 font-medium text-sm mb-4">Chú thích màu sắc</p>
+<div class="space-y-3">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<span class="text-xs font-semibold text-stone-700">Đã thanh toán</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-tertiary"></div>
+<span class="text-xs font-semibold text-stone-700">Đặt cọc</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-error"></div>
+<span class="text-xs font-semibold text-stone-700">Sắp trả phòng</span>
+</div>
+</div>
+</div>
+<div class="bg-primary-container rounded-3xl p-6 flex flex-col justify-between">
+<div>
+<p class="text-on-primary-container font-medium text-sm">Khách Walk-in chờ</p>
+<h4 class="text-2xl font-extrabold text-on-primary-container">03</h4>
+</div>
+<button class="w-full bg-on-primary-container text-primary-container py-2 rounded-xl text-xs font-bold hover:brightness-110 transition-all">
+                        Xử lý ngay
+                    </button>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-white p-6 rounded-3xl shadow-sm border border-stone-100 flex items-center gap-4 hover:shadow-md transition-shadow cursor-pointer group">
+<div class="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">add_task</span>
+</div>
+<div>
+<h4 class="font-bold text-stone-800">Check-in nhanh</h4>
+<p class="text-xs text-stone-500">Quét mã QR hoặc nhập mã đơn</p>
+</div>
+</div>
+<div class="bg-white p-6 rounded-3xl shadow-sm border border-stone-100 flex items-center gap-4 hover:shadow-md transition-shadow cursor-pointer group">
+<div class="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">cleaning_services</span>
+</div>
+<div>
+<h4 class="font-bold text-stone-800">Yêu cầu dọn dẹp</h4>
+<p class="text-xs text-stone-500">5 phòng đang chờ vệ sinh</p>
+</div>
+</div>
+<div class="bg-white p-6 rounded-3xl shadow-sm border border-stone-100 flex items-center gap-4 hover:shadow-md transition-shadow cursor-pointer group">
+<div class="w-12 h-12 rounded-2xl bg-stone-100 flex items-center justify-center text-stone-600 group-hover:bg-stone-800 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div>
+<h4 class="font-bold text-stone-800">Xuất báo cáo ngày</h4>
+<p class="text-xs text-stone-500">Tải về file Excel/PDF</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Float FAB for New Booking -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95 z-50">
+<span class="material-symbols-outlined">edit_calendar</span>
+</button>
+</main>
+</body></html>

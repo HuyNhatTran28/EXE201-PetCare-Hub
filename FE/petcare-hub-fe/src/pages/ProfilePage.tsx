@@ -139,7 +139,7 @@ export const ProfilePage = () => {
             <PawPrint size={20} />
           </div>
           <div>
-            <h1 className="font-black text-sm tracking-tight text-[#303330] leading-none">Pet Sanctuary</h1>
+            <h1 className="font-black text-sm tracking-tight text-[#303330] leading-none">PetCare Hub</h1>
             <p className="text-[9px] text-[#fa7150] font-black uppercase tracking-wider mt-1">Bảng điều khiển</p>
           </div>
         </div>

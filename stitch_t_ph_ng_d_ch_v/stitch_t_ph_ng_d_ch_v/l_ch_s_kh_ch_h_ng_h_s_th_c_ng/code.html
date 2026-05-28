@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lịch sử Khách hàng - The Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary": "#44683b",
+              "surface-variant": "#e1e3df",
+              "surface-tint": "#a43e24",
+              "on-secondary-fixed-variant": "#486b3e",
+              "secondary-fixed": "#d0fac0",
+              "secondary-container": "#d0fac0",
+              "inverse-surface": "#0d0f0d",
+              "primary-dim": "#943219",
+              "tertiary-dim": "#5e5145",
+              "on-secondary-fixed": "#2c4e24",
+              "on-primary-fixed": "#520d00",
+              "background": "#faf9f6",
+              "on-tertiary": "#fff7f4",
+              "tertiary": "#6a5d51",
+              "surface-container-low": "#f4f4f0",
+              "error-dim": "#821a01",
+              "surface": "#faf9f6",
+              "on-error": "#fff7f6",
+              "inverse-on-surface": "#9d9d9a",
+              "on-surface-variant": "#5d605c",
+              "surface-bright": "#faf9f6",
+              "on-primary": "#fff7f6",
+              "inverse-primary": "#ff8162",
+              "on-background": "#303330",
+              "surface-container-high": "#e8e8e4",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-fixed": "#504439",
+              "error": "#aa371c",
+              "secondary-dim": "#395c30",
+              "tertiary-fixed": "#feeadb",
+              "outline": "#797b78",
+              "outline-variant": "#b1b2af",
+              "on-primary-container": "#751c05",
+              "on-error-container": "#671200",
+              "primary": "#a43e24",
+              "tertiary-fixed-dim": "#efdccd",
+              "on-primary-fixed-variant": "#81240d",
+              "error-container": "#fa7150",
+              "primary-fixed": "#ffac98",
+              "primary-container": "#ffac98",
+              "tertiary-container": "#feeadb",
+              "on-surface": "#303330",
+              "surface-container": "#eeeeea",
+              "secondary-fixed-dim": "#c2ebb2",
+              "on-tertiary-fixed-variant": "#6e6054",
+              "surface-dim": "#d9dbd6",
+              "on-tertiary-container": "#63564b",
+              "primary-fixed-dim": "#ff987e",
+              "surface-container-highest": "#e1e3df",
+              "on-secondary-container": "#3e6135",
+              "on-secondary": "#ebffdf"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Be Vietnam Pro"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Be Vietnam Pro', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex">
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-0 h-full flex flex-col z-40 h-screen w-64 border-r-0 bg-stone-50 dark:bg-zinc-900 overflow-y-auto">
+<div class="p-6 flex flex-col gap-1">
+<h1 class="text-xl font-bold tracking-tight text-stone-800 dark:text-stone-100">The Sanctuary</h1>
+<p class="text-xs font-semibold text-stone-500 uppercase tracking-wider">Owner Portal</p>
+</div>
+<nav class="flex-1 px-4 py-4 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-4 py-3 text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors duration-200 scale-98 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors duration-200 scale-98 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+<span class="text-sm font-medium">Calendar</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors duration-200 scale-98 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="book_online">book_online</span>
+<span class="text-sm font-medium">Bookings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors duration-200 scale-98 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="pets">pets</span>
+<span class="text-sm font-medium">Stay Management</span>
+</a>
+<!-- ACTIVE TAB: Customers -->
+<a class="flex items-center gap-3 px-4 py-3 text-orange-800 dark:text-orange-300 font-bold border-r-4 border-orange-700 dark:border-orange-500 bg-stone-100 dark:bg-zinc-800 scale-98 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="text-sm font-medium">Customers</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors duration-200 scale-98 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+<div class="p-6">
+<button class="w-full py-3 bg-primary text-on-primary rounded-full font-semibold text-sm shadow-sm hover:bg-primary-dim transition-all active:scale-95">
+                Quick Book
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 min-h-screen flex flex-col">
+<!-- TopNavBar (Shared Component) -->
+<header class="flex justify-between items-center w-full h-16 px-8 sticky top-0 z-30 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-md shadow-sm dark:shadow-none">
+<div class="flex items-center gap-4">
+<h2 class="text-lg font-semibold text-stone-800 dark:text-stone-100">Lịch sử Khách hàng</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm" data-icon="search">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-high rounded-full border-none text-sm w-64 focus:ring-2 focus:ring-orange-500/20 focus:bg-surface-container-lowest transition-all" placeholder="Tìm kiếm tên thú cưng..." type="text"/>
+</div>
+<div class="flex items-center gap-3">
+<button class="text-stone-500 hover:text-orange-700 transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-stone-500 hover:text-orange-700 transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden">
+<img alt="Staff Member Avatar" class="w-full h-full object-cover" data-alt="professional portrait of a friendly female pet sanctuary staff member with a warm smile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChYt0cniGUMK0M-1Okli2h_1fEy8mo5TInIBEn7DZ1jAZ8IdNuXIe-kijwYi8XSSOjefA_mU9X85JnfSmzPZPDIH4Mdamt9vosvie1vD7VUyvP3iE3mial4zjjiEwsU4tRrOYYhcORoyGszpBVrmv-x1-csOhIBLLHi4R45AFh3flnTJhAPU1y6-3yhkdbGwzFpGGhjcEEnzzoc1ogJE8yS4uUcmrNpz-QFfczFkakmDLaMbCaDVTot9frypfx1V0dY7LzBPI9-rIp"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-8 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+<!-- Filters & Stats Row -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Filter Card 1: Pet Type -->
+<div class="bg-surface-container-low p-6 rounded-lg flex flex-col gap-3">
+<span class="text-xs font-bold uppercase tracking-widest text-secondary">Loại thú cưng</span>
+<select class="bg-transparent border-none text-on-surface p-0 focus:ring-0 font-headline font-semibold text-lg cursor-pointer">
+<option>Tất cả loài</option>
+<option>Chó (Canine)</option>
+<option>Mèo (Feline)</option>
+<option>Khác</option>
+</select>
+</div>
+<!-- Filter Card 2: Number of Stays -->
+<div class="bg-surface-container-low p-6 rounded-lg flex flex-col gap-3">
+<span class="text-xs font-bold uppercase tracking-widest text-secondary">Số lần lưu trú</span>
+<select class="bg-transparent border-none text-on-surface p-0 focus:ring-0 font-headline font-semibold text-lg cursor-pointer">
+<option>Bất kỳ</option>
+<option>Trên 5 lần</option>
+<option>Trên 10 lần</option>
+<option>Khách hàng mới (1)</option>
+</select>
+</div>
+<!-- Summary Stats (Bento Style) -->
+<div class="md:col-span-2 bg-secondary-container p-6 rounded-lg flex justify-between items-center overflow-hidden relative">
+<div class="z-10">
+<span class="text-xs font-bold uppercase tracking-widest text-on-secondary-container">Tổng số thú cưng</span>
+<div class="text-3xl font-bold font-headline text-on-secondary-container mt-1">1,284</div>
+</div>
+<div class="z-10">
+<span class="text-xs font-bold uppercase tracking-widest text-on-secondary-container">Tỷ lệ quay lại</span>
+<div class="text-3xl font-bold font-headline text-on-secondary-container mt-1">82%</div>
+</div>
+<!-- Decorative blob -->
+<div class="absolute -right-10 -bottom-10 w-40 h-40 bg-secondary/10 rounded-full blur-3xl"></div>
+</div>
+</section>
+<!-- Main Table Section -->
+<section class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container">
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-widest text-outline">Thú cưng</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-widest text-outline">Loài</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-widest text-outline">Giống</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-widest text-outline">Lần ở</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-widest text-outline">Ngày ở cuối</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-widest text-outline">Ghi chú đặc biệt</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-widest text-outline text-right">Hành động</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="Golden Retriever" class="w-full h-full object-cover" data-alt="close-up of a happy golden retriever puppy with big brown eyes in soft natural sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2r5-QAoJMH4yA72P-5ihajjiYYLgL0RXQehoGY1TVNs9q-CuQzzllmiqwLj-Q9gHemMgoOzuTp2RJYFuYkdDCizBcTbtXX_zCzXEPtWwdwGzITc8zENCSznsuegIDX2A7hUvf7f9CYC1t1f6fZLzLwhnP5vQD-1xnIWJp2r1WKQwlXawpvkgehPu7d5xHLfEO0coMiNC6lvek6TaIxQJRVAE7KpkSAgKdzIin69bl67H3IkfqpgphSZGXZrEtVfdIgGuFOAt4db99"/>
+</div>
+<div>
+<span class="block font-headline font-bold text-on-surface">Mochi</span>
+<span class="text-xs text-outline">ID: #PET-001</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-tertiary-container text-on-tertiary-container">
+                                        Chó
+                                    </span>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Golden Retriever</td>
+<td class="px-6 py-4">
+<span class="font-headline font-bold text-primary">12</span>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">14/05/2024</td>
+<td class="px-6 py-4">
+<p class="text-sm text-on-surface-variant max-w-xs truncate italic">Dị ứng thịt gà, thích đồ chơi mềm màu xanh.</p>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="px-4 py-2 bg-surface-container-high text-secondary font-semibold text-xs rounded-full hover:bg-secondary hover:text-on-secondary transition-all">Chi tiết</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="British Shorthair" class="w-full h-full object-cover" data-alt="elegant british shorthair cat with copper eyes sitting calmly in an airy modern living room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS42Y_YR8b3xoFxqmkbdxWzW3Kebt0yd_mNyLY-3bv3pUx_KadLBW3D1_wb5XJRFeolLftB6EamO3XpGHiHDaeG6iEPJ4rWOJrBa73pV7Cc1PdnK9gpEZOc82Oq1CMgYy2RDZkYgBADA3uYO1oxopoLD7SthMWKVlQjc5yo04J1COYZ1Sx65MUhQUPBe6jNY17qMkPa3fDfAmzRZxOP9_sPTZd3_dbE9UGaSJMktXJQ8OfKjswHPsXbbB3ku_9TCup1aTuctkEHnnA"/>
+</div>
+<div>
+<span class="block font-headline font-bold text-on-surface">Luna</span>
+<span class="text-xs text-outline">ID: #PET-042</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-secondary-container text-on-secondary-container">
+                                        Mèo
+                                    </span>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Mèo Anh lông ngắn</td>
+<td class="px-6 py-4">
+<span class="font-headline font-bold text-primary">4</span>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">02/06/2024</td>
+<td class="px-6 py-4">
+<p class="text-sm text-on-surface-variant max-w-xs truncate italic">Rất nhát, cần không gian yên tĩnh, sợ tiếng sấm.</p>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="px-4 py-2 bg-surface-container-high text-secondary font-semibold text-xs rounded-full hover:bg-secondary hover:text-on-secondary transition-all">Chi tiết</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="French Bulldog" class="w-full h-full object-cover" data-alt="cute french bulldog wearing a stylish yellow bandana looking curiously at the camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC121IIc7tEeBbkWloG5OuieMw9MGfbTW_Axi1IcepsS3RZIXmNSZlaSTe_042C1Rp-RCfcXZOzzwuzBcoIx72P0aX953K0FHa0DhIr7IKJOK4FhGIxtzIIrLKcZZeN_-hYiDBblftQ4P-yUSCnqXZxSStHH0U0yh_4nmI0kMuOvj_zM57WQtsjpl-2Dqyi_K6E0DN2QHJSWIbbvZ9_0jGe2yvaRd1pDzETf2fh8EPfy6PK4vZjsB65cOOL8FShCgNAc123065nLcZV"/>
+</div>
+<div>
+<span class="block font-headline font-bold text-on-surface">Bánh Bao</span>
+<span class="text-xs text-outline">ID: #PET-109</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-tertiary-container text-on-tertiary-container">
+                                        Chó
+                                    </span>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">French Bulldog</td>
+<td class="px-6 py-4">
+<span class="font-headline font-bold text-primary">21</span>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">28/05/2024</td>
+<td class="px-6 py-4">
+<p class="text-sm text-on-surface-variant max-w-xs truncate italic">Thích đi dạo vào sáng sớm, hay ngáy to.</p>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="px-4 py-2 bg-surface-container-high text-secondary font-semibold text-xs rounded-full hover:bg-secondary hover:text-on-secondary transition-all">Chi tiết</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="Ginger Cat" class="w-full h-full object-cover" data-alt="close-up of a ginger tabby cat with bright green eyes resting on a beige linen blanket" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwrocWG_41_FPKYd4qN5Hpv-4DHSANFeXkZ-E91DxxnIrwP2NMWFlUtFqNCgGKygdIWhPOUnBtRo1gvueBtmf0PuBQGTa9Nba9GHNlaxYdCQBg9tRXTtrtk3AGwYTyhbJ5pfafsZ-ac7xJ9g86Kn7YMJ5XqQItszN6gjZ5sfaopFy1NdIOPmS-22pOUre6Y2gZylFgnfvk9pZYSpLVVnRASdZ_E7lbOVz52_5Ts-ggvTn_7rFzlZRbh1DDzXDzTXg1WKW36E5rOb5n"/>
+</div>
+<div>
+<span class="block font-headline font-bold text-on-surface">Simba</span>
+<span class="text-xs text-outline">ID: #PET-088</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-secondary-container text-on-secondary-container">
+                                        Mèo
+                                    </span>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Mèo Mướp</td>
+<td class="px-6 py-4">
+<span class="font-headline font-bold text-primary">8</span>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">15/04/2024</td>
+<td class="px-6 py-4">
+<p class="text-sm text-on-surface-variant max-w-xs truncate italic">Nhu cầu dinh dưỡng đặc biệt cho mèo cao tuổi.</p>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="px-4 py-2 bg-surface-container-high text-secondary font-semibold text-xs rounded-full hover:bg-secondary hover:text-on-secondary transition-all">Chi tiết</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="Beagle Dog" class="w-full h-full object-cover" data-alt="energetic beagle dog running in a grassy field during golden hour with ears flapping in the wind" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNoL5tpN_VvCFKbVbjqawHjOGas0LreTQQ6R-2hTICg4wySf_VeyCtKN1-jxQhynbvc6v5mhUVdJauMLtnTb5Kj78p7z3TFc-ppcIyOt3lwHXfcMwcHycycanic66RLgyXhKne5cyYq4K30jf2gSsS4jw6z_tDgB4f7YXRUmMPMc7VlxxDt4ipPoZfV6FBNrRjcVgq0eDHbXkYTxaSCqbd3-JlOh_hywW6agMq7UI-vEzy8Cy4X2MUNdyHMuu1REPewPJWFF-K9qTa"/>
+</div>
+<div>
+<span class="block font-headline font-bold text-on-surface">Cooper</span>
+<span class="text-xs text-outline">ID: #PET-215</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-tertiary-container text-on-tertiary-container">
+                                        Chó
+                                    </span>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Beagle</td>
+<td class="px-6 py-4">
+<span class="font-headline font-bold text-primary">2</span>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">10/06/2024</td>
+<td class="px-6 py-4">
+<p class="text-sm text-on-surface-variant max-w-xs truncate italic">Năng lượng cao, cần nhiều bài tập đuổi bắt.</p>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="px-4 py-2 bg-surface-container-high text-secondary font-semibold text-xs rounded-full hover:bg-secondary hover:text-on-secondary transition-all">Chi tiết</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-6 py-4 bg-surface-container-lowest flex justify-between items-center">
+<span class="text-xs text-outline">Hiển thị 1 - 5 trong tổng số 1,284 thú cưng</span>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-primary text-on-primary text-xs font-bold">1</button>
+<button class="w-8 h-8 rounded-lg text-xs font-bold hover:bg-surface-container">2</button>
+<button class="w-8 h-8 rounded-lg text-xs font-bold hover:bg-surface-container">3</button>
+<span class="px-1">...</span>
+<button class="w-8 h-8 rounded-lg text-xs font-bold hover:bg-surface-container">257</button>
+<button class="p-2 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer Spacer -->
+<footer class="mt-auto py-8 text-center text-outline text-xs">
+            © 2024 The Sanctuary Pet Hotel - Owner Portal v2.4
+        </footer>
+</main>
+<!-- Chatbot Toggle (Shared Visual Style) -->
+<div class="fixed bottom-8 right-8 z-50">
+<button aria-label="Nurture Chatbot" class="w-14 h-14 rounded-full shadow-lg bg-gradient-to-br from-primary to-primary-fixed text-on-primary flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-2xl" data-icon="forum" style="font-variation-settings: 'FILL' 1;">forum</span>
+</button>
+</div>
+</body></html>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Partners &amp; Vendors Management | The Pet Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary-fixed-variant": "#81240d",
+                        "on-primary-container": "#751c05",
+                        "on-surface-variant": "#5d605c",
+                        "inverse-primary": "#ff8162",
+                        "tertiary-fixed-dim": "#efdccd",
+                        "background": "#faf9f6",
+                        "tertiary": "#6a5d51",
+                        "secondary": "#44683b",
+                        "outline": "#797b78",
+                        "on-secondary-fixed-variant": "#486b3e",
+                        "error-dim": "#821a01",
+                        "secondary-fixed": "#d0fac0",
+                        "primary": "#a43e24",
+                        "surface-container-high": "#e8e8e4",
+                        "on-tertiary-fixed": "#504439",
+                        "surface-dim": "#d9dbd6",
+                        "surface-container-highest": "#e1e3df",
+                        "tertiary-fixed": "#feeadb",
+                        "on-background": "#303330",
+                        "on-tertiary-container": "#63564b",
+                        "secondary-dim": "#395c30",
+                        "surface": "#faf9f6",
+                        "secondary-container": "#d0fac0",
+                        "on-error-container": "#671200",
+                        "primary-dim": "#943219",
+                        "on-secondary-container": "#3e6135",
+                        "surface-tint": "#a43e24",
+                        "inverse-on-surface": "#9d9d9a",
+                        "primary-fixed-dim": "#ff987e",
+                        "tertiary-container": "#feeadb",
+                        "surface-bright": "#faf9f6",
+                        "on-error": "#fff7f6",
+                        "on-tertiary-fixed-variant": "#6e6054",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#fa7150",
+                        "on-tertiary": "#fff7f4",
+                        "on-surface": "#303330",
+                        "surface-container-low": "#f4f4f0",
+                        "primary-container": "#ffac98",
+                        "outline-variant": "#b1b2af",
+                        "on-secondary-fixed": "#2c4e24",
+                        "on-primary": "#fff7f6",
+                        "error": "#aa371c",
+                        "tertiary-dim": "#5e5145",
+                        "primary-fixed": "#ffac98",
+                        "on-primary-fixed": "#520d00",
+                        "secondary-fixed-dim": "#c2ebb2",
+                        "surface-variant": "#e1e3df",
+                        "surface-container": "#eeeeea",
+                        "on-secondary": "#ebffdf",
+                        "inverse-surface": "#0d0f0d"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Be Vietnam Pro"],
+                        "label": ["Be Vietnam Pro"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #faf9f6;
+            color: #303330;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-0 h-full flex flex-col py-6 px-4 bg-stone-50 dark:bg-stone-900 h-screen w-64 border-r-0 shadow-[20px_0px_40px_rgba(48,51,48,0.06)] z-50">
+<div class="mb-10 px-4">
+<h2 class="text-lg font-bold text-orange-800 dark:text-orange-400 tracking-tight">Sanctuary Admin</h2>
+<p class="text-xs font-semibold text-stone-500 uppercase tracking-widest mt-1">Premium Pet Care</p>
+</div>
+<nav class="flex-1 space-y-2">
+<!-- Dashboard -->
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-sm font-semibold">Dashboard</span>
+</a>
+<!-- Sanctuary Management -->
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="pets">pets</span>
+<span class="text-sm font-semibold">Sanctuary Management</span>
+</a>
+<!-- CMS -->
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="edit_note">edit_note</span>
+<span class="text-sm font-semibold">CMS &amp; Content</span>
+</a>
+<!-- Marketing Hub -->
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="campaign">campaign</span>
+<span class="text-sm font-semibold">Marketing Hub</span>
+</a>
+<!-- System Logs -->
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+<span class="text-sm font-semibold">System Logs</span>
+</a>
+<!-- Partners (ACTIVE) -->
+<a class="flex items-center gap-3 px-4 py-3 text-orange-900 dark:text-orange-200 font-bold bg-stone-200/50 dark:bg-stone-800 rounded-r-full group" href="#">
+<span class="material-symbols-outlined" data-icon="handshake" style="font-variation-settings: 'FILL' 1;">handshake</span>
+<span class="text-sm">Partners</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-stone-200/50 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 hover:bg-stone-100 transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-sm font-semibold">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-stone-600 hover:bg-stone-100 transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="text-sm font-semibold">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-64 min-h-screen">
+<!-- TopNavBar Shell -->
+<header class="w-full h-16 sticky top-0 z-40 flex items-center justify-between px-8 bg-white/70 backdrop-blur-md border-b border-stone-200/20 shadow-sm">
+<div class="flex items-center gap-8">
+<h1 class="text-xl font-black text-stone-800 tracking-tight">Management Portal</h1>
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-high rounded-full border-none text-sm w-64 focus:ring-2 focus:ring-secondary/20 focus:bg-white transition-all" placeholder="Search partners..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<nav class="flex gap-6 text-sm font-medium">
+<a class="text-stone-500 hover:text-orange-600 transition-colors" href="#">Analytics</a>
+<a class="text-stone-500 hover:text-orange-600 transition-colors" href="#">Alerts</a>
+<a class="text-stone-500 hover:text-orange-600 transition-colors" href="#">Schedules</a>
+</nav>
+<div class="flex items-center gap-4 border-l border-stone-200 pl-6">
+<button class="material-symbols-outlined text-stone-600 hover:text-primary transition-colors">notifications_active</button>
+<button class="material-symbols-outlined text-stone-600 hover:text-primary transition-colors">dns</button>
+<div class="w-8 h-8 rounded-full bg-stone-200 overflow-hidden ring-2 ring-white">
+<img alt="Admin User Avatar" class="w-full h-full object-cover" data-alt="Close up of a professional male administrator avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjp-YWlUxtD8RMssM_W5h8wwWnRLWuaWktMYtiT9_5pF2a1ribzWFzLt9Z_uJHgsX79-75uwkrwLN-HMGpgxRgTWQnScVRva8LMJXIWLLUNAsvYqHaZh5kLVnKYqB89RvRPTaUUnRp2OlhOk24bhSb9mLN19F0GQlWFaCnGc-EUZbEkhU56lgmsatrquAnYbJuidDa_QQf1azG1HGzf5eQ337A-FNQzA9AIY3n-Zygjyf20xzr0OrVpoLay5r_K2Tf0i3JAjZ3pPY6"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="p-10 max-w-[1600px] mx-auto">
+<!-- Header Section with Asymmetry -->
+<div class="flex justify-between items-end mb-12">
+<div class="max-w-xl">
+<span class="text-secondary font-semibold text-sm tracking-widest uppercase mb-2 block">Network Ecosystem</span>
+<h2 class="text-5xl font-extrabold text-on-background leading-tight">Partners &amp; <br/><span class="text-primary italic">Global Vendors</span></h2>
+<p class="text-on-surface-variant mt-4 text-lg font-body leading-relaxed">Oversee your supply chain, manage medical contracts, and streamline procurement with our premium sanctuary partners.</p>
+</div>
+<button class="bg-primary text-on-primary px-8 py-4 rounded-full flex items-center gap-3 font-bold shadow-lg hover:bg-primary-dim transition-transform hover:scale-105 active:scale-95">
+<span class="material-symbols-outlined">add_circle</span>
+                    Onboard New Partner
+                </button>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Left Column: Quick Stats & Directory -->
+<div class="col-span-12 xl:col-span-8 space-y-8">
+<!-- Analytics Highlights -->
+<div class="grid grid-cols-3 gap-6">
+<div class="bg-surface-container-low p-8 rounded-xl relative overflow-hidden group">
+<div class="relative z-10">
+<p class="text-sm font-semibold text-secondary">Active Contracts</p>
+<h4 class="text-3xl font-black mt-1">42</h4>
+</div>
+<span class="material-symbols-outlined absolute -right-4 -bottom-4 text-8xl text-secondary/5 group-hover:scale-110 transition-transform">handshake</span>
+</div>
+<div class="bg-secondary-container p-8 rounded-xl relative overflow-hidden group">
+<div class="relative z-10">
+<p class="text-sm font-semibold text-on-secondary-container">Monthly Spend</p>
+<h4 class="text-3xl font-black mt-1 text-on-secondary-container">$12,840</h4>
+</div>
+<span class="material-symbols-outlined absolute -right-4 -bottom-4 text-8xl text-on-secondary-container/5 group-hover:scale-110 transition-transform">payments</span>
+</div>
+<div class="bg-tertiary-container p-8 rounded-xl relative overflow-hidden group">
+<div class="relative z-10">
+<p class="text-sm font-semibold text-on-tertiary-container">Pending Renewals</p>
+<h4 class="text-3xl font-black mt-1 text-on-tertiary-container">08</h4>
+</div>
+<span class="material-symbols-outlined absolute -right-4 -bottom-4 text-8xl text-on-tertiary-container/5 group-hover:scale-110 transition-transform">event_repeat</span>
+</div>
+</div>
+<!-- Vendor Directory Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Partner Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow group border-l-4 border-secondary">
+<div class="flex justify-between items-start mb-6">
+<div class="w-14 h-14 rounded-full bg-stone-100 flex items-center justify-center overflow-hidden">
+<img alt="Bark &amp; Bite Supplies" class="w-full h-full object-cover" data-alt="Modern logo of a pet food supply company" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJ05C_q50fiBQXnN6cpKeH9i8qaJa6btjaoQTqo5x3ycMZiTkT6CwITLNkPars-pDMDgh-boft_S9TKBfXZaaSYuJzPMACh15fkXZVap-HeHaL1A2hRNXZfniePzzt0BzgftrfOOLFCfG3UUIbSiuTKcugbS7gZxUYstJ_tL2kAy6N173wxQBFrd8WU7VfjfIiRgt9-0BJRvg60YfNrfZHs0PuCdPFeHO-x_A18GgFsgROqdvDlCE7hFkTqur9EAj5EirgN7XdEeIL"/>
+</div>
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full uppercase tracking-tighter">Active</span>
+</div>
+<h5 class="text-xl font-bold mb-1">Bark &amp; Bite Supplies</h5>
+<p class="text-secondary text-xs font-semibold uppercase tracking-wider mb-4">Premium Food &amp; Treats</p>
+<div class="space-y-3 pt-4 border-t border-stone-100">
+<div class="flex items-center gap-3 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">mail</span>
+<span>orders@barkbite.com</span>
+</div>
+<div class="flex items-center gap-3 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">call</span>
+<span>+1 (555) 902-1234</span>
+</div>
+</div>
+<button class="w-full mt-6 py-3 rounded-xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-stone-200 transition-colors">View Contract</button>
+</div>
+<!-- Partner Card 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow group border-l-4 border-primary">
+<div class="flex justify-between items-start mb-6">
+<div class="w-14 h-14 rounded-full bg-stone-100 flex items-center justify-center overflow-hidden">
+<img alt="VetHealth Solutions" class="w-full h-full object-cover" data-alt="Medical professional pharmaceutical logo design" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKa8TYnFL8WT7yY9Qeye98xak4rnLME2VM_efX9fUuDNHSHNWY1_H0HwWUsH4Lq2Rk7o2xEHHWth3XFZwRkI5NR3cQJF-T2Ys_Q9PB6r9tcRM2m3MY1h4BAxJmPpzPRkQdS4_w5cy__Ut_leqUgG37D9TgFOFXCpEDLZlFTZvO041sjoC2gjOJDNoR6mNR9pwMaFJVLUApt9JLysH7WASmiey4QSYsLXOY_tlhctEu1kNjTMmhs9Z0jL_fPXFEh9xxaYxBDlE8rdeK"/>
+</div>
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full uppercase tracking-tighter">Active</span>
+</div>
+<h5 class="text-xl font-bold mb-1">VetHealth Solutions</h5>
+<p class="text-secondary text-xs font-semibold uppercase tracking-wider mb-4">Medical &amp; Pharma</p>
+<div class="space-y-3 pt-4 border-t border-stone-100">
+<div class="flex items-center gap-3 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">mail</span>
+<span>support@vethealth.io</span>
+</div>
+<div class="flex items-center gap-3 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">call</span>
+<span>+1 (555) 111-9988</span>
+</div>
+</div>
+<button class="w-full mt-6 py-3 rounded-xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-stone-200 transition-colors">View Contract</button>
+</div>
+<!-- Partner Card 3 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow group border-l-4 border-tertiary">
+<div class="flex justify-between items-start mb-6">
+<div class="w-14 h-14 rounded-full bg-stone-100 flex items-center justify-center overflow-hidden">
+<img alt="Groom-It Wholesalers" class="w-full h-full object-cover" data-alt="Elegant logo for grooming tools wholesaler" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBV4NKXlgkAKlMK8rg3wvYrSmZE_wNC9wqBKuWwNsJZ0XX1zGM1K1MZKSrgvgH8CrYQbOQ1lWgQjLkOP8ltOz0AD6orV2uCHPeeDpBDV69LPszmOe8qDoTpzKWbmxWU4nVfNk6eKn_Bd6luMd_rV6NLGirIIU1AQFT4s8HEUX3gk9R3I4j5Q6Aq-X-4zh2IyyLSBtKwDOaQ4TusGbLhqLyb0E10j5jJwCKCxCW6PjjjpxEROR-DXgFtHpkJF5iXJtoj2G5c2RTxkWgi"/>
+</div>
+<span class="px-3 py-1 bg-surface-variant text-on-surface-variant text-[10px] font-bold rounded-full uppercase tracking-tighter">Inactive</span>
+</div>
+<h5 class="text-xl font-bold mb-1">Groom-It Wholesalers</h5>
+<p class="text-secondary text-xs font-semibold uppercase tracking-wider mb-4">Grooming Supplies</p>
+<div class="space-y-3 pt-4 border-t border-stone-100">
+<div class="flex items-center gap-3 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">mail</span>
+<span>wholesale@groomit.co</span>
+</div>
+<div class="flex items-center gap-3 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">call</span>
+<span>+1 (555) 444-2200</span>
+</div>
+</div>
+<button class="w-full mt-6 py-3 rounded-xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-stone-200 transition-colors">View Contract</button>
+</div>
+<!-- Partner Card 4 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow group border-l-4 border-secondary">
+<div class="flex justify-between items-start mb-6">
+<div class="w-14 h-14 rounded-full bg-stone-100 flex items-center justify-center overflow-hidden">
+<img alt="Paws Logistics" class="w-full h-full object-cover" data-alt="Modern logistics and shipping company logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNvxsaGUaAYfn2vqbrHqJwYwVV1xogHpuxvWZW2fIokHwgIjp5eZWvSfUIC8CGx9Y317f7wiWbnH32n5y-WQM9bRYAkVUfOaXCkLwrIjUtGP4FUUuUY1lOMUHfD2HdnYM8k8uwpMXeLrhhLy5Gc7Dk8R332CqvRY9QgxhaA3l7W2O02CsybCgCZGPrZrS1f3SbFwG-IoJjUuTl-94yB_tCxNujoFb87Z6Cjkyj23WTWFD1NNgo_WQRhHr3tchgsGgFkJExAJQf7C2n"/>
+</div>
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full uppercase tracking-tighter">Active</span>
+</div>
+<h5 class="text-xl font-bold mb-1">Paws Logistics</h5>
+<p class="text-secondary text-xs font-semibold uppercase tracking-wider mb-4">Distribution &amp; Shipping</p>
+<div class="space-y-3 pt-4 border-t border-stone-100">
+<div class="flex items-center gap-3 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">mail</span>
+<span>freight@pawslogistics.com</span>
+</div>
+<div class="flex items-center gap-3 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">call</span>
+<span>+1 (555) 888-0011</span>
+</div>
+</div>
+<button class="w-full mt-6 py-3 rounded-xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-stone-200 transition-colors">View Contract</button>
+</div>
+</div>
+</div>
+<!-- Right Column: Focus Tasks -->
+<div class="col-span-12 xl:col-span-4 space-y-8">
+<!-- Pending Invoices Glass Card -->
+<section class="glass-card bg-white/70 p-8 rounded-xl border border-white shadow-xl">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-2xl font-black">Pending Invoices</h3>
+<span class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full text-xs font-bold">03 NEW</span>
+</div>
+<div class="space-y-6">
+<div class="flex items-center justify-between p-4 bg-surface-container rounded-xl">
+<div>
+<p class="text-sm font-bold text-on-surface">INV-2024-089</p>
+<p class="text-xs text-on-surface-variant">Bark &amp; Bite Supplies</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-black text-primary">$4,250.00</p>
+<p class="text-[10px] font-bold text-error uppercase">Due Today</p>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-xl">
+<div>
+<p class="text-sm font-bold text-on-surface">INV-2024-112</p>
+<p class="text-xs text-on-surface-variant">VetHealth Solutions</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-black text-on-surface">$1,120.50</p>
+<p class="text-[10px] font-bold text-secondary uppercase">Due in 5d</p>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-xl opacity-60">
+<div>
+<p class="text-sm font-bold text-on-surface">INV-2024-105</p>
+<p class="text-xs text-on-surface-variant">Paws Logistics</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-black text-on-surface">$890.00</p>
+<p class="text-[10px] font-bold text-stone-400 uppercase">Awaiting Approval</p>
+</div>
+</div>
+</div>
+<button class="w-full mt-8 text-primary font-bold text-sm flex items-center justify-center gap-2 hover:underline">
+                            View All Billing <span class="material-symbols-outlined text-base">arrow_forward</span>
+</button>
+</section>
+<!-- Contract Renewals -->
+<section class="bg-on-background text-white p-8 rounded-xl shadow-2xl relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+<h3 class="text-2xl font-black mb-6 flex items-center gap-2 relative z-10">
+<span class="material-symbols-outlined text-primary">history_edu</span>
+                            Contract Renewals
+                        </h3>
+<div class="space-y-4 relative z-10">
+<div class="p-5 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-2">
+<h6 class="font-bold text-white group-hover:text-primary transition-colors">SafeGuard Insurance</h6>
+<span class="text-[10px] text-primary-container font-black">EXPIRING 14D</span>
+</div>
+<p class="text-xs text-stone-400 leading-relaxed">Quarterly liability review and animal welfare coverage extension required.</p>
+</div>
+<div class="p-5 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-2">
+<h6 class="font-bold text-white group-hover:text-primary transition-colors">Eco-Waste Cleaners</h6>
+<span class="text-[10px] text-stone-400 font-black">EXPIRING 30D</span>
+</div>
+<p class="text-xs text-stone-400 leading-relaxed">Service level agreement for medical waste disposal annual renewal.</p>
+</div>
+</div>
+<div class="mt-8 p-4 bg-primary rounded-xl flex items-center gap-4">
+<div class="p-2 bg-white/20 rounded-lg">
+<span class="material-symbols-outlined text-white">auto_awesome</span>
+</div>
+<div>
+<p class="text-xs font-bold text-white">Smart Suggestion</p>
+<p class="text-[10px] text-white/80">Automate Bark &amp; Bite renewal for 2025?</p>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Chatbot Hub (Design System Mandate) -->
+<div class="fixed bottom-8 right-8 z-50">
+<button class="w-16 h-16 rounded-full shadow-2xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-transform group">
+<span class="material-symbols-outlined text-3xl" data-icon="forum" style="font-variation-settings: 'FILL' 1;">forum</span>
+<div class="absolute right-0 top-0 w-4 h-4 bg-secondary rounded-full border-2 border-white scale-0 group-hover:scale-100 transition-transform"></div>
+</button>
+</div>
+</body></html>

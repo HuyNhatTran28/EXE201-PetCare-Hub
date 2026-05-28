@@ -17,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -96,15 +97,4 @@ public class HotelController {
         return ResponseEntity.ok(hotelService.updateHotel(id, partnerId, request));
     }
 
-    // ── GET /api/hotels/nearby — Tìm KS gần GPS ───────────────
-    @Operation(summary = "Tìm khách sạn gần vị trí hiện tại")
-    @GetMapping("/nearby")
-    public ResponseEntity<List<HotelResponse>> findNearby(
-            @RequestParam Double lat,
-            @RequestParam Double lng,
-            @RequestParam(defaultValue = "5") Double radius) {
-
-        return ResponseEntity.ok(
-                hotelService.findNearbyHotels(lat, lng, radius));
-    }
 }

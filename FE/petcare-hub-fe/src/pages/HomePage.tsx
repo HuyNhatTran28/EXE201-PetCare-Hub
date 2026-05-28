@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '@/store/authStore'
 import {
   PawPrint,
   Calendar,
@@ -12,14 +11,13 @@ import {
   Compass,
   Scissors,
   Sparkles,
-  LogOut,
   ChevronRight,
-  User,
   Star
 } from 'lucide-react'
 
+import { Header } from '@/components/Header'
+
 export const HomePage = () => {
-  const { user, logout } = useAuthStore()
   const navigate = useNavigate()
 
   // State tìm kiếm booking
@@ -34,143 +32,11 @@ export const HomePage = () => {
     navigate(`/hotels?type=${petType}&checkIn=${checkIn}&checkOut=${checkOut}&q=${searchQuery}`)
   }
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
-
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
-
   return (
     <div className="min-h-screen flex flex-col font-sans selection:bg-[#fa7150] selection:text-white" style={{ backgroundColor: '#fcf8f5' }}>
       
       {/* ── 1. HEADER (NAVBAR) ─────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-[#fcf8f5]/90 backdrop-blur-md border-b border-[#f0e4de] px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <PawPrint size={28} className="text-[#fa7150] animate-bounce" />
-            <span className="text-xl font-bold tracking-tight text-[#303330]">
-              Pet Sanctuary
-            </span>
-          </Link>
-
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-sm font-semibold text-[#fa7150] hover:text-[#fa7150]/80 transition-colors">
-              Trang chủ
-            </Link>
-            <Link to="/hotels" className="text-sm font-semibold text-[#5a5550] hover:text-[#fa7150] transition-colors">
-              Đặt phòng
-            </Link>
-            <Link to="/hotels" className="text-sm font-semibold text-[#5a5550] hover:text-[#fa7150] transition-colors">
-              Khách sạn
-            </Link>
-            <Link to="/my-bookings" className="text-sm font-semibold text-[#5a5550] hover:text-[#fa7150] transition-colors">
-              Nhật ký
-            </Link>
-          </nav>
-
-          {/* User Actions */}
-          <div className="flex items-center gap-4 relative">
-            {user ? (
-              <div className="relative">
-                <div 
-                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#fa7150] to-[#ff9880] text-white flex items-center justify-center shadow-md cursor-pointer hover:scale-105 hover:shadow-[#fa7150]/20 active:scale-95 transition-all select-none border-2 border-white"
-                  title="Tài khoản cá nhân"
-                >
-                  <User size={18} />
-                </div>
-
-                {/* Dropdown Menu Xổ Xuống */}
-                {showProfileDropdown && (
-                  <div className="absolute right-0 mt-3 w-64 bg-white/95 backdrop-blur-md rounded-3xl border border-[#e5d8d0] shadow-2xl p-4 text-left z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    {/* Thông tin tài khoản */}
-                    <div className="pb-3 border-b border-[#e5d8d0]/60 mb-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#fdf0ec] text-[#fa7150] flex items-center justify-center border border-[#fa7150]/20 shrink-0">
-                        <User size={18} />
-                      </div>
-                      <div className="flex-grow min-w-0">
-                        <p className="text-xs font-black text-[#fa7150] uppercase tracking-wider">{user.role}</p>
-                        <p className="text-sm font-bold text-[#303330] line-clamp-1 mt-0.5">{user.fullName}</p>
-                        <p className="text-[10px] text-[#8a7e75] line-clamp-1">{user.email}</p>
-                      </div>
-                    </div>
-
-                    {/* Danh sách mục chọn theo vai trò */}
-                    <div className="flex flex-col gap-1 mb-3">
-                      {user.role === 'OWNER' && (
-                        <>
-                          <Link 
-                            to="/pets" 
-                            onClick={() => setShowProfileDropdown(false)}
-                            className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
-                          >
-                            Hồ sơ Thú cưng
-                          </Link>
-                          <Link 
-                            to="/my-bookings" 
-                            onClick={() => setShowProfileDropdown(false)}
-                            className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
-                          >
-                            Lịch đặt phòng
-                          </Link>
-                        </>
-                      )}
-
-                      {user.role === 'PARTNER' && (
-                        <Link 
-                          to="/partner/dashboard" 
-                          onClick={() => setShowProfileDropdown(false)}
-                          className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
-                        >
-                          Kênh Đối Tác (Partner)
-                        </Link>
-                      )}
-
-                      <Link 
-                        to="/profile" 
-                        onClick={() => setShowProfileDropdown(false)}
-                        className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
-                      >
-                        Thông tin cá nhân
-                      </Link>
-                    </div>
-
-                    {/* Nút Đăng xuất */}
-                    <button
-                      onClick={() => {
-                        setShowProfileDropdown(false);
-                        handleLogout();
-                      }}
-                      className="w-full bg-[#fa7150]/10 hover:bg-[#fa7150] text-[#fa7150] hover:text-white px-4 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer"
-                    >
-                      Đăng xuất
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link
-                to="/login"
-                className="text-sm font-bold text-[#303330] hover:text-[#fa7150] transition-colors"
-              >
-                Đăng nhập
-              </Link>
-            )}
-
-            <Link
-              to="/hotels"
-              className="hidden sm:inline-flex px-6 py-2.5 rounded-full text-sm font-bold text-white shadow-lg shadow-[#fa7150]/20 hover:shadow-[#fa7150]/40 transition-all hover:scale-[1.02] cursor-pointer"
-              style={{ backgroundColor: '#a43e24' }}
-            >
-              Đặt hẹn ngay
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* ── 2. HERO SECTION ───────────────────────────────────── */}
       <section className="relative px-6 py-12 lg:py-20 overflow-hidden">
@@ -605,7 +471,7 @@ export const HomePage = () => {
             <Link to="/" className="flex items-center gap-2 mb-6">
               <PawPrint size={28} className="text-[#fa7150]" />
               <span className="text-xl font-bold tracking-tight text-white">
-                Pet Sanctuary
+                PetCare Hub
               </span>
             </Link>
             <p className="text-xs text-gray-400 leading-relaxed mb-6 max-w-sm">
@@ -658,7 +524,7 @@ export const HomePage = () => {
         </div>
 
         <div className="max-w-7xl mx-auto border-t border-white/5 mt-16 pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-400 gap-4">
-          <p>© 2024 The Pet Sanctuary. Bảo lưu mọi quyền.</p>
+          <p>© 2024 PetCare Hub. Bảo lưu mọi quyền.</p>
           <div className="flex gap-6">
             <a href="#" className="hover:text-white">Chính sách bảo mật</a>
             <a href="#" className="hover:text-white">Cookies</a>

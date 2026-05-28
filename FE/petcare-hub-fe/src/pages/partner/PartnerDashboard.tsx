@@ -2,13 +2,11 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   PawPrint,
-  TrendingUp,
   DollarSign,
   Calendar,
   Star,
   Users,
   Settings,
-  ArrowRight,
   PlusCircle,
   Activity,
   LogOut,
@@ -30,7 +28,7 @@ export const PartnerDashboard = () => {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const [hotels, setHotels] = useState<HotelType[]>([])
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     todayBookings: 8,
     monthlyRevenue: 15600000,
     activeGuests: 12,
@@ -59,7 +57,7 @@ export const PartnerDashboard = () => {
       <header className="sticky top-0 z-50 bg-[#faf9f6]/90 backdrop-blur-md border-b border-[#e5d8d0] px-6 py-4 flex items-center justify-between h-20">
         <Link to="/" className="flex items-center gap-2">
           <PawPrint size={28} className="text-[#fa7150]" />
-          <span className="text-xl font-bold tracking-tight">Pet Sanctuary <span className="text-xs bg-[#fa7150]/10 text-[#fa7150] px-2 py-0.5 rounded-full font-black ml-1">PARTNER</span></span>
+          <span className="text-xl font-bold tracking-tight">PetCare Hub <span className="text-xs bg-[#fa7150]/10 text-[#fa7150] px-2 py-0.5 rounded-full font-black ml-1">PARTNER</span></span>
         </Link>
         <div className="flex items-center gap-6">
           <Link to="/partner/bookings" className="text-sm font-semibold text-[#5a5550] hover:text-[#fa7150] transition-colors">Duyệt Booking</Link>

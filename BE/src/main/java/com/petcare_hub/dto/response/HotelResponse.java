@@ -26,5 +26,6 @@ public class HotelResponse {
     private HotelStatus status;
     private Double averageRating;
     private Integer totalReviews;
+    private java.math.BigDecimal minPrice;
     private LocalDateTime createdAt;
 }
