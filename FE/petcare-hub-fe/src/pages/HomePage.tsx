@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   PawPrint,
@@ -16,9 +16,17 @@ import {
 } from 'lucide-react'
 
 import { Header } from '@/components/Header'
+import { useAuthStore } from '@/store/authStore'
 
 export const HomePage = () => {
   const navigate = useNavigate()
+  const { user } = useAuthStore()
+
+  useEffect(() => {
+    if (user?.role === 'PARTNER') {
+      navigate('/partner/dashboard', { replace: true })
+    }
+  }, [user, navigate])
 
   // State tìm kiếm booking
   const [petType, setPetType] = useState('CAT')

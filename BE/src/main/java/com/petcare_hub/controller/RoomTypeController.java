@@ -87,4 +87,16 @@ public class RoomTypeController {
         return ResponseEntity.ok(
                 roomTypeService.updateRoomType(id, partnerId, request));
     }
+
+    @Operation(summary = "Partner xóa loại phòng")
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('PARTNER')")
+    public ResponseEntity<Void> deleteRoomType(
+            @PathVariable UUID id,
+            Authentication auth) {
+
+        UUID partnerId = (UUID) auth.getPrincipal();
+        roomTypeService.deleteRoomType(id, partnerId);
+        return ResponseEntity.noContent().build();
+    }
 }

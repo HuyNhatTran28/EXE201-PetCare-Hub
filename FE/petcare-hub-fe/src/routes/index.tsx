@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 import { PrivateRoute } from './PrivateRoute'
 import { Role } from '@/types/enums'
 
@@ -18,6 +18,7 @@ import { PartnerDashboard } from '@/pages/partner/PartnerDashboard'
 import { RoomManagePage } from '@/pages/partner/RoomManagePage'
 import { ServiceManagePage } from '@/pages/partner/ServiceManagePage'
 import { BookingManagePage } from '@/pages/partner/BookingManagePage'
+import { HotelCreatePage } from '@/pages/partner/HotelCreatePage'
 
 export const router = createBrowserRouter([
 
@@ -54,6 +55,7 @@ export const router = createBrowserRouter([
       { path: '/partner/hotels/:hotelId/rooms', element: <RoomManagePage /> },
       { path: '/partner/hotels/:hotelId/services', element: <ServiceManagePage /> },
       { path: '/partner/bookings', element: <BookingManagePage /> },
+      { path: '/partner/hotels/new', element: <HotelCreatePage /> },
     ],
   },
 

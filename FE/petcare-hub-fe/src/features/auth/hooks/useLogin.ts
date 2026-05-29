@@ -12,7 +12,21 @@ export const useLogin = () => {
         mutationFn: (data: LoginRequest) => authService.login(data),
         onSuccess: (data) => {
             setAuth(data.accessToken, data.refreshToken, data.user)
-            navigate('/')
+            
+            // Redirect theo role
+            switch(data.user?.role) {
+                case 'PARTNER':
+                    navigate('/partner/dashboard')
+                    break
+                case 'ADMIN':
+                    navigate('/admin/dashboard')
+                    break
+                case 'STAFF':
+                    navigate('/staff/dashboard')
+                    break
+                default:
+                    navigate('/hotels') // OWNER
+            }
         },
     })
 }

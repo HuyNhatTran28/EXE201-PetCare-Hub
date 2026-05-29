@@ -17,4 +17,6 @@ public interface RoomTypeService {
 
     // Kiểm tra phòng còn trống theo ngày
     Integer getAvailableRooms(UUID roomTypeId, LocalDate checkIn, LocalDate checkOut);
+
+    void deleteRoomType(UUID roomTypeId, UUID partnerId);
 }

@@ -42,6 +42,9 @@ public class Service extends BaseEntity {
     @Column(name = "service_type", nullable = false)
     private ServiceType serviceType;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(name = "is_enabled")
     @Builder.Default
     private Boolean isEnabled = true;
