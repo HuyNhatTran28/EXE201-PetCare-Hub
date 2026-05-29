@@ -20,4 +20,5 @@ public class ServiceResponse {
     private Integer durationMinutes;
     private ServiceType serviceType;
     private Boolean isEnabled;
+    private String imageUrl;
 }

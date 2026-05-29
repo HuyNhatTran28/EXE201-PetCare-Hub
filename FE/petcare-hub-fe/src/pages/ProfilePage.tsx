@@ -1,50 +1,26 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import axiosInstance from '@/lib/axios'
 import {
   PawPrint,
   User,
   Shield,
-  CreditCard,
-  Settings,
   LogOut,
-  Gem,
-  Award,
   Crown,
-  Search,
   Plus,
-  MoreVertical,
   Coins,
-  CheckCircle,
-  Mail,
-  Phone,
-  MapPin,
-  Save,
   Building,
   BarChart3,
   CalendarDays,
   ClipboardList,
   Camera,
-  CheckSquare,
   Users,
   Percent,
   Check,
-  X,
-  Lock
+  X
 } from 'lucide-react'
-
 // Mock Data cho từng vai trò
-
-// ── 1. ĐỐI TÁC (PARTNER) ──
-const MOCK_PARTNER_HOTELS = [
-  { id: 'h1', name: 'The Whisker Lodge (Quận 1)', status: 'ACTIVE', revenue: 45000000, bookingsCount: 38, checkInTime: '12:00', checkOutTime: '12:00' },
-  { id: 'h2', name: 'Whisker Retreat (Thảo Điền)', status: 'PENDING', revenue: 0, bookingsCount: 0, checkInTime: '14:00', checkOutTime: '12:00' }
-]
-
-const MOCK_PARTNER_BOOKINGS = [
-  { id: 'b1', petName: 'LuLu (Corgi)', roomType: 'Suite Sân Vườn', checkIn: '24/10/2024', checkOut: '30/10/2024', total: 4500000, status: 'CONFIRMED' },
-  { id: 'b2', petName: 'Mimi (Mèo Xiêm)', roomType: 'Deluxe Sunlit', checkIn: '26/10/2024', checkOut: '28/10/2024', total: 900000, status: 'CHECKED_IN' }
-]
 
 // ── 2. NHÂN VIÊN (STAFF) ──
 const MOCK_STAFF_TASKS = [
@@ -73,13 +49,43 @@ export const ProfilePage = () => {
   const [phone, setPhone] = useState(user?.phone || '0901234567')
   const [address, setAddress] = useState('123 Đường Song Hành, Thảo Điền, Quận 2, TP. HCM')
   const [isSaved, setIsSaved] = useState(false)
-
   // State Đối tác (PARTNER)
-  const [partnerHotels, setPartnerHotels] = useState(MOCK_PARTNER_HOTELS)
-  const [partnerBookings, setPartnerBookings] = useState(MOCK_PARTNER_BOOKINGS)
+  const [partnerHotels, setPartnerHotels] = useState<any[]>([])
+  const [partnerBookings, setPartnerBookings] = useState<any[]>([])
+  const [loadingPartner, setLoadingPartner] = useState(false)
   const [showAddHotelModal, setShowAddHotelModal] = useState(false)
   const [newHotelName, setNewHotelName] = useState('')
   const [newHotelAddress, setNewHotelAddress] = useState('')
+
+  useEffect(() => {
+    if (currentRole !== 'PARTNER') return
+    const fetchPartnerData = async () => {
+      setLoadingPartner(true)
+      try {
+        const response = await axiosInstance.get('/api/hotels/my')
+        const hotelList = response.data.content || []
+        setPartnerHotels(hotelList)
+
+        // Tải bookings của các khách sạn
+        const allBookings: any[] = []
+        for (const hotel of hotelList) {
+          try {
+            const bResponse = await axiosInstance.get(`/api/bookings/hotel/${hotel.id}`)
+            const bList = bResponse.data.content || []
+            allBookings.push(...bList)
+          } catch (err) {
+            console.error('Failed to load bookings for hotel ' + hotel.id, err)
+          }
+        }
+        setPartnerBookings(allBookings)
+      } catch (error) {
+        console.error('Failed to load partner data in ProfilePage', error)
+      } finally {
+        setLoadingPartner(false)
+      }
+    }
+    fetchPartnerData()
+  }, [currentRole])
 
   // State Nhân viên (STAFF)
   const [staffTasks, setStaffTasks] = useState(MOCK_STAFF_TASKS)
@@ -327,69 +333,96 @@ export const ProfilePage = () => {
             )}
 
             {/* Grid khách sạn sở hữu */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {partnerHotels.map(hotel => (
-                <div key={hotel.id} className="bg-white p-6 rounded-3xl border border-[#e5d8d0] shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="font-bold text-base text-[#303330]">{hotel.name}</h3>
-                      <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                        hotel.status === 'ACTIVE' ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#fff0e6] text-[#fa7150]'
-                      }`}>
-                        {hotel.status === 'ACTIVE' ? 'Đang hoạt động' : 'Đang chờ duyệt'}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 border-t border-[#e5d8d0]/60 pt-4 text-xs font-bold text-[#8a7e75] mb-6">
+            {loadingPartner ? (
+              <div className="py-12 text-center text-[#8a7e75] font-bold text-sm">
+                Đang tải dữ liệu khách sạn đối tác...
+              </div>
+            ) : partnerHotels.length === 0 ? (
+              <div className="py-12 text-center border-2 border-dashed border-[#e5d8d0] rounded-3xl bg-white p-8">
+                <p className="text-[#8a7e75] font-bold text-xs">Bạn chưa đăng ký khách sạn nào.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {partnerHotels.map(hotel => {
+                  const hotelBookings = partnerBookings.filter(b => b.hotelId === hotel.id)
+                  const totalRevenue = hotelBookings
+                    .filter(b => b.status === 'CONFIRMED' || b.status === 'CHECKED_IN' || b.status === 'COMPLETED')
+                    .reduce((sum, b) => sum + (b.totalAmount || 0), 0)
+                  const totalBookingsCount = hotelBookings.length
+                  return (
+                    <div key={hotel.id} className="bg-white p-6 rounded-3xl border border-[#e5d8d0] shadow-sm flex flex-col justify-between">
                       <div>
-                        <p className="text-[10px] uppercase">Doanh thu tạm tính</p>
-                        <p className="text-base font-black text-[#a43e24] mt-1">{hotel.revenue.toLocaleString('vi-VN')} đ</p>
+                        <div className="flex justify-between items-start mb-4">
+                          <h3 className="font-bold text-base text-[#303330]">{hotel.name}</h3>
+                          <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                            hotel.status === 'ACTIVE' ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#fff0e6] text-[#fa7150]'
+                          }`}>
+                            {hotel.status === 'ACTIVE' ? 'Đang hoạt động' : 'Đang chờ duyệt'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 border-t border-[#e5d8d0]/60 pt-4 text-xs font-bold text-[#8a7e75] mb-6">
+                          <div>
+                            <p className="text-[10px] uppercase">Doanh thu tạm tính</p>
+                            <p className="text-base font-black text-[#a43e24] mt-1">{totalRevenue.toLocaleString('vi-VN')} đ</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase">Tổng lượt đặt phòng</p>
+                            <p className="text-base font-black text-[#303330] mt-1">{totalBookingsCount} đơn</p>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-[10px] uppercase">Tổng lượt đặt phòng</p>
-                        <p className="text-base font-black text-[#303330] mt-1">{hotel.bookingsCount} đơn</p>
-                      </div>
+                      <button 
+                        onClick={() => navigate(`/partner/hotels/${hotel.id}/rooms`)}
+                        className="w-full py-2.5 bg-[#fbf7f4] hover:bg-[#fa7150] hover:text-white rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer border border-[#e5d8d0]"
+                      >
+                        Xem chi tiết & Quản lý phòng
+                      </button>
                     </div>
-                  </div>
-                  <button className="w-full py-2.5 bg-[#fbf7f4] hover:bg-[#fa7150] hover:text-white rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer border border-[#e5d8d0]">
-                    Xem chi tiết & Quản lý phòng
-                  </button>
-                </div>
-              ))}
-            </div>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Danh sách đặt phòng mới gửi về */}
             <div className="bg-white rounded-3xl border border-[#e5d8d0] p-6 shadow-sm">
               <h3 className="text-lg font-black mb-6">Đơn đặt phòng gần đây của khách</h3>
-              <div className="overflow-x-auto text-xs">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-[#f5ede8]">
-                      <th className="px-4 py-3 font-bold text-[#8a7e75]">Thú cưng</th>
-                      <th className="px-4 py-3 font-bold text-[#8a7e75]">Hạng phòng</th>
-                      <th className="px-4 py-3 font-bold text-[#8a7e75]">Ngày lưu trú</th>
-                      <th className="px-4 py-3 font-bold text-[#8a7e75] text-right">Tổng tiền</th>
-                      <th className="px-4 py-3 font-bold text-[#8a7e75] text-right">Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {partnerBookings.map(b => (
-                      <tr key={b.id} className="border-b border-[#e5d8d0]/40">
-                        <td className="px-4 py-3 font-bold">{b.petName}</td>
-                        <td className="px-4 py-3 text-[#5a5550]">{b.roomType}</td>
-                        <td className="px-4 py-3 text-[#8a7e75]">{b.checkIn} - {b.checkOut}</td>
-                        <td className="px-4 py-3 text-right font-black text-[#a43e24]">{b.total.toLocaleString('vi-VN')} đ</td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={`inline-block px-2.5 py-1 text-[8px] font-black rounded-full uppercase ${
-                            b.status === 'CONFIRMED' ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#fff0e6] text-[#fa7150]'
-                          }`}>
-                            {b.status === 'CONFIRMED' ? 'Đã xác nhận' : 'Đã check-in'}
-                          </span>
-                        </td>
+              {partnerBookings.length === 0 ? (
+                <p className="text-[#8a7e75] text-xs py-4 text-center font-bold">Chưa có đơn đặt phòng nào gửi về.</p>
+              ) : (
+                <div className="overflow-x-auto text-xs">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-[#f5ede8]">
+                        <th className="px-4 py-3 font-bold text-[#8a7e75] text-left">Thú cưng</th>
+                        <th className="px-4 py-3 font-bold text-[#8a7e75] text-left">Hạng phòng</th>
+                        <th className="px-4 py-3 font-bold text-[#8a7e75] text-left">Ngày lưu trú</th>
+                        <th className="px-4 py-3 font-bold text-[#8a7e75] text-right">Tổng tiền</th>
+                        <th className="px-4 py-3 font-bold text-[#8a7e75] text-right">Trạng thái</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {partnerBookings.map(b => {
+                        const petNames = b.pets?.map((p: any) => `${p.name} (${p.species === 'CAT' ? 'Mèo' : 'Chó'})`).join(', ') || 'Chưa rõ'
+                        return (
+                          <tr key={b.id} className="border-b border-[#e5d8d0]/40">
+                            <td className="px-4 py-3 font-bold text-left">{petNames}</td>
+                            <td className="px-4 py-3 text-[#5a5550] text-left">{b.roomTypeName || 'Tiêu chuẩn'}</td>
+                            <td className="px-4 py-3 text-[#8a7e75] text-left">{b.checkInDate} - {b.checkOutDate}</td>
+                            <td className="px-4 py-3 text-right font-black text-[#a43e24]">{(b.totalAmount || 0).toLocaleString('vi-VN')} đ</td>
+                            <td className="px-4 py-3 text-right">
+                              <span className={`inline-block px-2.5 py-1 text-[8px] font-black rounded-full uppercase ${
+                                b.status === 'CONFIRMED' || b.status === 'COMPLETED' ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#fff0e6] text-[#fa7150]'
+                              }`}>
+                                {b.status}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
           </div>

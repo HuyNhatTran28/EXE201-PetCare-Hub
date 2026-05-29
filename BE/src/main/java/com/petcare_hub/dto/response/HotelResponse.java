@@ -4,6 +4,7 @@ import com.petcare_hub.enums.HotelStatus;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -26,6 +27,8 @@ public class HotelResponse {
     private HotelStatus status;
     private Double averageRating;
     private Integer totalReviews;
-    private java.math.BigDecimal minPrice;
+    private BigDecimal minPrice;
     private LocalDateTime createdAt;
+    private List<String> allowedPetTypes;
+
 }

@@ -45,6 +45,7 @@ public class ServiceServiceImpl implements ServiceService {
                 .price(request.getPrice())
                 .durationMinutes(request.getDurationMinutes())
                 .serviceType(request.getServiceType())
+                .imageUrl(request.getImageUrl())
                 .build();
 
         return toResponse(serviceRepository.save(service));
@@ -73,6 +74,7 @@ public class ServiceServiceImpl implements ServiceService {
         service.setPrice(request.getPrice());
         service.setDurationMinutes(request.getDurationMinutes());
         service.setServiceType(request.getServiceType());
+        service.setImageUrl(request.getImageUrl());
 
         return toResponse(serviceRepository.save(service));
     }
@@ -113,6 +115,7 @@ public class ServiceServiceImpl implements ServiceService {
                 .durationMinutes(s.getDurationMinutes())
                 .serviceType(s.getServiceType())
                 .isEnabled(s.getIsEnabled())
+                .imageUrl(s.getImageUrl())
                 .build();
     }
 }

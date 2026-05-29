@@ -56,6 +56,9 @@ public class SecurityConfig {
                         // Pets
                         .requestMatchers("/api/pets/**").hasRole("OWNER")
 
+                        // Uploads
+                        .requestMatchers("/api/upload/**").authenticated()
+
                         // Còn lại cần đăng nhập
                         .anyRequest().authenticated()
                 )

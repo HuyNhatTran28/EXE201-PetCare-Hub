@@ -100,6 +100,21 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         return available != null ? available.intValue() : 0;
     }
 
+    @Override
+    @Transactional
+    public void deleteRoomType(UUID roomTypeId, UUID partnerId) {
+        RoomType roomType = roomTypeRepository.findById(roomTypeId)
+                .orElseThrow(() -> new AppException(
+                    "Không tìm thấy loại phòng", HttpStatus.NOT_FOUND));
+
+        if (!roomType.getHotel().getPartner().getId().equals(partnerId)) {
+            throw new AppException("Không có quyền", HttpStatus.FORBIDDEN);
+        }
+
+        roomType.setIsActive(false);
+        roomTypeRepository.save(roomType);
+    }
+
     private RoomTypeResponse toResponse(RoomType rt, Integer availableRooms) {
         return RoomTypeResponse.builder()
                 .id(rt.getId())

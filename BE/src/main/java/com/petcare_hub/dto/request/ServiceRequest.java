@@ -25,4 +25,6 @@ public class ServiceRequest {
 
     @NotNull(message = "Loại dịch vụ không được để trống")
     private ServiceType serviceType;
+
+    private String imageUrl;
 }

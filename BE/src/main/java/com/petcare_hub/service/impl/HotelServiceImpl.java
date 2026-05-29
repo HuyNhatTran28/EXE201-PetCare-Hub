@@ -36,7 +36,27 @@ public class HotelServiceImpl implements HotelService {
             Double lat, Double lng, Double radiusKm,
             String petType, BigDecimal minPrice, BigDecimal maxPrice) {
         
-        List<Hotel> hotels = hotelRepository.findHotelsWithFilter(lat, lng, radiusKm, minPrice, maxPrice);
+        List<Hotel> hotels;
+        if (lat == null || lng == null) {
+            hotels = hotelRepository.findByStatus(HotelStatus.ACTIVE, Pageable.unpaged()).getContent();
+            if (minPrice != null || maxPrice != null) {
+                hotels = hotels.stream()
+                        .filter(h -> {
+                            BigDecimal minP = h.getRoomTypes() != null ? h.getRoomTypes().stream()
+                                    .filter(rt -> rt.getPricePerNight() != null)
+                                    .map(com.petcare_hub.entity.RoomType::getPricePerNight)
+                                    .min(BigDecimal::compareTo)
+                                    .orElse(null) : null;
+                            if (minP == null) return false;
+                            if (minPrice != null && minP.compareTo(minPrice) < 0) return false;
+                            if (maxPrice != null && minP.compareTo(maxPrice) > 0) return false;
+                            return true;
+                        })
+                        .toList();
+            }
+        } else {
+            hotels = hotelRepository.findHotelsWithFilter(lat, lng, radiusKm, minPrice, maxPrice);
+        }
 
         return hotels.stream()
                 .filter(h -> petType == null || (h.getRoomTypes() != null && h.getRoomTypes().stream()
@@ -46,6 +66,7 @@ public class HotelServiceImpl implements HotelService {
     }
 
     // ── Tạo KS mới ────────────────────────────────────────────
+
 
     @Override
     @Transactional
@@ -150,6 +171,13 @@ public class HotelServiceImpl implements HotelService {
     @Transactional(readOnly = true)
     public List<HotelResponse> findNearbyHotels(
             Double lat, Double lng, Double radiusKm) {
+        if (lat == null || lng == null) {
+            return hotelRepository.findByStatus(HotelStatus.ACTIVE, Pageable.unpaged())
+                    .getContent()
+                    .stream()
+                    .map(this::toResponse)
+                    .toList();
+        }
         return hotelRepository
                 .findNearbyHotels(lat, lng, radiusKm)
                 .stream()
@@ -169,12 +197,20 @@ public class HotelServiceImpl implements HotelService {
 
     private HotelResponse toResponse(Hotel hotel) {
         BigDecimal minPrice = null;
+        List<String> allowedPetTypes = List.of();
+
         if (hotel.getRoomTypes() != null) {
             minPrice = hotel.getRoomTypes().stream()
                     .filter(rt -> rt.getPricePerNight() != null)
                     .map(com.petcare_hub.entity.RoomType::getPricePerNight)
                     .min(BigDecimal::compareTo)
                     .orElse(null);
+
+            allowedPetTypes = hotel.getRoomTypes().stream()
+                    .filter(rt -> rt.getAllowedPetTypes() != null)
+                    .flatMap(rt -> rt.getAllowedPetTypes().stream())
+                    .distinct()
+                    .toList();
         }
 
         return HotelResponse.builder()
@@ -193,6 +229,7 @@ public class HotelServiceImpl implements HotelService {
                 .averageRating(hotel.getAverageRating())
                 .totalReviews(hotel.getTotalReviews())
                 .minPrice(minPrice)
+                .allowedPetTypes(allowedPetTypes)
                 .createdAt(hotel.getCreatedAt())
                 .build();
     }
