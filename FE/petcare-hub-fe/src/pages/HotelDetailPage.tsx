@@ -86,6 +86,8 @@ export const HotelDetailPage = () => {
   const [selectedRoomId, setSelectedRoomId] = useState(DEFAULT_ROOMS[0].id)
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([DEFAULT_SERVICES[0].id, DEFAULT_SERVICES[1].id])
   const [nights, setNights] = useState(1)
+  const [checkInDate, setCheckInDate] = useState('')
+  const [checkOutDate, setCheckOutDate] = useState('')
   
   // Trạng thái mã giảm giá
   const [couponCode, setCouponCode] = useState('')
@@ -121,7 +123,7 @@ export const HotelDetailPage = () => {
             pricePerNight: r.pricePerNight,
             petType: r.allowedPetTypes?.join(', ') || 'Chó & Mèo',
             description: r.description || 'Không gian ấm cúng, đầy đủ tiện ích cơ bản cho bé cưng.',
-            image: r.imageUrls && r.imageUrls.length > 0 ? r.imageUrls[0] : DEFAULT_ROOMS[0].image
+            image: r.images && r.images.length > 0 ? r.images[0] : 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800'
           }))
           setRoomTypes(list)
           setSelectedRoomId(list[0].id)
@@ -188,6 +190,17 @@ export const HotelDetailPage = () => {
   const discountAmount = Math.round(subTotal * (discountPercent / 100))
   const totalCost = subTotal - discountAmount
 
+  // Tính nights từ checkIn/checkOut
+  useEffect(() => {
+    if (checkInDate && checkOutDate) {
+      const diff = Math.ceil(
+        (new Date(checkOutDate).getTime() - new Date(checkInDate).getTime()) 
+        / (1000 * 60 * 60 * 24)
+      )
+      if (diff > 0) setNights(diff)
+    }
+  }, [checkInDate, checkOutDate])
+
   // Đặt phòng ngay và lưu vào Database
   const handleCreateBooking = async () => {
     if (!selectedPetId) {
@@ -200,11 +213,11 @@ export const HotelDetailPage = () => {
       const payload = {
         hotelId: id,
         roomTypeId: selectedRoomId,
-        checkInDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Ngày mai
-        checkOutDate: new Date(Date.now() + 86400000 * (nights + 1)).toISOString().split('T')[0],
+        checkInDate: checkInDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        checkOutDate: checkOutDate || new Date(Date.now() + 86400000 * (nights + 1)).toISOString().split('T')[0],
         petIds: [selectedPetId],
         serviceIds: selectedServiceIds,
-        voucherCode: discountPercent > 0 ? 'PETWELCOME10' : null
+        voucherCode: discountPercent > 0 ? couponCode : null
       }
 
       const response = await axiosInstance.post('/api/bookings', payload)
@@ -403,6 +416,33 @@ export const HotelDetailPage = () => {
                     </label>
                   )
                 })}
+              </div>
+
+              {/* Chọn ngày */}
+              <div className="mt-6 pt-6 border-t border-[#b1b2af]/20">
+                <h3 className="text-xs font-bold text-[#5d605c] mb-3">Ngày lưu trú</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-[#8a7e75] font-bold uppercase block mb-1">Check-in</label>
+                    <input
+                      type="date"
+                      value={checkInDate}
+                      min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                      onChange={e => setCheckInDate(e.target.value)}
+                      className="w-full border border-[#e5d8d0] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#8a7e75] font-bold uppercase block mb-1">Check-out</label>
+                    <input
+                      type="date"
+                      value={checkOutDate}
+                      min={checkInDate || new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]}
+                      onChange={e => setCheckOutDate(e.target.value)}
+                      className="w-full border border-[#e5d8d0] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Số đêm lưu trú */}
