@@ -39,20 +39,21 @@ export const BookingManagePage = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('ALL')
   
-  const hotelId = '9472cf9d-d27b-42dc-8361-f1e10b2a1084' // Default Nemo Pet Resort
+  const [hotelId, setHotelId] = useState<string | null>(null)
 
   const fetchBookings = async () => {
+    if (!hotelId) return
     setLoading(true)
     try {
       const response = await axiosInstance.get(`/api/bookings/hotel/${hotelId}`)
       const list = (response.data.content || []).map((b: any) => ({
         id: b.id,
         invoiceNumber: b.invoiceNumber,
-        ownerName: b.owner?.fullName || 'Khách hàng',
-        roomTypeName: b.roomType?.name || 'Phòng nghỉ dưỡng',
+        ownerName: b.ownerName || 'Khách hàng',
+        roomTypeName: b.roomTypeName || 'Phòng nghỉ',
         checkInDate: b.checkInDate,
         checkOutDate: b.checkOutDate,
-        totalAmount: b.totalAmount,
+        totalAmount: b.totalAmount || 0,
         status: b.status
       }))
       setBookings(list)
@@ -64,8 +65,28 @@ export const BookingManagePage = () => {
   }
 
   useEffect(() => {
-    fetchBookings()
+    const fetchHotel = async () => {
+      try {
+        const res = await axiosInstance.get('/api/hotels/my', {
+          params: { page: 0, size: 1, sort: [] }
+        })
+        const hotels = res.data.content || []
+        if (hotels.length > 0) {
+          setHotelId(hotels[0].id)
+        } else {
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error('Failed to fetch hotel', err)
+        setLoading(false)
+      }
+    }
+    fetchHotel()
   }, [])
+
+  useEffect(() => {
+    if (hotelId) fetchBookings()
+  }, [hotelId])
 
   const handleConfirm = async (id: string) => {
     try {
