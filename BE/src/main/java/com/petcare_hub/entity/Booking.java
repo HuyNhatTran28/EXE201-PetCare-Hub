@@ -2,6 +2,7 @@ package com.petcare_hub.entity;
 
 import com.petcare_hub.base.BaseEntity;
 import com.petcare_hub.enums.BookingStatus;
+import com.petcare_hub.enums.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -105,6 +106,10 @@ public class Booking extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private BookingStatus status = BookingStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method")
+    private PaymentMethod paymentMethod;
 
     // ── Check-in ───────────────────────────────────────────────
 
