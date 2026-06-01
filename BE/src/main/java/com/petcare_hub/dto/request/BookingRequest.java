@@ -1,6 +1,7 @@
 package com.petcare_hub.dto.request;
 
-import jakarta.validation.constraints.Future;
+import com.petcare_hub.enums.PaymentMethod;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -18,7 +19,7 @@ public class BookingRequest {
     private UUID hotelId;
 
     @NotNull(message = "Ngày check-in không được để trống")
-    @Future(message = "Ngày check-in phải ở tương lai")
+    @FutureOrPresent(message = "Ngày check-in không được ở quá khứ")
     private LocalDate checkInDate;
 
     @NotNull(message = "Ngày check-out không được để trống")
@@ -36,4 +37,6 @@ public class BookingRequest {
 
     // Điểm loyalty muốn dùng (optional)
     private Integer loyaltyPointsToUse;
+
+    private PaymentMethod paymentMethod;
 }

@@ -1,6 +1,7 @@
 package com.petcare_hub.dto.response;
 
 import com.petcare_hub.enums.BookingStatus;
+import com.petcare_hub.enums.PaymentMethod;
 import lombok.Builder;
 import lombok.Data;
 
@@ -44,6 +45,7 @@ public class BookingResponse {
 
     // Trạng thái
     private BookingStatus status;
+    private PaymentMethod paymentMethod;
     private LocalDateTime createdAt;
 
     @Data

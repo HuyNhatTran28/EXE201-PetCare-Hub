@@ -716,12 +716,16 @@ export const PetProfilePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Tuổi (năm)</label>
                   <input
-                    type="number"
-                    min="0"
+                    type="text"
                     value={editPet ? editPet.ageYears : form.ageYears}
-                    onChange={e => editPet
-                      ? setEditPet({...editPet, ageYears: Number(e.target.value)})
-                      : setForm({...form, ageYears: e.target.value})}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^0-9]/g, '')
+                      if (editPet) {
+                        setEditPet({...editPet, ageYears: Number(val) || 0})
+                      } else {
+                        setForm({...form, ageYears: val})
+                      }
+                    }}
                     placeholder="2"
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
                   />
@@ -729,13 +733,21 @@ export const PetProfilePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Cân nặng (kg)</label>
                   <input
-                    type="number"
-                    min="0"
-                    step="0.1"
+                    type="text"
                     value={editPet ? editPet.weightKg : form.weightKg}
-                    onChange={e => editPet
-                      ? setEditPet({...editPet, weightKg: Number(e.target.value)})
-                      : setForm({...form, weightKg: e.target.value})}
+                    onChange={e => {
+                      // Chỉ cho phép nhập số và tối đa 1 dấu chấm thập phân
+                      let val = e.target.value.replace(/[^0-9.]/g, '')
+                      const parts = val.split('.')
+                      if (parts.length > 2) {
+                        val = parts[0] + '.' + parts.slice(1).join('')
+                      }
+                      if (editPet) {
+                        setEditPet({...editPet, weightKg: Number(val) || 0})
+                      } else {
+                        setForm({...form, weightKg: val})
+                      }
+                    }}
                     placeholder="4.5"
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
                   />
