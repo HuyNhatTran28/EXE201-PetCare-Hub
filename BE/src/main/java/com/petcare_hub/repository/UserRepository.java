@@ -2,6 +2,8 @@ package com.petcare_hub.repository;
 
 import com.petcare_hub.entity.User;
 import com.petcare_hub.enums.Role;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +15,10 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmail(String email);
+
+    Page<User> findByRole(Role role, Pageable pageable);
+
+    Page<User> findAll(Pageable pageable);
 
     Optional<User> findByPhone(String phone);
 

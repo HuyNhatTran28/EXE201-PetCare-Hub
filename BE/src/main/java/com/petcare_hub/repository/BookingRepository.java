@@ -49,4 +49,10 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     // Lấy booking đang CHECKED_IN — scheduler sinh task hàng ngày
     List<Booking> findByStatus(BookingStatus status);
+
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.status = :status")
+    long countByStatus(@Param("status") BookingStatus status);
+
+    @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.status = 'COMPLETED'")
+    java.math.BigDecimal sumTotalAmount();
 }

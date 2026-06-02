@@ -20,5 +20,6 @@ public class UserResponse {
     private Role role;
     private Boolean notificationOptedIn;
     private Boolean isActive;
+    private Boolean isVerified;
     private LocalDateTime createdAt;
 }

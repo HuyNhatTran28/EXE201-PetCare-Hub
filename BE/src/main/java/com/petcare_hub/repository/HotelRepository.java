@@ -67,4 +67,6 @@ public interface HotelRepository extends
         @Param("minPrice") BigDecimal minPrice,
         @Param("maxPrice") BigDecimal maxPrice
     );
+
+    long countByStatus(HotelStatus status);
 }

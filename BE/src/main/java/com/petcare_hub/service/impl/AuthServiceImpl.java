@@ -1,5 +1,6 @@
 package com.petcare_hub.service.impl;
 
+import com.petcare_hub.dto.request.ChangePasswordRequest;
 import com.petcare_hub.dto.request.LoginRequest;
 import com.petcare_hub.dto.request.RefreshTokenRequest;
 import com.petcare_hub.dto.request.RegisterRequest;
@@ -18,6 +19,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import com.sendgrid.Method;
+import com.sendgrid.Request;
+import com.sendgrid.SendGrid;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
+import org.springframework.beans.factory.annotation.Value;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -27,6 +39,24 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final SendGrid sendGrid;
+
+    @Value("${sendgrid.from-email}")
+    private String fromEmail;
+
+    @Value("${sendgrid.from-name}")
+    private String fromName;
+
+    private final Map<UUID, OtpEntry> changePasswordOtpStore = new ConcurrentHashMap<>();
+    private final Map<String, OtpEntry> forgotPasswordOtpStore = new ConcurrentHashMap<>();
+
+    private record OtpEntry(String code, LocalDateTime expireAt) {}
+
+    private String generateOtp() {
+        SecureRandom random = new SecureRandom();
+        int otp = 100000 + random.nextInt(900000);
+        return String.valueOf(otp);
+    }
 
     private static final long ACCESS_TOKEN_EXPIRES_SECONDS = 900;
 
@@ -176,5 +206,208 @@ public class AuthServiceImpl implements AuthService {
                 .isActive(user.getIsActive())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(UUID userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+            throw new AppException("Mật khẩu cũ không chính xác", HttpStatus.BAD_REQUEST);
+        }
+
+        // Kiểm tra OTP
+        OtpEntry entry = changePasswordOtpStore.get(userId);
+        if (entry == null) {
+            throw new AppException("Mã OTP không tồn tại hoặc chưa được yêu cầu.", HttpStatus.BAD_REQUEST);
+        }
+
+        if (LocalDateTime.now().isAfter(entry.expireAt())) {
+            changePasswordOtpStore.remove(userId);
+            throw new AppException("Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.", HttpStatus.BAD_REQUEST);
+        }
+
+        if (!entry.code().equals(request.getOtpCode())) {
+            throw new AppException("Mã OTP không đúng", HttpStatus.BAD_REQUEST);
+        }
+
+        // Xóa OTP sau khi dùng thành công
+        changePasswordOtpStore.remove(userId);
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        log.info("User đổi mật khẩu thành công: {}", user.getEmail());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void sendChangePasswordOtp(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
+
+        String otpCode = generateOtp();
+        changePasswordOtpStore.put(userId, new OtpEntry(otpCode, LocalDateTime.now().plusMinutes(5)));
+
+        sendChangePasswordEmail(user.getEmail(), user.getFullName(), otpCode);
+        log.info("Đã gửi OTP đổi mật khẩu đến email của user: {}", user.getEmail());
+    }
+
+    private void sendChangePasswordEmail(String toEmail, String fullName, String otpCode) {
+        Email from     = new Email(fromEmail, fromName);
+        Email to       = new Email(toEmail);
+        String subject = "Mã xác thực đổi mật khẩu - PetCare Hub";
+        Content content = new Content("text/html",
+                buildChangePasswordEmailContent(fullName, otpCode));
+
+        Mail mail = new Mail(from, subject, to, content);
+
+        try {
+            Request request = new Request();
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            sendGrid.api(request);
+            log.info("Đã gửi email OTP đổi mật khẩu tới: {}", toEmail);
+        } catch (Exception e) {
+            log.error("Lỗi gửi email OTP đổi mật khẩu: {}", e.getMessage());
+            throw new AppException("Không thể gửi email xác thực. Vui lòng thử lại sau.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private String buildChangePasswordEmailContent(String fullName, String otpCode) {
+        return """
+        <div style="background: #faf9f6; padding: 40px 20px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: #303330; line-height: 1.6;">
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e5d8d0; box-shadow: 0 4px 20px rgba(0,0,0,0.02);">
+                <div style="background: linear-gradient(135deg, #fa7150 0%%, #a43e24 100%%); padding: 30px; text-align: center;">
+                    <h2 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Xác thực tài khoản</h2>
+                </div>
+                <div style="padding: 40px 30px;">
+                    <p style="margin-top: 0;">Chào <strong>%s</strong>,</p>
+                    <p>Chúng tôi đã nhận được yêu cầu đổi mật khẩu cho tài khoản PetCare Hub của bạn.</p>
+                    <p style="color: #555555;">Để tiếp tục quá trình đổi mật khẩu, vui lòng sử dụng mã xác thực OTP dưới đây:</p>
+                    
+                    <div style="background: #fff8f6; border: 1px dashed #fa7150; border-radius: 12px; padding: 20px; text-align: center; margin: 25px 0;">
+                        <span style="font-size: 38px; font-weight: 800; color: #fa7150; letter-spacing: 10px; padding-left: 10px; font-family: monospace, sans-serif;">
+                            %s
+                        </span>
+                    </div>
+                    
+                    <p style="color: #666666; font-size: 14px; margin-bottom: 5px;">
+                        Mã này có hiệu lực trong <strong style="color: #fa7150;">5 phút</strong>.
+                    </p>
+                    <p style="color: #888888; font-size: 13px; margin-top: 0; font-style: italic;">
+                        Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email và mật khẩu của bạn sẽ được giữ an toàn.
+                    </p>
+                </div>
+                
+                <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 30px 0 20px 0;">
+                <div style="text-align: center; font-size: 12px; color: #aaaaaa; padding-bottom: 30px;">
+                    <p style="margin: 0 0 5px 0;">Email này được gửi tự động, vui lòng không phản hồi.</p>
+                    <p style="margin: 0; font-weight: 600;">© 2026 PetCare Hub. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+        """.formatted(fullName, otpCode);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void sendForgotPasswordOtp(String email) {
+        User user = userRepository.findByEmail(email.toLowerCase().trim())
+                .orElseThrow(() -> new AppException("Email chưa đăng ký tài khoản trên hệ thống.", HttpStatus.NOT_FOUND));
+
+        String otpCode = generateOtp();
+        forgotPasswordOtpStore.put(email.toLowerCase().trim(), new OtpEntry(otpCode, LocalDateTime.now().plusMinutes(5)));
+
+        sendForgotPasswordEmail(user.getEmail(), user.getFullName(), otpCode);
+        log.info("Đã gửi OTP khôi phục mật khẩu đến email: {}", user.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(String email, String otpCode, String newPassword) {
+        User user = userRepository.findByEmail(email.toLowerCase().trim())
+                .orElseThrow(() -> new AppException("Email chưa đăng ký tài khoản trên hệ thống.", HttpStatus.NOT_FOUND));
+
+        OtpEntry entry = forgotPasswordOtpStore.get(email.toLowerCase().trim());
+        if (entry == null) {
+            throw new AppException("Mã OTP không tồn tại hoặc chưa được yêu cầu.", HttpStatus.BAD_REQUEST);
+        }
+
+        if (LocalDateTime.now().isAfter(entry.expireAt())) {
+            forgotPasswordOtpStore.remove(email.toLowerCase().trim());
+            throw new AppException("Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.", HttpStatus.BAD_REQUEST);
+        }
+
+        if (!entry.code().equals(otpCode)) {
+            throw new AppException("Mã OTP không đúng", HttpStatus.BAD_REQUEST);
+        }
+
+        // Xóa OTP sau khi khôi phục thành công
+        forgotPasswordOtpStore.remove(email.toLowerCase().trim());
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Khôi phục mật khẩu thành công cho email: {}", user.getEmail());
+    }
+
+    private void sendForgotPasswordEmail(String toEmail, String fullName, String otpCode) {
+        Email from     = new Email(fromEmail, fromName);
+        Email to       = new Email(toEmail);
+        String subject = "Mã xác thực khôi phục mật khẩu - PetCare Hub";
+        Content content = new Content("text/html",
+                buildForgotPasswordEmailContent(fullName, otpCode));
+
+        Mail mail = new Mail(from, subject, to, content);
+
+        try {
+            Request request = new Request();
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            sendGrid.api(request);
+            log.info("Đã gửi email OTP khôi phục mật khẩu tới: {}", toEmail);
+        } catch (Exception e) {
+            log.error("Lỗi gửi email OTP khôi phục mật khẩu: {}", e.getMessage());
+            throw new AppException("Không thể gửi email xác thực. Vui lòng thử lại sau.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private String buildForgotPasswordEmailContent(String fullName, String otpCode) {
+        return """
+        <div style="background: #faf9f6; padding: 40px 20px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: #303330; line-height: 1.6;">
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e5d8d0; box-shadow: 0 4px 20px rgba(0,0,0,0.02);">
+                <div style="background: linear-gradient(135deg, #fa7150 0%%, #a43e24 100%%); padding: 30px; text-align: center;">
+                    <h2 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Khôi phục mật khẩu</h2>
+                </div>
+                <div style="padding: 40px 30px;">
+                    <p style="margin-top: 0;">Chào <strong>%s</strong>,</p>
+                    <p>Chúng tôi đã nhận được yêu cầu khôi phục mật khẩu cho tài khoản PetCare Hub của bạn.</p>
+                    <p style="color: #555555;">Vui lòng sử dụng mã xác thực OTP dưới đây để tiến hành đặt lại mật khẩu mới:</p>
+                    
+                    <div style="background: #fff8f6; border: 1px dashed #fa7150; border-radius: 12px; padding: 20px; text-align: center; margin: 25px 0;">
+                        <span style="font-size: 38px; font-weight: 800; color: #fa7150; letter-spacing: 10px; padding-left: 10px; font-family: monospace, sans-serif;">
+                            %s
+                        </span>
+                    </div>
+                    
+                    <p style="color: #666666; font-size: 14px; margin-bottom: 5px;">
+                        Mã này có hiệu lực trong <strong style="color: #fa7150;">5 phút</strong>.
+                    </p>
+                    <p style="color: #888888; font-size: 13px; margin-top: 0; font-style: italic;">
+                        Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email và tài khoản của bạn sẽ được giữ an toàn.
+                    </p>
+                </div>
+                
+                <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 30px 0 20px 0;">
+                <div style="text-align: center; font-size: 12px; color: #aaaaaa; padding-bottom: 30px;">
+                    <p style="margin: 0 0 5px 0;">Email này được gửi tự động, vui lòng không phản hồi.</p>
+                    <p style="margin: 0; font-weight: 600;">© 2026 PetCare Hub. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+        """.formatted(fullName, otpCode);
     }
 }

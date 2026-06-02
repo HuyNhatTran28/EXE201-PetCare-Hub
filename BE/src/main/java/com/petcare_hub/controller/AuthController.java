@@ -86,4 +86,47 @@ public class AuthController {
     }
 
 
+    @Operation(summary = "Yêu cầu gửi mã OTP đổi mật khẩu về Email")
+    @PostMapping("/change-password/otp")
+    public ResponseEntity<Map<String, String>> sendChangePasswordOtp(
+            Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        authService.sendChangePasswordOtp(userId);
+        return ResponseEntity.ok(Map.of(
+                "message", "Mã xác thực đã được gửi về email của bạn"
+        ));
+    }
+
+    @Operation(summary = "Đổi mật khẩu tài khoản")
+    @PostMapping("/change-password")
+    public ResponseEntity<Map<String, String>> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
+
+        UUID userId = (UUID) authentication.getPrincipal();
+        authService.changePassword(userId, request);
+        return ResponseEntity.ok(Map.of(
+                "message", "Đổi mật khẩu thành công"
+        ));
+    }
+
+    @Operation(summary = "Yêu cầu gửi mã OTP quên mật khẩu về Email")
+    @PostMapping("/forgot-password/otp")
+    public ResponseEntity<Map<String, String>> sendForgotPasswordOtp(
+            @RequestParam String email) {
+        authService.sendForgotPasswordOtp(email);
+        return ResponseEntity.ok(Map.of(
+                "message", "Mã OTP khôi phục mật khẩu đã được gửi về email của bạn."
+        ));
+    }
+
+    @Operation(summary = "Đặt lại mật khẩu mới bằng OTP")
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<Map<String, String>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getEmail(), request.getOtpCode(), request.getNewPassword());
+        return ResponseEntity.ok(Map.of(
+                "message", "Đặt lại mật khẩu thành công."
+        ));
+    }
 }
