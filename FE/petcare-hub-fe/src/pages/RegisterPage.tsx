@@ -6,19 +6,27 @@ import { useRegister } from '@/features/auth/hooks/useRegister'
 import type { RegisterRequest } from '@/features/auth/types'
 import type { AxiosError } from 'axios'
 
-type FormData = Omit<RegisterRequest, 'role'>
+interface FormData extends Omit<RegisterRequest, 'role'> {
+    confirmPassword?: string
+}
 
 export const RegisterPage = () => {
     const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    const [selectedRole, setSelectedRole] = useState<'OWNER' | 'PARTNER'>('OWNER')
     const { mutate: register, isPending, isError, error } = useRegister()
 
     const {
         register: field,
         handleSubmit,
+        watch,
         formState: { errors },
     } = useForm<FormData>()
 
-    const onSubmit = (data: FormData) => register({ ...data, role: 'OWNER' })
+    const onSubmit = (data: FormData) => {
+        const { confirmPassword, ...registerData } = data
+        register({ ...registerData, role: selectedRole })
+    }
 
     const apiError = (error as AxiosError<{ message: string }>)?.response?.data?.message
 
@@ -119,6 +127,8 @@ export const RegisterPage = () => {
                                 Tham gia cộng đồng yêu thú cưng ngay hôm nay.
                             </p>
                         </div>
+
+
 
                         {/* Tab Đăng nhập / Đăng ký */}
                         <div
@@ -277,6 +287,85 @@ export const RegisterPage = () => {
                                 )}
                             </div>
 
+                            {/* Xác nhận mật khẩu */}
+                            <div>
+                                <label className="block text-sm font-medium mb-1.5" style={{ color: '#303330' }}>
+                                    Xác nhận mật khẩu
+                                </label>
+                                <div className="relative">
+                                    <Lock
+                                        size={15}
+                                        className="absolute left-3 top-1/2 -translate-y-1/2"
+                                        style={{ color: '#fa7150' }}
+                                    />
+                                    <input
+                                        type={showConfirmPassword ? 'text' : 'password'}
+                                        placeholder="••••••••"
+                                        className="w-full pl-10 pr-10 py-3 rounded-xl border text-sm outline-none"
+                                        style={{
+                                            backgroundColor: '#fdfaf8',
+                                            borderColor: errors.confirmPassword ? '#fa7150' : '#e5dbd4',
+                                            color: '#303330',
+                                        }}
+                                        {...field('confirmPassword', {
+                                            required: 'Vui lòng xác nhận mật khẩu',
+                                            validate: (value) =>
+                                                value === watch('password') || 'Mật khẩu xác nhận không trùng khớp',
+                                        })}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    >
+                                        {showConfirmPassword
+                                            ? <EyeOff size={15} style={{ color: '#fa7150' }} />
+                                            : <Eye size={15} style={{ color: '#fa7150' }} />}
+                                    </button>
+                                </div>
+                                {errors.confirmPassword && (
+                                    <p className="mt-1 text-xs" style={{ color: '#fa7150' }}>
+                                        {errors.confirmPassword.message}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Tab Vai trò: Khách Hàng / Doanh Nghiệp */}
+                            <div className="pt-1">
+                                <label className="block text-sm font-medium mb-1.5" style={{ color: '#303330' }}>
+                                    Loại tài khoản
+                                </label>
+                                <div
+                                    className="flex gap-1 p-1 rounded-xl"
+                                    style={{ backgroundColor: '#f0e8e2' }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedRole('OWNER')}
+                                        className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-center cursor-pointer transition-all"
+                                        style={{
+                                            backgroundColor: selectedRole === 'OWNER' ? '#ffffff' : 'transparent',
+                                            color: selectedRole === 'OWNER' ? '#fa7150' : '#8a7060',
+                                            boxShadow: selectedRole === 'OWNER' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                                        }}
+                                    >
+                                        Khách Hàng
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedRole('PARTNER')}
+                                        className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-center cursor-pointer transition-all"
+                                        style={{
+                                            backgroundColor: selectedRole === 'PARTNER' ? '#ffffff' : 'transparent',
+                                            color: selectedRole === 'PARTNER' ? '#fa7150' : '#8a7060',
+                                            boxShadow: selectedRole === 'PARTNER' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                                        }}
+                                    >
+                                        Doanh Nghiệp
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Submit */}
                             <button
                                 type="submit"
@@ -314,7 +403,7 @@ export const RegisterPage = () => {
                                 alt="Google"
                                 className="w-5 h-5"
                             />
-                            Tiếp tục với Google
+                            Tiếp tục nhanh với Google
                         </button>
 
                         {/* Đã có tài khoản */}

@@ -4,6 +4,7 @@ import { Role } from '@/types/enums'
 
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { HomePage } from '@/pages/HomePage'
 import { HotelListPage } from '@/pages/HotelListPage'
 import { HotelDetailPage } from '@/pages/HotelDetailPage'
@@ -20,12 +21,23 @@ import { ServiceManagePage } from '@/pages/partner/ServiceManagePage'
 import { BookingManagePage } from '@/pages/partner/BookingManagePage'
 import { HotelCreatePage } from '@/pages/partner/HotelCreatePage'
 
+// Admin Pages
+import { AdminLayout } from '@/pages/admin/AdminLayout'
+import { AdminDashboard } from '@/pages/admin/AdminDashboard'
+import { HotelApprovePage } from '@/pages/admin/HotelApprovePage'
+import { UserManagePage } from '@/pages/admin/UserManagePage'
+import { MarketingPage } from '@/pages/admin/MarketingPage'
+import { AnalyticsPage } from '@/pages/admin/AnalyticsPage'
+import { AuditLogPage } from '@/pages/admin/AuditLogPage'
+import { SettingsPage } from '@/pages/admin/SettingsPage'
+
 export const router = createBrowserRouter([
 
   // Public
   { path: '/', element: <HomePage /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/hotels', element: <HotelListPage /> },
   { path: '/hotels/:id', element: <HotelDetailPage /> },
 
@@ -57,6 +69,25 @@ export const router = createBrowserRouter([
       { path: '/partner/bookings', element: <BookingManagePage /> },
       { path: '/partner/hotels/new', element: <HotelCreatePage /> },
     ],
+  },
+
+  // ADMIN only
+  {
+    element: <PrivateRoute allowedRoles={[Role.ADMIN]} />,
+    children: [
+      {
+        element: <AdminLayout />,
+        children: [
+          { path: '/admin/dashboard', element: <AdminDashboard /> },
+          { path: '/admin/hotels', element: <HotelApprovePage /> },
+          { path: '/admin/users', element: <UserManagePage /> },
+          { path: '/admin/marketing', element: <MarketingPage /> },
+          { path: '/admin/analytics', element: <AnalyticsPage /> },
+          { path: '/admin/audit', element: <AuditLogPage /> },
+          { path: '/admin/settings', element: <SettingsPage /> },
+        ]
+      }
+    ]
   },
 
   { path: '*', element: <NotFoundPage /> },

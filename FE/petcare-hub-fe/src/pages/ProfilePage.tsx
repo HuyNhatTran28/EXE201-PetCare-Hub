@@ -49,6 +49,15 @@ export const ProfilePage = () => {
   const [phone, setPhone] = useState(user?.phone || '0901234567')
   const [address, setAddress] = useState('123 Đường Song Hành, Thảo Điền, Quận 2, TP. HCM')
   const [isSaved, setIsSaved] = useState(false)
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [otpCode, setOtpCode] = useState('')
+  const [otpCountdown, setOtpCountdown] = useState(0)
+  const [isSendingOtp, setIsSendingOtp] = useState(false)
+  const [passError, setPassError] = useState('')
+  const [passSuccess, setPassSuccess] = useState('')
+  const [passLoading, setPassLoading] = useState(false)
   // State Đối tác (PARTNER)
   const [partnerHotels, setPartnerHotels] = useState<any[]>([])
   const [partnerBookings, setPartnerBookings] = useState<any[]>([])
@@ -86,6 +95,14 @@ export const ProfilePage = () => {
     }
     fetchPartnerData()
   }, [currentRole])
+
+  useEffect(() => {
+    if (otpCountdown <= 0) return
+    const timer = setInterval(() => {
+      setOtpCountdown(prev => prev - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [otpCountdown])
 
   // State Nhân viên (STAFF)
   const [staffTasks, setStaffTasks] = useState(MOCK_STAFF_TASKS)
@@ -128,6 +145,55 @@ export const ProfilePage = () => {
 
   const handleRejectHotel = (hotelId: string) => {
     setAdminHotels(adminHotels.filter(h => h.id !== hotelId))
+  }
+
+  const handleSendOtp = async () => {
+    setPassError('')
+    setPassSuccess('')
+    setIsSendingOtp(true)
+    try {
+      await axiosInstance.post('/api/auth/change-password/otp')
+      setPassSuccess('Mã OTP xác thực đã được gửi về Email đăng ký của bạn.')
+      setOtpCountdown(60)
+    } catch (err: any) {
+      setPassError(err.response?.data?.message || 'Không thể gửi mã OTP. Vui lòng thử lại sau.')
+    } finally {
+      setIsSendingOtp(false)
+    }
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPassError('')
+    setPassSuccess('')
+
+    if (!oldPassword || !newPassword || !confirmPassword || !otpCode) {
+      setPassError('Vui lòng điền đầy đủ mật khẩu cũ, mật khẩu mới, xác nhận mật khẩu và mã OTP.')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPassError('Mật khẩu mới và xác nhận mật khẩu không trùng khớp.')
+      return
+    }
+
+    setPassLoading(true)
+    try {
+      await axiosInstance.post('/api/auth/change-password', {
+        oldPassword,
+        newPassword,
+        otpCode
+      })
+      setPassSuccess('Đổi mật khẩu thành công!')
+      setOldPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setOtpCode('')
+    } catch (err: any) {
+      setPassError(err.response?.data?.message || 'Không thể đổi mật khẩu. Vui lòng kiểm tra thông tin và mã OTP.')
+    } finally {
+      setPassLoading(false)
+    }
   }
 
   const handleLogout = () => {
@@ -576,6 +642,43 @@ export const ProfilePage = () => {
             </div>
           </div>
         )}
+
+        {/* Đổi mật khẩu chung cho tất cả các vai trò */}
+        <div className="bg-white p-8 rounded-3xl border border-[#e5d8d0] shadow-sm mt-8">
+          <h3 className="text-lg font-black mb-6">Đổi mật khẩu tài khoản</h3>
+          {passError && <div className="mb-4 text-xs font-bold text-rose-500">{passError}</div>}
+          {passSuccess && <div className="mb-4 text-xs font-bold text-emerald-600">{passSuccess}</div>}
+          <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs font-bold">
+            <div>
+              <label className="block text-[#8a7e75] mb-2 uppercase">Mật khẩu cũ</label>
+              <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-2xl outline-none" />
+            </div>
+            <div>
+              <label className="block text-[#8a7e75] mb-2 uppercase">Mật khẩu mới</label>
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-2xl outline-none" />
+            </div>
+            <div>
+              <label className="block text-[#8a7e75] mb-2 uppercase">Xác nhận mật khẩu mới</label>
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-2xl outline-none" />
+            </div>
+            <div className="md:col-span-3 flex flex-col md:flex-row gap-4 items-end mt-2">
+              <div className="flex-grow w-full">
+                <label className="block text-[#8a7e75] mb-2 uppercase">Mã xác thực OTP (Kiểm tra Email của bạn)</label>
+                <div className="relative flex items-center">
+                  <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value)} placeholder="Nhập mã OTP 6 số" className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-2xl outline-none pr-36 font-mono" />
+                  <button type="button" disabled={isSendingOtp || otpCountdown > 0} onClick={handleSendOtp} className="absolute right-2 px-4 py-2 bg-[#fa7150] text-white rounded-xl uppercase text-[10px] font-black tracking-wider hover:bg-[#a43e24] transition-colors disabled:opacity-50 cursor-pointer">
+                    {otpCountdown > 0 ? `Gửi lại sau (${otpCountdown}s)` : isSendingOtp ? 'Đang gửi...' : 'Gửi mã OTP'}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="md:col-span-3 text-right">
+              <button type="submit" disabled={passLoading} className="bg-[#a43e24] text-white px-6 py-3 rounded-full uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50 inline-flex">
+                {passLoading ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
+              </button>
+            </div>
+          </form>
+        </div>
 
       </main>
 

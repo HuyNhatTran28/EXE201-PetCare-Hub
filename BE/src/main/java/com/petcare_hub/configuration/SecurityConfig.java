@@ -56,6 +56,10 @@ public class SecurityConfig {
                         // Pets
                         .requestMatchers("/api/pets/**").hasRole("OWNER")
 
+                        // Admin & Vouchers
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/vouchers/**").hasRole("ADMIN")
+
                         // Uploads
                         .requestMatchers("/api/upload/**").authenticated()
 
