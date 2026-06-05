@@ -30,5 +30,6 @@ public class HotelResponse {
     private BigDecimal minPrice;
     private LocalDateTime createdAt;
     private List<String> allowedPetTypes;
+    private List<String> imageUrls;
 
 }

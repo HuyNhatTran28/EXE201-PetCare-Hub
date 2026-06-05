@@ -82,11 +82,17 @@ export const RoomManagePage = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       const url = res.data.url
-      // Thêm URL vào danh sách ảnh của editRoom
-      setEditRoom(prev => prev ? {
-        ...prev,
-        images: [...(prev.images || []), url]
-      } : null)
+      if (editRoom) {
+        setEditRoom(prev => prev ? {
+          ...prev,
+          images: [...(prev.images || []), url]
+        } : null)
+      } else {
+        setForm(prev => ({
+          ...prev,
+          images: [...(prev.images || []), url]
+        }))
+      }
     } catch (err) {
       console.error('Upload failed', err)
       alert('Upload ảnh thất bại')
@@ -101,6 +107,7 @@ export const RoomManagePage = () => {
     maxPets: '',
     totalRooms: '',
     allowedPetTypes: [] as string[],
+    images: [] as string[],
   })
 
   const handleToggleRoomActive = async (roomId: string, currentStatus: boolean) => {
@@ -171,13 +178,13 @@ export const RoomManagePage = () => {
         maxPets: Number(form.maxPets) || 2,
         totalRooms: Number(form.totalRooms),
         allowedPetTypes: form.allowedPetTypes,
-        images: []
+        images: form.images || []
       })
       // Reload rooms
       const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
       setRooms(res.data || [])
       setShowModal(false)
-      setForm({ name: '', description: '', pricePerNight: '', maxPets: '', totalRooms: '', allowedPetTypes: [] })
+      setForm({ name: '', description: '', pricePerNight: '', maxPets: '', totalRooms: '', allowedPetTypes: [], images: [] })
     } catch (err) {
       console.error('Failed to create room type', err)
     } finally {
@@ -539,6 +546,64 @@ export const RoomManagePage = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Upload ảnh */}
+              <div className="mt-4">
+                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-2 block">
+                  Ảnh phòng
+                </label>
+
+                {/* Preview ảnh hiện có */}
+                {form.images && form.images.length > 0 && (
+                  <div className="flex gap-2 flex-wrap mb-3">
+                    {form.images.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={url}
+                          alt={`room-${idx}`}
+                          className="w-20 h-20 object-cover rounded-xl border border-[#e5d8d0]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setForm(prev => ({
+                            ...prev,
+                            images: prev.images.filter((_, i) => i !== idx)
+                          }))}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hidden group-hover:flex items-center justify-center"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Input upload */}
+                <label className={`flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                  uploadingImage
+                    ? 'border-[#ffac98] bg-[#fff7f4]'
+                    : 'border-[#e5d8d0] hover:border-[#fa7150] hover:bg-[#fff7f4]'
+                }`}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingImage}
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) handleUploadImage(file)
+                      e.target.value = ''
+                    }}
+                  />
+                  {uploadingImage ? (
+                    <span className="text-xs text-[#fa7150] font-bold">Đang upload...</span>
+                  ) : (
+                    <span className="text-xs text-[#8a7e75] font-bold">
+                      + Thêm ảnh phòng
+                    </span>
+                  )}
+                </label>
               </div>
             </div>
 

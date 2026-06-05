@@ -243,6 +243,28 @@ public class HotelServiceImpl implements HotelService {
                     .toList();
         }
 
+        List<String> imageUrls = new java.util.ArrayList<>();
+        if (hotel.getDescription() != null && hotel.getDescription().trim().startsWith("{")) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(hotel.getDescription());
+                if (node.has("logoUrl")) {
+                    String logo = node.get("logoUrl").asText();
+                    if (logo != null && !logo.isEmpty()) imageUrls.add(logo);
+                }
+                if (node.has("frontUrl")) {
+                    String front = node.get("frontUrl").asText();
+                    if (front != null && !front.isEmpty()) imageUrls.add(front);
+                }
+                if (node.has("roomsUrl")) {
+                    String rooms = node.get("roomsUrl").asText();
+                    if (rooms != null && !rooms.isEmpty()) imageUrls.add(rooms);
+                }
+            } catch (Exception e) {
+                // Ignore parse errors, keep empty
+            }
+        }
+
         return HotelResponse.builder()
                 .id(hotel.getId())
                 .partnerId(hotel.getPartner().getId())
@@ -260,6 +282,7 @@ public class HotelServiceImpl implements HotelService {
                 .totalReviews(hotel.getTotalReviews())
                 .minPrice(minPrice)
                 .allowedPetTypes(allowedPetTypes)
+                .imageUrls(imageUrls)
                 .createdAt(hotel.getCreatedAt())
                 .build();
     }

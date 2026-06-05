@@ -15,6 +15,7 @@ interface HotelType {
   address: string
   status: string
   averageRating: number
+  imageUrls?: string[]
 }
 
 export const PartnerDashboard = () => {
@@ -895,6 +896,22 @@ export const PartnerDashboard = () => {
                       className="bg-[#faf9f6]/40 border border-[#e5d8d0] rounded-3xl p-8 relative group overflow-hidden transition-all duration-300 hover:border-[#fa7150]/40 hover:bg-white hover:shadow-xl hover:shadow-[#fa7150]/2"
                     >
                       <div className="absolute top-0 right-0 w-36 h-36 bg-[#fa7150]/5 rounded-full -mr-16 -mt-16 pointer-events-none group-hover:scale-110 transition-transform duration-500" />
+                      
+                      {/* Bìa/Ảnh Khách Sạn */}
+                      <div className="relative h-48 overflow-hidden rounded-2xl mb-6 bg-gray-50 border border-[#e5d8d0]/60">
+                        {hotel.imageUrls && hotel.imageUrls.length > 0 ? (
+                          <img 
+                            src={hotel.imageUrls[0]} 
+                            alt={hotel.name} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-[#8a7e75] gap-2">
+                            <Building size={32} className="text-[#fa7150]/60" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Chưa có ảnh đại diện</span>
+                          </div>
+                        )}
+                      </div>
                       
                       <div className="flex justify-between items-start mb-6">
                         <div className="space-y-1.5 max-w-[70%]">
