@@ -19,6 +19,7 @@ interface HotelType {
   distance?: string
   area?: string
   rating?: number
+  totalReviews?: number
   price?: number
   tags?: string[]
   image?: string
@@ -53,11 +54,12 @@ export const HotelListPage = () => {
           id: h.id,
           name: h.name,
           address: h.address || 'Hồ Chí Minh, Việt Nam',
-          rating: h.averageRating || (4.5 + (idx % 5) * 0.1),
+          rating: h.averageRating || null,
+          totalReviews: h.totalReviews || 0,
           price: h.minPrice || (300000 + (idx % 4) * 100000),
           tags: h.allowedPetTypes?.length > 0 ? h.allowedPetTypes : (idx % 2 === 0 ? ['Dogs', 'Cats'] : ['Small Pets']),
-          image: (h.images && h.images.length > 0)
-            ? h.images[0]
+          image: (h.imageUrls && h.imageUrls.length > 0)
+            ? h.imageUrls[0]
             : DEFAULT_HOTEL_IMAGES[idx % DEFAULT_HOTEL_IMAGES.length],
           isPopular: idx % 3 === 0,
           amenities: idx % 3 === 0 ? ['Đệm ngủ cao cấp'] : idx % 3 === 1 ? ['Private Garden'] : ['Điều hòa (AC)']
@@ -324,8 +326,12 @@ export const HotelListPage = () => {
                         {/* Rating row */}
                         <div className="flex items-center gap-1 text-amber-500">
                           <Star size={12} fill="currentColor" />
-                          <span className="text-xs font-black text-[#303330]">{hotel.rating}</span>
-                          <span className="text-[10px] text-[#8a7e75] font-bold">(128 đánh giá)</span>
+                          <span className="text-xs font-black text-[#303330]">
+                            {hotel.rating ? hotel.rating.toFixed(1) : '—'}
+                          </span>
+                          <span className="text-[10px] text-[#8a7e75] font-bold">
+                            ({hotel.totalReviews || 0} đánh giá)
+                          </span>
                         </div>
 
                         {/* Tags list */}

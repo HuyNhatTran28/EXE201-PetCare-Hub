@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Header } from '@/components/Header'
 import {
   CheckCircle, XCircle,
-  ArrowRight, PawPrint, MapPin, Clock
+  ArrowRight, PawPrint, MapPin, Clock, Star
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 
 interface Booking {
   id: string
   invoiceNumber: string
+  hotelId: string
   hotelName: string
   hotelAddress: string
   roomTypeName: string
@@ -21,6 +22,7 @@ interface Booking {
   pets: { id: string; name: string; species: string }[]
   createdAt: string
   paymentMethod?: string
+  isReviewed?: boolean
 }
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
@@ -40,6 +42,7 @@ export const MyBookingsPage = () => {
   const [activeTab, setActiveTab] = useState('ALL')
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [payingBooking, setPayingBooking] = useState<Booking | null>(null)
+  const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null)
 
   useEffect(() => {
     const fetch = async () => {
@@ -255,8 +258,20 @@ export const MyBookingsPage = () => {
                       </button>
                     )}
                     {booking.status === 'COMPLETED' && (
-                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
-                        <CheckCircle size={14} /> Đã hoàn thành
+                      <div className="flex items-center gap-3 w-full justify-between">
+                        <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
+                          <CheckCircle size={14} /> Đã hoàn thành
+                        </div>
+                        {booking.isReviewed ? (
+                          <span className="text-xs text-[#8a7e75] italic font-bold">Đã đánh giá</span>
+                        ) : (
+                          <button
+                            onClick={() => setSelectedReviewBooking(booking)}
+                            className="bg-[#2c4e24] text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1"
+                          >
+                            <Star size={12} fill="currentColor" /> Viết đánh giá
+                          </button>
+                        )}
                       </div>
                     )}
                     {booking.status === 'CANCELLED' && (
@@ -285,6 +300,112 @@ export const MyBookingsPage = () => {
           }}
         />
       )}
+
+      {selectedReviewBooking && (
+        <ReviewModal
+          booking={selectedReviewBooking}
+          onClose={() => setSelectedReviewBooking(null)}
+          onReviewed={(bookingId) => {
+            setBookings(prev => prev.map(b =>
+              b.id === bookingId ? { ...b, isReviewed: true } : b
+            ))
+            setSelectedReviewBooking(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+const ReviewModal = ({ booking, onClose, onReviewed }: {
+  booking: Booking
+  onClose: () => void
+  onReviewed: (bookingId: string) => void
+}) => {
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!comment.trim()) {
+      alert('Vui lòng nhập bình luận!')
+      return
+    }
+    setSubmitting(true)
+    try {
+      await axiosInstance.post('/api/reviews', {
+        bookingId: booking.id,
+        starRating: rating,
+        comment: comment,
+        photoUrls: []
+      })
+      alert('Cảm ơn bạn đã gửi đánh giá!')
+      onReviewed(booking.id)
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl text-left border border-[#e5d8d0]">
+        <h3 className="text-lg font-black text-[#303330] mb-1">Đánh giá dịch vụ</h3>
+        <p className="text-[11px] text-[#8a7e75] mb-4">Đơn hàng: #{booking.invoiceNumber} - Khách sạn: {booking.hotelName}</p>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-[10px] font-bold text-[#8a7e75] uppercase mb-1.5">Số sao đánh giá</label>
+            <div className="flex gap-1.5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className="transition-all focus:outline-none"
+                >
+                  <Star 
+                    size={22} 
+                    className={star <= rating ? 'text-[#f59e0b]' : 'text-stone-200'} 
+                    fill={star <= rating ? 'currentColor' : 'none'} 
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-[#8a7e75] uppercase mb-1.5">Bình luận & Ý kiến đóng góp</label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Bé cưng của bạn đã có trải nghiệm như thế nào?..."
+              rows={4}
+              className="w-full border border-[#e5d8d0] rounded-xl px-4 py-2.5 text-xs outline-none resize-none focus:border-[#fa7150]"
+              required
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 rounded-2xl border border-[#e5d8d0] text-xs font-bold text-[#8a7e75] hover:bg-[#faf9f6]"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 py-3 rounded-2xl text-xs font-bold text-white bg-[#a43e24] hover:opacity-90 disabled:opacity-50"
+            >
+              {submitting ? 'Đang gửi...' : 'Gửi đánh giá'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { Header } from '@/components/Header'
+import { Map } from '@/components/Map'
 
 interface RoomType {
   id: string
@@ -74,6 +75,9 @@ export const HotelDetailPage = () => {
 
   const [hotelName, setHotelName] = useState('PetCare Sanctuary')
   const [hotelAddress, setHotelAddress] = useState('Đường Nguyễn Thị Minh Khai, Quận 1, TP. HCM')
+  const [locationLat, setLocationLat] = useState<number | null>(null)
+  const [locationLong, setLocationLong] = useState<number | null>(null)
+  const [googleMapsUrl, setGoogleMapsUrl] = useState<string | null>(null)
   const [roomTypes, setRoomTypes] = useState<RoomType[]>(DEFAULT_ROOMS)
   const [services, setServices] = useState<ExtraService[]>(DEFAULT_SERVICES)
   
@@ -119,6 +123,9 @@ export const HotelDetailPage = () => {
         if (hotelRes.data) {
           setHotelName(hotelRes.data.name)
           setHotelAddress(hotelRes.data.address || 'Hồ Chí Minh, Việt Nam')
+          setLocationLat(hotelRes.data.locationLat)
+          setLocationLong(hotelRes.data.locationLong)
+          setGoogleMapsUrl(hotelRes.data.googleMapsUrl)
         }
 
         const roomsRes = await axiosInstance.get(`/api/room-types/hotel/${id}`)
@@ -381,10 +388,28 @@ export const HotelDetailPage = () => {
               <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-[#303330] mb-3 mt-1">
                 {hotelName}
               </h1>
-              <p className="text-[#5d605c] flex items-center gap-1.5 text-xs sm:text-sm">
+              <p className="text-[#5d605c] flex items-center gap-1.5 text-xs sm:text-sm mb-4">
                 <MapPin size={14} className="text-[#a43e24]" />
                 {hotelAddress}
+                {googleMapsUrl && (
+                  <a 
+                    href={googleMapsUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="ml-2 text-[#a43e24] hover:underline font-bold"
+                  >
+                    (Xem trên Google Maps ↗)
+                  </a>
+                )}
               </p>
+              {locationLat && locationLong && (
+                <div className="mb-6 max-w-full">
+                  <span className="text-[10px] text-[#8a7e75] uppercase tracking-wider block mb-2 font-bold">Bản đồ vị trí (Leaflet)</span>
+                  <div className="h-[250px] relative z-10">
+                    <Map lat={locationLat} lng={locationLong} readonly={true} height="100%" />
+                  </div>
+                </div>
+              )}
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

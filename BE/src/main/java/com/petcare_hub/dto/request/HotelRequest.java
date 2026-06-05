@@ -14,11 +14,11 @@ public class HotelRequest {
 
     private String address;
 
-    @NotNull(message = "Vĩ độ không được để trống")
     private Double locationLat;
 
-    @NotNull(message = "Kinh độ không được để trống")
     private Double locationLong;
+
+    private String googleMapsUrl;
 
     private String description;
     private List<String> amenities;

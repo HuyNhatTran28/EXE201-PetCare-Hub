@@ -46,6 +46,7 @@ public class BookingServiceImpl implements BookingService {
     private final VoucherRepository    voucherRepository;
     private final SendGrid             sendGrid;
     private final JavaMailSender       mailSender;
+    private final ReviewRepository     reviewRepository;
 
     @Value("${sendgrid.from-email}")
     private String fromEmail;
@@ -458,6 +459,8 @@ public class BookingServiceImpl implements BookingService {
                         .build())
                 .toList();
 
+        boolean isReviewed = reviewRepository.existsByBookingId(b.getId());
+
         return BookingResponse.builder()
                 .id(b.getId())
                 .invoiceNumber(b.getInvoiceNumber())
@@ -481,6 +484,7 @@ public class BookingServiceImpl implements BookingService {
                 .status(b.getStatus())
                 .paymentMethod(b.getPaymentMethod())
                 .createdAt(b.getCreatedAt())
+                .isReviewed(isReviewed)
                 .build();
     }
 }

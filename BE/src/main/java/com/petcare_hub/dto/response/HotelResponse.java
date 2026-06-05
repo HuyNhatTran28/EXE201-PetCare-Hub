@@ -20,6 +20,7 @@ public class HotelResponse {
     private String address;
     private Double locationLat;
     private Double locationLong;
+    private String googleMapsUrl;
     private String description;
     private List<String> amenities;
     private String checkInTime;
@@ -30,5 +31,6 @@ public class HotelResponse {
     private BigDecimal minPrice;
     private LocalDateTime createdAt;
     private List<String> allowedPetTypes;
+    private List<String> imageUrls;
 
 }

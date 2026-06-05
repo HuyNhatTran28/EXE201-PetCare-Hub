@@ -47,6 +47,7 @@ public class BookingResponse {
     private BookingStatus status;
     private PaymentMethod paymentMethod;
     private LocalDateTime createdAt;
+    private Boolean isReviewed;
 
     @Data
     @Builder
