@@ -17,6 +17,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+
 import java.util.List;
 
 @Configuration
@@ -35,6 +38,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                )
                 .authorizeHttpRequests(auth -> auth
 
                         // Public — không cần token
@@ -42,8 +48,13 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/error"
                         ).permitAll()
+
+                        // Private GET — hotels/my và xem tất cả
+                        .requestMatchers(HttpMethod.GET, "/api/hotels/my").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/hotels").hasRole("ADMIN")
 
                         // Public GET — xem KS không cần đăng nhập
                         .requestMatchers(HttpMethod.GET,
@@ -60,8 +71,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/vouchers/**").hasRole("ADMIN")
 
-                        // Uploads
+                        // Uploads & KYC
                         .requestMatchers("/api/upload/**").authenticated()
+                        .requestMatchers("/api/merchant/kyc/**").authenticated()
 
                         // Còn lại cần đăng nhập
                         .anyRequest().authenticated()

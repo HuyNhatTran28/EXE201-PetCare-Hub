@@ -30,6 +30,9 @@ public interface HotelService {
     // Partner cập nhật thông tin KS
     HotelResponse updateHotel(UUID hotelId, UUID partnerId, HotelRequest request);
 
+    // Partner tạm ngưng / mở lại khách sạn
+    HotelResponse toggleHotelStatus(UUID hotelId, UUID partnerId);
+
     // Tìm KS gần vị trí GPS
     List<HotelResponse> findNearbyHotels(Double lat, Double lng, Double radiusKm);
 

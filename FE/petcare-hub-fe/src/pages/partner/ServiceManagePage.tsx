@@ -11,12 +11,13 @@ import {
   Utensils,
   PlusSquare,
   Edit2,
-  Trash2,
   Calendar,
   Building,
   LogOut,
   ChevronRight,
-  BarChart2
+  BarChart2,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
@@ -29,6 +30,7 @@ interface Service {
   durationMinutes: number
   serviceType: string
   imageUrl?: string
+  isEnabled?: boolean
 }
 
 export const ServiceManagePage = () => {
@@ -56,7 +58,7 @@ export const ServiceManagePage = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await axiosInstance.get(`/api/services/hotel/${hotelId}`)
+      const response = await axiosInstance.get(`/api/services/hotel/${hotelId}?enabledOnly=false`)
       setServices(response.data || [])
     } catch (error) {
       console.error('Failed to load services', error)
@@ -152,14 +154,15 @@ export const ServiceManagePage = () => {
     }
   }
 
-  const handleDelete = async (serviceId: string) => {
-    if (!confirm('Bạn có chắc muốn xóa dịch vụ này?')) return
+  const handleDelete = async (serviceId: string, currentStatus: boolean) => {
+    const actionText = currentStatus ? 'tạm ngưng' : 'kích hoạt lại'
+    if (!confirm(`Bạn có chắc muốn ${actionText} dịch vụ này?`)) return
     try {
       await axiosInstance.patch(`/api/services/${serviceId}/toggle`)
-      setServices(services.filter(s => s.id !== serviceId))
+      await fetchServices()
     } catch (err) {
-      console.error('Failed to delete service', err)
-      alert('Không thể xóa dịch vụ này')
+      console.error('Failed to toggle service status', err)
+      alert('Không thể thay đổi trạng thái dịch vụ này')
     }
   }
 
@@ -315,7 +318,9 @@ export const ServiceManagePage = () => {
               {services.map((service) => (
                 <div 
                   key={service.id} 
-                  className="bg-white border border-[#e5d8d0] rounded-[32px] p-8 relative overflow-hidden transition-all duration-300 hover:border-[#fa7150]/30 hover:shadow-xl hover:shadow-[#fa7150]/2 flex flex-col justify-between"
+                  className={`bg-white border border-[#e5d8d0] rounded-[32px] p-8 relative overflow-hidden transition-all duration-300 hover:border-[#fa7150]/30 hover:shadow-xl hover:shadow-[#fa7150]/2 flex flex-col justify-between ${
+                    service.isEnabled === false ? 'opacity-80 border-dashed bg-[#faf9f6]/40' : ''
+                  }`}
                   style={cardShadow}
                 >
                   <div>
@@ -334,14 +339,25 @@ export const ServiceManagePage = () => {
                       </div>
                       <div>
                         <h3 className="font-black text-base text-[#303330] line-clamp-1">{service.name}</h3>
-                        <span className="text-[9px] font-black text-[#fa7150] bg-[#fa7150]/10 px-2 py-0.5 rounded-md uppercase tracking-wider mt-1 inline-block">
-                          {service.serviceType}
-                        </span>
-                        {service.durationMinutes > 0 && (
-                          <span className="text-[9px] font-black text-[#8a7e75] bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md uppercase tracking-wider mt-1 ml-2 inline-flex items-center gap-1">
-                            <Clock size={10} /> {service.durationMinutes}m
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          <span className="text-[9px] font-black text-[#fa7150] bg-[#fa7150]/10 px-2 py-0.5 rounded-md uppercase tracking-wider inline-block">
+                            {service.serviceType}
                           </span>
-                        )}
+                          {service.isEnabled !== false ? (
+                            <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md uppercase tracking-wider inline-block">
+                              Hoạt động
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-black text-rose-700 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-md uppercase tracking-wider inline-block">
+                              Tạm ngưng
+                            </span>
+                          )}
+                          {service.durationMinutes > 0 && (
+                            <span className="text-[9px] font-black text-[#8a7e75] bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md uppercase tracking-wider inline-flex items-center gap-1">
+                              <Clock size={10} /> {service.durationMinutes}m
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -358,14 +374,20 @@ export const ServiceManagePage = () => {
                       <button 
                         onClick={() => setEditService(service)}
                         className="p-2 rounded-xl bg-[#faf9f6] border border-[#e5d8d0]/60 text-[#8a7e75] hover:text-[#fa7150] transition-all cursor-pointer"
+                        title="Chỉnh sửa"
                       >
                         <Edit2 size={14} />
                       </button>
                       <button 
-                        onClick={() => handleDelete(service.id)}
-                        className="p-2 rounded-xl bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-100 transition-all cursor-pointer"
+                        onClick={() => handleDelete(service.id, service.isEnabled !== false)}
+                        className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                          service.isEnabled !== false
+                            ? 'bg-rose-50 border-rose-100 text-rose-500 hover:bg-rose-100'
+                            : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
+                        }`}
+                        title={service.isEnabled !== false ? "Tạm ngưng dịch vụ" : "Kích hoạt lại"}
                       >
-                        <Trash2 size={14} />
+                        {service.isEnabled !== false ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                     </div>
                   </div>

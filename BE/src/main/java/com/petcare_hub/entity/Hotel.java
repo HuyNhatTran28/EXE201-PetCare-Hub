@@ -27,6 +27,7 @@ public class Hotel extends BaseEntity {
     private String address;
     private Double locationLat;
     private Double locationLong;
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @JdbcTypeCode(SqlTypes.JSON)

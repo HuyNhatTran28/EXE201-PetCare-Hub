@@ -97,6 +97,18 @@ public class HotelController {
         return ResponseEntity.ok(hotelService.updateHotel(id, partnerId, request));
     }
 
+    // ── PATCH /api/hotels/{id}/status/toggle — Partner tạm ngưng / mở lại KS ──
+    @Operation(summary = "Partner tạm ngưng / mở lại khách sạn")
+    @PatchMapping("/{id}/status/toggle")
+    @PreAuthorize("hasRole('PARTNER')")
+    public ResponseEntity<HotelResponse> toggleHotelStatus(
+            @PathVariable UUID id,
+            Authentication auth) {
+
+        UUID partnerId = (UUID) auth.getPrincipal();
+        return ResponseEntity.ok(hotelService.toggleHotelStatus(id, partnerId));
+    }
+
     // ── GET /api/hotels/nearby — Tìm KS gần GPS hoặc tất cả KS nếu không truyền tọa độ ──
     @Operation(summary = "Tìm khách sạn gần vị trí GPS (hoặc tất cả khách sạn ACTIVE)")
     @GetMapping("/nearby")

@@ -46,9 +46,10 @@ public class RoomTypeController {
     @Operation(summary = "Xem danh sách loại phòng của khách sạn")
     @GetMapping("/hotel/{hotelId}")
     public ResponseEntity<List<RoomTypeResponse>> getRoomTypes(
-            @PathVariable UUID hotelId) {
+            @PathVariable UUID hotelId,
+            @RequestParam(required = false, defaultValue = "true") Boolean activeOnly) {
 
-        return ResponseEntity.ok(roomTypeService.getRoomTypesByHotel(hotelId));
+        return ResponseEntity.ok(roomTypeService.getRoomTypesByHotel(hotelId, activeOnly));
     }
 
     // GET /api/room-types/{id}/availability — Kiểm tra phòng trống
@@ -98,5 +99,16 @@ public class RoomTypeController {
         UUID partnerId = (UUID) auth.getPrincipal();
         roomTypeService.deleteRoomType(id, partnerId);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Partner bật/tắt kích hoạt loại phòng")
+    @PatchMapping("/{id}/toggle")
+    @PreAuthorize("hasRole('PARTNER')")
+    public ResponseEntity<RoomTypeResponse> toggleRoomType(
+            @PathVariable UUID id,
+            Authentication auth) {
+
+        UUID partnerId = (UUID) auth.getPrincipal();
+        return ResponseEntity.ok(roomTypeService.toggleRoomType(id, partnerId));
     }
 }
