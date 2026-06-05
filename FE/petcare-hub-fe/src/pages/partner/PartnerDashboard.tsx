@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import axiosInstance from '@/lib/axios'
+import { Map } from '@/components/Map'
 
 interface HotelType {
   id: string
@@ -16,6 +17,7 @@ interface HotelType {
   status: string
   averageRating: number
   imageUrls?: string[]
+  googleMapsUrl?: string
 }
 
 export const PartnerDashboard = () => {
@@ -123,6 +125,9 @@ export const PartnerDashboard = () => {
   const [logoUrl, setLogoUrl] = useState('')
   const [frontUrl, setFrontUrl] = useState('')
   const [roomsUrl, setRoomsUrl] = useState('')
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('')
+  const [lat, setLat] = useState(10.7769)
+  const [lng, setLng] = useState(106.7009)
   
   // Step 2: KYC documents
   const [cccdNumber, setCccdNumber] = useState('')
@@ -443,8 +448,9 @@ export const PartnerDashboard = () => {
       const payload = {
         name: newHotelName,
         address: fullAddress,
-        locationLat: 10.7769,
-        locationLong: 106.7009,
+        locationLat: lat,
+        locationLong: lng,
+        googleMapsUrl: googleMapsUrl,
         description: JSON.stringify(extraInfo),
         amenities: selectedServices,
         checkInTime: openTime,
@@ -463,6 +469,9 @@ export const PartnerDashboard = () => {
       setLogoUrl('')
       setFrontUrl('')
       setRoomsUrl('')
+      setGoogleMapsUrl('')
+      setLat(10.7769)
+      setLng(106.7009)
       setCccdNumber('')
       setCccdFrontUrl('')
       setCccdBackUrl('')
@@ -887,18 +896,16 @@ export const PartnerDashboard = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="flex flex-col gap-6">
                 {hotels.map((hotel) => {
                   const isActive = hotel.status === 'ACTIVE';
                   return (
                     <div 
                       key={hotel.id} 
-                      className="bg-[#faf9f6]/40 border border-[#e5d8d0] rounded-3xl p-8 relative group overflow-hidden transition-all duration-300 hover:border-[#fa7150]/40 hover:bg-white hover:shadow-xl hover:shadow-[#fa7150]/2"
+                      className="bg-[#faf9f6]/40 border border-[#e5d8d0] rounded-3xl p-6 relative group overflow-hidden transition-all duration-300 hover:border-[#fa7150]/40 hover:bg-white hover:shadow-xl hover:shadow-[#fa7150]/2 flex flex-col md:flex-row gap-6"
                     >
-                      <div className="absolute top-0 right-0 w-36 h-36 bg-[#fa7150]/5 rounded-full -mr-16 -mt-16 pointer-events-none group-hover:scale-110 transition-transform duration-500" />
-                      
-                      {/* Bìa/Ảnh Khách Sạn */}
-                      <div className="relative h-48 overflow-hidden rounded-2xl mb-6 bg-gray-50 border border-[#e5d8d0]/60">
+                      {/* Bìa/Ảnh Khách Sạn Bên Trái */}
+                      <div className="relative w-full md:w-56 h-40 shrink-0 overflow-hidden rounded-2xl bg-gray-50 border border-[#e5d8d0]/60">
                         {hotel.imageUrls && hotel.imageUrls.length > 0 ? (
                           <img 
                             src={hotel.imageUrls[0]} 
@@ -907,71 +914,90 @@ export const PartnerDashboard = () => {
                           />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center text-[#8a7e75] gap-2">
-                            <Building size={32} className="text-[#fa7150]/60" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">Chưa có ảnh đại diện</span>
+                            <Building size={28} className="text-[#fa7150]/60" />
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-[#8a7e75]/85">Chưa có ảnh</span>
                           </div>
                         )}
                       </div>
                       
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="space-y-1.5 max-w-[70%]">
-                          <h4 className="text-xl font-black text-[#303330] group-hover:text-[#fa7150] transition-colors">{hotel.name}</h4>
-                          <p className="text-xs text-[#8a7e75] flex items-center gap-1.5 leading-relaxed">
-                            <MapPin size={14} className="text-[#fa7150]" /> {hotel.address}
+                      {/* Nội dung chi tiết bên phải */}
+                      <div className="flex-1 flex flex-col justify-between text-left">
+                        <div>
+                          {/* Dòng tên & badge trạng thái */}
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+                            <h4 className="text-xl font-black text-[#303330] group-hover:text-[#fa7150] transition-colors">
+                              {hotel.name}
+                            </h4>
+                            <span 
+                              className={`text-[9px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm border ${
+                                isActive 
+                                  ? 'bg-[#e3f4e1] text-[#2c4e24] border-[#d0fac0]' 
+                                  : hotel.status === 'PENDING'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-rose-50 text-rose-700 border-rose-200'
+                              }`}
+                            >
+                              {isActive ? 'Đang hoạt động' : hotel.status === 'PENDING' ? 'Chờ duyệt' : 'Tạm ngưng'}
+                            </span>
+                          </div>
+                          
+                          {/* Địa chỉ */}
+                          <p className="text-xs text-[#8a7e75] flex items-center gap-1.5 mb-3 leading-relaxed">
+                            <MapPin size={13} className="text-[#fa7150] shrink-0" /> 
+                            <span className="line-clamp-2">{hotel.address}</span>
                           </p>
-                        </div>
-                        <span 
-                          className={`text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm ${
-                            isActive 
-                              ? 'bg-[#e3f4e1] text-[#2c4e24] border border-[#d0fac0]' 
-                              : hotel.status === 'PENDING'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : 'bg-rose-50 text-rose-700 border border-rose-200'
-                          }`}
-                        >
-                          {isActive ? 'ĐANG HOẠT ĐỘNG' : hotel.status === 'PENDING' ? 'CHỜ DUYỆT' : 'ĐANG TẠM NGƯNG'}
-                        </span>
-                      </div>
 
-                      <div className="flex items-center gap-6 mt-4 mb-8 bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-[#e5d8d0]/60 w-fit">
-                        <div className="flex items-center gap-1 text-[#f59e0b]">
-                          <Star size={16} fill="currentColor" />
-                          <span className="text-sm font-black text-[#303330]">{hotel.averageRating || 5.0}</span>
+                          {/* Đánh giá & Maps */}
+                          <div className="flex items-center gap-4 text-xs">
+                            <div className="flex items-center gap-1 text-[#f59e0b] font-black bg-white border border-[#e5d8d0] px-2.5 py-1 rounded-xl">
+                              <Star size={14} fill="currentColor" />
+                              <span className="text-[#303330]">{hotel.averageRating || 5.0}</span>
+                            </div>
+                            {hotel.googleMapsUrl ? (
+                              <a 
+                                href={hotel.googleMapsUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-[#fa7150] hover:underline flex items-center gap-1.5 font-bold"
+                              >
+                                🗺️ Xem bản đồ
+                              </a>
+                            ) : (
+                              <div className="text-[#8a7e75] text-[11px]">
+                                Bán kính: <span className="font-bold text-[#303330]">50km</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-[#8a7e75]">
-                          Bán kính: <span className="font-bold text-[#303330]">50km</span>
+
+                        {/* Nút thao tác dưới cùng */}
+                        <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-[#e5d8d0]/60">
+                          <Link 
+                            to={`/partner/hotels/${hotel.id}/rooms`} 
+                            className="bg-white border border-[#e5d8d0] px-4 py-2.5 rounded-xl text-center font-bold text-xs hover:border-[#fa7150] hover:text-[#fa7150] hover:shadow-sm transition-all flex items-center gap-1.5"
+                          >
+                            <Settings size={13} /> Cài đặt phòng
+                          </Link>
+                          <Link 
+                            to={`/partner/hotels/${hotel.id}/services`} 
+                            className="bg-white border border-[#e5d8d0] px-4 py-2.5 rounded-xl text-center font-bold text-xs hover:border-[#fa7150] hover:text-[#fa7150] hover:shadow-sm transition-all flex items-center gap-1.5"
+                          >
+                            <ListOrdered size={13} /> Danh mục dịch vụ
+                          </Link>
+                          {hotel.status !== 'PENDING' && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleHotelStatus(hotel.id)}
+                              className={`px-4 py-2.5 rounded-xl text-center font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer border ${
+                                isActive 
+                                  ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100' 
+                                  : 'bg-[#e3f4e1] border-[#d0fac0] text-[#2c4e24] hover:bg-[#d0fac0]/20'
+                              }`}
+                            >
+                              {isActive ? 'Tạm Ngưng' : 'Kích Hoạt'}
+                            </button>
+                          )}
                         </div>
-                      </div>
-
-                      {/* Status Toggle Action */}
-                      {hotel.status !== 'PENDING' && (
-                        <button
-                          type="button"
-                          onClick={() => handleToggleHotelStatus(hotel.id)}
-                          className={`w-full mb-4 py-2.5 rounded-2xl text-center font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
-                            isActive 
-                              ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100' 
-                              : 'bg-[#e3f4e1] border-[#d0fac0] text-emerald-800 hover:bg-[#d0fac0]/20'
-                          }`}
-                        >
-                          {isActive ? 'Tạm Ngưng Hoạt Động (Xóa Mềm)' : 'Kích Hoạt Hoạt Động'}
-                        </button>
-                      )}
-
-                      {/* Actions Grid */}
-                      <div className="grid grid-cols-2 gap-4 border-t border-[#e5d8d0]/60 pt-6">
-                        <Link 
-                          to={`/partner/hotels/${hotel.id}/rooms`} 
-                          className="bg-white border border-[#e5d8d0] py-3.5 rounded-2xl text-center font-bold text-xs hover:border-[#fa7150] hover:text-[#fa7150] hover:shadow-sm transition-all flex items-center justify-center gap-1.5"
-                        >
-                          <Settings size={14} /> Cài đặt phòng
-                        </Link>
-                        <Link 
-                          to={`/partner/hotels/${hotel.id}/services`} 
-                          className="bg-white border border-[#e5d8d0] py-3.5 rounded-2xl text-center font-bold text-xs hover:border-[#fa7150] hover:text-[#fa7150] hover:shadow-sm transition-all flex items-center justify-center gap-1.5"
-                        >
-                          <ListOrdered size={14} /> Danh mục dịch vụ
-                        </Link>
                       </div>
                     </div>
                   )
@@ -1941,7 +1967,7 @@ export const PartnerDashboard = () => {
 
       {/* MODAL THÊM KHÁCH SẠN (WIZARD 3 BƯỚC) */}
       {showAddHotelModal && (
-        <div className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl border border-[#e5d8d0] animate-in fade-in zoom-in duration-200 text-left my-8">
             
             {/* Tiêu đề Modal & Stepper */}
@@ -2049,6 +2075,85 @@ export const PartnerDashboard = () => {
                         placeholder="Ví dụ: 123 Nguyễn Huệ"
                         className="w-full p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none"
                       />
+                    </div>
+                  </div>
+
+                  {/* Bản đồ Leaflet & Link Google Maps */}
+                  <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 space-y-4">
+                    <span className="text-[10px] text-[#fa7150] uppercase tracking-wider block mb-1">Định vị & Bản đồ (Leaflet)</span>
+                    <div>
+                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Link Google Maps (Hệ thống tự động nhận diện tọa độ)</label>
+                      <input
+                        type="url"
+                        value={googleMapsUrl}
+                        onChange={async e => {
+                          const val = e.target.value
+                          setGoogleMapsUrl(val)
+                          
+                          // 1. Thử phân tích cục bộ
+                          let parsedLocally = false
+                          try {
+                            if (val.includes('@')) {
+                              const parts = val.split('@')[1].split(',')
+                              if (parts.length >= 2) {
+                                const parsedLat = parseFloat(parts[0])
+                                const parsedLng = parseFloat(parts[1])
+                                if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+                                  setLat(parsedLat)
+                                  setLng(parsedLng)
+                                  parsedLocally = true
+                                }
+                              }
+                            } else if (val.includes('q=')) {
+                              let sub = val.split('q=')[1]
+                              if (sub.includes('&')) {
+                                sub = sub.split('&')[0]
+                              }
+                              const parts = sub.split(',')
+                              if (parts.length >= 2) {
+                                const parsedLat = parseFloat(parts[0])
+                                const parsedLng = parseFloat(parts[1])
+                                if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+                                  setLat(parsedLat)
+                                  setLng(parsedLng)
+                                  parsedLocally = true
+                                }
+                              }
+                            }
+                          } catch (err) {
+                            console.error('Lỗi parse tọa độ local:', err)
+                          }
+
+                          // 2. Nếu không parse được cục bộ và là link Google Maps hợp lệ, gọi backend resolve
+                          if (!parsedLocally && val.startsWith('http') && (val.includes('maps') || val.includes('goo.gl'))) {
+                            try {
+                              const res = await axiosInstance.get('/api/hotels/resolve-coords', {
+                                params: { url: val }
+                              })
+                              if (res.data && res.data.lat && res.data.lng) {
+                                setLat(res.data.lat)
+                                setLng(res.data.lng)
+                              }
+                            } catch (err) {
+                              console.error('Lỗi gọi API resolve tọa độ:', err)
+                            }
+                          }
+                        }}
+                        placeholder="Ví dụ: https://www.google.com/maps/place/.../@10.7769,106.7009,17z/..."
+                        className="w-full p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-[10px] text-[#8a7e75] block">Hoặc kéo marker/ghim trên bản đồ Leaflet để chọn tọa độ chính xác:</span>
+                      <Map lat={lat} lng={lng} onChange={(newLat, newLng) => {
+                        setLat(newLat)
+                        setLng(newLng)
+                      }} />
+                      <div className="flex gap-4 text-[10px] text-[#8a7e75] font-mono">
+                        <span>Vĩ độ (Lat): <strong className="text-[#303330]">{lat.toFixed(6)}</strong></span>
+                        <span>Kinh độ (Lng): <strong className="text-[#303330]">{lng.toFixed(6)}</strong></span>
+                      </div>
                     </div>
                   </div>
 

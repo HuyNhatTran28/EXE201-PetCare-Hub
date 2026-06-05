@@ -20,6 +20,7 @@ public class HotelResponse {
     private String address;
     private Double locationLat;
     private Double locationLong;
+    private String googleMapsUrl;
     private String description;
     private List<String> amenities;
     private String checkInTime;

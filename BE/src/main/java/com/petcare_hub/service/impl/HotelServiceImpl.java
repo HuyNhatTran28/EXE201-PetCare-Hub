@@ -78,12 +78,23 @@ public class HotelServiceImpl implements HotelService {
                         HttpStatus.NOT_FOUND
                 ));
 
+        Double lat = request.getLocationLat();
+        Double lng = request.getLocationLong();
+        if ((lat == null || lng == null) && request.getGoogleMapsUrl() != null) {
+            double[] parsed = resolveCoordsFromUrl(request.getGoogleMapsUrl());
+            lat = parsed[0];
+            lng = parsed[1];
+        }
+        if (lat == null) lat = 10.7769;
+        if (lng == null) lng = 106.7009;
+
         Hotel hotel = Hotel.builder()
                 .partner(partner)
                 .name(request.getName().trim())
                 .address(request.getAddress())
-                .locationLat(request.getLocationLat())
-                .locationLong(request.getLocationLong())
+                .locationLat(lat)
+                .locationLong(lng)
+                .googleMapsUrl(request.getGoogleMapsUrl())
                 .description(request.getDescription())
                 .amenities(request.getAmenities())
                 .checkInTime(request.getCheckInTime())
@@ -153,10 +164,19 @@ public class HotelServiceImpl implements HotelService {
             );
         }
 
+        Double lat = request.getLocationLat();
+        Double lng = request.getLocationLong();
+        if ((lat == null || lng == null) && request.getGoogleMapsUrl() != null) {
+            double[] parsed = resolveCoordsFromUrl(request.getGoogleMapsUrl());
+            lat = parsed[0];
+            lng = parsed[1];
+        }
+
         hotel.setName(request.getName().trim());
         hotel.setAddress(request.getAddress());
-        hotel.setLocationLat(request.getLocationLat());
-        hotel.setLocationLong(request.getLocationLong());
+        if (lat != null) hotel.setLocationLat(lat);
+        if (lng != null) hotel.setLocationLong(lng);
+        hotel.setGoogleMapsUrl(request.getGoogleMapsUrl());
         hotel.setDescription(request.getDescription());
         hotel.setAmenities(request.getAmenities());
         hotel.setCheckInTime(request.getCheckInTime());
@@ -273,6 +293,7 @@ public class HotelServiceImpl implements HotelService {
                 .address(hotel.getAddress())
                 .locationLat(hotel.getLocationLat())
                 .locationLong(hotel.getLocationLong())
+                .googleMapsUrl(hotel.getGoogleMapsUrl())
                 .description(hotel.getDescription())
                 .amenities(hotel.getAmenities())
                 .checkInTime(hotel.getCheckInTime())
@@ -285,5 +306,75 @@ public class HotelServiceImpl implements HotelService {
                 .imageUrls(imageUrls)
                 .createdAt(hotel.getCreatedAt())
                 .build();
+    }
+
+    @Override
+    public double[] resolveCoordsFromUrl(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return new double[]{10.7769, 106.7009}; // default
+        }
+        String expandedUrl = url;
+        if (url.contains("maps.app.goo.gl") || url.contains("goo.gl/maps")) {
+            expandedUrl = expandUrl(url);
+        }
+        return parseCoordsFromUrl(expandedUrl);
+    }
+
+    private String expandUrl(String url) {
+        String currentUrl = url;
+        for (int i = 0; i < 5; i++) {
+            try {
+                java.net.HttpURLConnection con = (java.net.HttpURLConnection) new java.net.URL(currentUrl).openConnection();
+                con.setInstanceFollowRedirects(false);
+                con.setConnectTimeout(5000);
+                con.setReadTimeout(5000);
+                con.setRequestProperty("User-Agent", "Mozilla/5.0");
+                con.connect();
+                int responseCode = con.getResponseCode();
+                if (responseCode >= 300 && responseCode < 400) {
+                    String loc = con.getHeaderField("Location");
+                    if (loc != null) {
+                        currentUrl = loc;
+                        con.disconnect();
+                        continue;
+                    }
+                }
+                con.disconnect();
+                break;
+            } catch (Exception e) {
+                break;
+            }
+        }
+        return currentUrl;
+    }
+
+    private double[] parseCoordsFromUrl(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return new double[]{10.7769, 106.7009}; // default
+        }
+        try {
+            // Pattern 1: @lat,lng
+            if (url.contains("@")) {
+                String sub = url.substring(url.indexOf("@") + 1);
+                String[] parts = sub.split(",");
+                if (parts.length >= 2) {
+                    return new double[]{Double.parseDouble(parts[0]), Double.parseDouble(parts[1])};
+                }
+            }
+            // Pattern 2: q=lat,lng
+            if (url.contains("q=")) {
+                String sub = url.substring(url.indexOf("q=") + 2);
+                if (sub.contains("&")) {
+                    sub = sub.substring(0, sub.indexOf("&"));
+                }
+                String[] parts = sub.split(",");
+                if (parts.length >= 2) {
+                    return new double[]{Double.parseDouble(parts[0]), Double.parseDouble(parts[1])};
+                }
+            }
+        } catch (Exception e) {
+            // ignore parsing errors
+        }
+        return new double[]{10.7769, 106.7009}; // default fallback
     }
 }

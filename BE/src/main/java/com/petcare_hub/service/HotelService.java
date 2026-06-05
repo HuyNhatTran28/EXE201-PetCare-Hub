@@ -38,4 +38,7 @@ public interface HotelService {
 
     // Tìm kiếm KS có bộ lọc tích hợp
     List<HotelResponse> searchHotels(Double lat, Double lng, Double radiusKm, String petType, BigDecimal minPrice, BigDecimal maxPrice);
+
+    // Tự động phân tích tọa độ từ URL Google Maps (hỗ trợ cả link rút gọn)
+    double[] resolveCoordsFromUrl(String url);
 }

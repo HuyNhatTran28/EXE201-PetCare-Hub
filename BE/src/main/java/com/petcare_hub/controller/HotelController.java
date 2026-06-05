@@ -131,4 +131,14 @@ public class HotelController {
             @RequestParam(required = false) BigDecimal maxPrice) {
         return ResponseEntity.ok(hotelService.searchHotels(lat, lng, radius, petType, minPrice, maxPrice));
     }
+
+    @Operation(summary = "Tự động phân tích tọa độ từ URL Google Maps (hỗ trợ cả link rút gọn)")
+    @GetMapping("/resolve-coords")
+    public ResponseEntity<java.util.Map<String, Double>> resolveCoords(@RequestParam String url) {
+        double[] coords = hotelService.resolveCoordsFromUrl(url);
+        java.util.Map<String, Double> response = new java.util.HashMap<>();
+        response.put("lat", coords[0]);
+        response.put("lng", coords[1]);
+        return ResponseEntity.ok(response);
+    }
 }
