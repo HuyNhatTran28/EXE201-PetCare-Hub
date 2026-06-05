@@ -11,7 +11,7 @@ public interface RoomTypeService {
 
     RoomTypeResponse createRoomType(UUID hotelId, UUID partnerId, RoomTypeRequest request);
 
-    List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId);
+    List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId, Boolean activeOnly);
 
     RoomTypeResponse updateRoomType(UUID roomTypeId, UUID partnerId, RoomTypeRequest request);
 
@@ -19,4 +19,6 @@ public interface RoomTypeService {
     Integer getAvailableRooms(UUID roomTypeId, LocalDate checkIn, LocalDate checkOut);
 
     void deleteRoomType(UUID roomTypeId, UUID partnerId);
+
+    RoomTypeResponse toggleRoomType(UUID roomTypeId, UUID partnerId);
 }

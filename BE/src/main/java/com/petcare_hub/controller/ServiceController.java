@@ -41,9 +41,10 @@ public class ServiceController {
     @Operation(summary = "Xem danh sách dịch vụ của KS")
     @GetMapping("/hotel/{hotelId}")
     public ResponseEntity<List<ServiceResponse>> getServices(
-            @PathVariable UUID hotelId) {
+            @PathVariable UUID hotelId,
+            @RequestParam(required = false, defaultValue = "true") Boolean enabledOnly) {
 
-        return ResponseEntity.ok(serviceService.getServicesByHotel(hotelId));
+        return ResponseEntity.ok(serviceService.getServicesByHotel(hotelId, enabledOnly));
     }
 
     @Operation(summary = "Partner cập nhật dịch vụ")

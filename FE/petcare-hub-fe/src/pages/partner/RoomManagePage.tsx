@@ -7,13 +7,14 @@ import {
   Video,
   DollarSign,
   Maximize2,
-  Trash2,
   Edit3,
   Calendar,
   Building,
   LogOut,
   ChevronRight,
-  BarChart2
+  BarChart2,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
@@ -28,6 +29,7 @@ interface RoomType {
   hasWebcam: boolean
   description: string
   images: string[]
+  isActive: boolean
 }
 
 const RoomImageSlideshow = ({ images, name }: { images: string[]; name: string }) => {
@@ -101,14 +103,16 @@ export const RoomManagePage = () => {
     allowedPetTypes: [] as string[],
   })
 
-  const handleDeleteRoom = async (roomId: string) => {
-    if (!confirm('Bạn có chắc muốn ẩn loại phòng này?')) return
+  const handleToggleRoomActive = async (roomId: string, currentStatus: boolean) => {
+    const actionText = currentStatus ? 'tạm ngưng hoạt động' : 'kích hoạt lại'
+    if (!confirm(`Bạn có chắc muốn ${actionText} loại phòng này?`)) return
     try {
-      await axiosInstance.delete(`/api/room-types/${roomId}`)
-      setRooms(rooms.filter(r => r.id !== roomId))
+      await axiosInstance.patch(`/api/room-types/${roomId}/toggle`)
+      const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
+      setRooms(res.data || [])
     } catch (err: any) {
-      console.error('Failed to delete room type', err)
-      alert(err.response?.data?.message || 'Không thể xóa — phòng này đang có booking')
+      console.error('Failed to toggle room active status', err)
+      alert(err.response?.data?.message || 'Không thể thay đổi trạng thái')
     }
   }
 
@@ -137,7 +141,7 @@ export const RoomManagePage = () => {
         allowedPetTypes: editRoom.allowedPetTypes || [],
         images: editRoom.images || []
       })
-      const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}`)
+      const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
       setRooms(res.data || [])
       setEditRoom(null)
     } catch (err: any) {
@@ -170,7 +174,7 @@ export const RoomManagePage = () => {
         images: []
       })
       // Reload rooms
-      const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}`)
+      const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
       setRooms(res.data || [])
       setShowModal(false)
       setForm({ name: '', description: '', pricePerNight: '', maxPets: '', totalRooms: '', allowedPetTypes: [] })
@@ -184,7 +188,7 @@ export const RoomManagePage = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await axiosInstance.get(`/api/room-types/hotel/${hotelId}`)
+        const response = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
         setRooms(response.data || [])
       } catch (error) {
         console.error('Failed to load room types', error)
@@ -337,26 +341,47 @@ export const RoomManagePage = () => {
               {rooms.map((room) => (
                 <div 
                   key={room.id} 
-                  className="bg-white border border-[#e5d8d0] rounded-[32px] p-8 relative overflow-hidden transition-all duration-300 hover:border-[#fa7150]/30 hover:shadow-xl hover:shadow-[#fa7150]/2"
+                  className={`bg-white border border-[#e5d8d0] rounded-[32px] p-8 relative overflow-hidden transition-all duration-300 hover:border-[#fa7150]/30 hover:shadow-xl hover:shadow-[#fa7150]/2 ${
+                    room.isActive === false ? 'opacity-80 border-dashed bg-[#faf9f6]/40' : ''
+                  }`}
                   style={cardShadow}
                 >
                   {/* Ảnh phòng & Slideshow */}
                   <RoomImageSlideshow images={room.images} name={room.name} />
 
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-2xl font-black text-[#303330] hover:text-[#fa7150] transition-colors">{room.name}</h3>
+                    <div className="space-y-1">
+                      <h3 className="text-2xl font-black text-[#303330] hover:text-[#fa7150] transition-colors">{room.name}</h3>
+                      <div>
+                        {room.isActive !== false ? (
+                          <span className="inline-block bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                            Đang hoạt động
+                          </span>
+                        ) : (
+                          <span className="inline-block bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                            Tạm ngưng
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setEditRoom(room)}
                         className="p-2.5 rounded-2xl bg-[#faf9f6] border border-[#e5d8d0]/60 text-[#8a7e75] hover:text-[#fa7150] transition-all cursor-pointer"
+                        title="Chỉnh sửa"
                       >
                         <Edit3 size={16} />
                       </button>
                       <button
-                        onClick={() => handleDeleteRoom(room.id)}
-                        className="p-2.5 rounded-2xl bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-100 transition-all cursor-pointer"
+                        onClick={() => handleToggleRoomActive(room.id, room.isActive !== false)}
+                        className={`p-2.5 rounded-2xl border transition-all cursor-pointer ${
+                          room.isActive !== false
+                            ? 'bg-rose-50 border-rose-100 text-rose-500 hover:bg-rose-100'
+                            : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
+                        }`}
+                        title={room.isActive !== false ? "Tạm ngưng hoạt động" : "Kích hoạt lại"}
                       >
-                        <Trash2 size={16} />
+                        {room.isActive !== false ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
                   </div>

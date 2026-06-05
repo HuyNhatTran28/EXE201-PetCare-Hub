@@ -59,6 +59,21 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    // Bắt lỗi phân quyền — Access Denied / Forbidden
+    @ExceptionHandler({
+        org.springframework.security.access.AccessDeniedException.class,
+        org.springframework.security.authorization.AuthorizationDeniedException.class
+    })
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(Exception ex) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.builder()
+                        .status(HttpStatus.FORBIDDEN.value())
+                        .message("Bạn không có quyền thực hiện hành động này.")
+                        .timestamp(LocalDateTime.now())
+                        .build());
+    }
+
     // Bắt các lỗi không mong muốn khác
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {

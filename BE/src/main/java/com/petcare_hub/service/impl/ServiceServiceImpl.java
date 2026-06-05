@@ -53,10 +53,11 @@ public class ServiceServiceImpl implements ServiceService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ServiceResponse> getServicesByHotel(UUID hotelId) {
-        return serviceRepository
-                .findByHotelIdAndIsEnabledTrue(hotelId)
-                .stream()
+    public List<ServiceResponse> getServicesByHotel(UUID hotelId, Boolean enabledOnly) {
+        List<com.petcare_hub.entity.Service> services = (enabledOnly == null || enabledOnly)
+                ? serviceRepository.findByHotelIdAndIsEnabledTrue(hotelId)
+                : serviceRepository.findByHotelId(hotelId);
+        return services.stream()
                 .map(this::toResponse)
                 .toList();
     }

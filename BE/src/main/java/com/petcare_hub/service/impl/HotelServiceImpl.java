@@ -165,6 +165,36 @@ public class HotelServiceImpl implements HotelService {
         return toResponse(hotelRepository.save(hotel));
     }
 
+    @Override
+    @Transactional
+    public HotelResponse toggleHotelStatus(UUID hotelId, UUID partnerId) {
+        Hotel hotel = findHotelById(hotelId);
+
+        // Kiểm tra đúng chủ KS không
+        if (!hotel.getPartner().getId().equals(partnerId)) {
+            throw new AppException(
+                    "Bạn không có quyền chỉnh sửa khách sạn này",
+                    HttpStatus.FORBIDDEN
+            );
+        }
+
+        // Thay đổi trạng thái
+        if (hotel.getStatus() == HotelStatus.ACTIVE) {
+            hotel.setStatus(HotelStatus.CLOSED);
+            log.info("Partner {} đã tạm ngưng khách sạn {}", partnerId, hotelId);
+        } else if (hotel.getStatus() == HotelStatus.CLOSED) {
+            hotel.setStatus(HotelStatus.ACTIVE);
+            log.info("Partner {} đã kích hoạt lại khách sạn {}", partnerId, hotelId);
+        } else {
+            throw new AppException(
+                    "Khách sạn đang chờ duyệt, không thể thay đổi trạng thái hoạt động",
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        return toResponse(hotelRepository.save(hotel));
+    }
+
     // ── Tìm KS gần GPS ────────────────────────────────────────
 
     @Override

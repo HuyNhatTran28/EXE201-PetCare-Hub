@@ -26,40 +26,10 @@ interface HotelType {
   amenities?: string[]
 }
 
-const MOCK_HOTELS: HotelType[] = [
-  {
-    id: '9472cf9d-d27b-42dc-8361-f1e10b2a1084',
-    name: 'Zen Cat Loft',
-    address: 'Quận 1, TP. HCM',
-    rating: 4.9,
-    price: 450000,
-    tags: ['British Shorthair', 'Ragdoll'],
-    image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800',
-    isPopular: true,
-    amenities: ['Đệm ngủ cao cấp']
-  },
-  {
-    id: 'b8e72c84-9dbb-4ae1-8d2a-71b56ce8145a',
-    name: 'Deluxe Garden Suite',
-    address: 'Quận 2, TP. HCM',
-    rating: 5.0,
-    price: 750000,
-    tags: ['Golden Retriever', 'Husky'],
-    image: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800',
-    isPopular: false,
-    amenities: ['Private Garden']
-  },
-  {
-    id: 'a12e3456-789b-12d3-a456-426614174001',
-    name: 'Tiny Paws Studio',
-    address: 'Quận Bình Thạnh, TP. HCM',
-    rating: 4.8,
-    price: 320000,
-    tags: ['Thỏ', 'Hamster'],
-    image: 'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800',
-    isPopular: false,
-    amenities: ['Điều hòa (AC)']
-  }
+const DEFAULT_HOTEL_IMAGES = [
+  'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800',
+  'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800',
+  'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800'
 ]
 
 export const HotelListPage = () => {
@@ -88,17 +58,17 @@ export const HotelListPage = () => {
           tags: h.allowedPetTypes?.length > 0 ? h.allowedPetTypes : (idx % 2 === 0 ? ['Dogs', 'Cats'] : ['Small Pets']),
           image: (h.images && h.images.length > 0)
             ? h.images[0]
-            : (idx % 3 === 0 ? MOCK_HOTELS[0].image : idx % 3 === 1 ? MOCK_HOTELS[1].image : MOCK_HOTELS[2].image),
+            : DEFAULT_HOTEL_IMAGES[idx % DEFAULT_HOTEL_IMAGES.length],
           isPopular: idx % 3 === 0,
           amenities: idx % 3 === 0 ? ['Đệm ngủ cao cấp'] : idx % 3 === 1 ? ['Private Garden'] : ['Điều hòa (AC)']
         }))
         setHotels(list)
       } else {
-        setHotels(MOCK_HOTELS)
+        setHotels([])
       }
     } catch (error) {
-      console.error('Failed to fetch hotels, using mocks', error)
-      setHotels(MOCK_HOTELS)
+      console.error('Failed to fetch hotels', error)
+      setHotels([])
     } finally {
       setLoading(false)
     }

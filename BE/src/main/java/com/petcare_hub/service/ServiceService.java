@@ -10,7 +10,7 @@ public interface ServiceService {
 
     ServiceResponse createService(UUID hotelId, UUID partnerId, ServiceRequest request);
 
-    List<ServiceResponse> getServicesByHotel(UUID hotelId);
+    List<ServiceResponse> getServicesByHotel(UUID hotelId, Boolean enabledOnly);
 
     ServiceResponse updateService(UUID serviceId, UUID partnerId, ServiceRequest request);
 

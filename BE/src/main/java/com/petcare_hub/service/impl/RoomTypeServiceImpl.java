@@ -56,10 +56,11 @@ public class RoomTypeServiceImpl implements RoomTypeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId) {
-        return roomTypeRepository
-                .findByHotelIdAndIsActiveTrue(hotelId)
-                .stream()
+    public List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId, Boolean activeOnly) {
+        List<RoomType> roomTypes = (activeOnly == null || activeOnly)
+                ? roomTypeRepository.findByHotelIdAndIsActiveTrue(hotelId)
+                : roomTypeRepository.findByHotelId(hotelId);
+        return roomTypes.stream()
                 .map(rt -> toResponse(rt, null))
                 .toList();
     }
@@ -113,6 +114,21 @@ public class RoomTypeServiceImpl implements RoomTypeService {
 
         roomType.setIsActive(false);
         roomTypeRepository.save(roomType);
+    }
+
+    @Override
+    @Transactional
+    public RoomTypeResponse toggleRoomType(UUID roomTypeId, UUID partnerId) {
+        RoomType roomType = roomTypeRepository.findById(roomTypeId)
+                .orElseThrow(() -> new AppException(
+                    "Không tìm thấy loại phòng", HttpStatus.NOT_FOUND));
+
+        if (!roomType.getHotel().getPartner().getId().equals(partnerId)) {
+            throw new AppException("Không có quyền", HttpStatus.FORBIDDEN);
+        }
+
+        roomType.setIsActive(!roomType.getIsActive());
+        return toResponse(roomTypeRepository.save(roomType), null);
     }
 
     private RoomTypeResponse toResponse(RoomType rt, Integer availableRooms) {

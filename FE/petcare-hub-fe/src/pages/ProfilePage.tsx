@@ -203,7 +203,7 @@ export const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans flex flex-col md:flex-row selection:bg-[#fa7150] selection:text-white">
-      
+
       {/* ── SIDEBAR ĐIỀU HƯỚNG THEO ROLE (Bên Trái) ── */}
       <aside className="w-full md:w-72 bg-[#f5ede8] border-r border-[#e5d8d0] flex flex-col py-8 shrink-0 relative overflow-hidden md:h-screen md:sticky md:top-0 text-left">
         <div className="px-8 mb-10 flex items-center gap-3 relative z-10">
@@ -276,7 +276,7 @@ export const ProfilePage = () => {
         </nav>
 
         <div className="px-4 mt-auto relative z-10">
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 text-[#a43e24] hover:bg-white/50 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
           >
@@ -287,13 +287,13 @@ export const ProfilePage = () => {
 
       {/* ── NỘI DUNG CHÍNH DYNAMIC THEO ROLE ── */}
       <main className="flex-grow p-6 md:p-12 text-left">
-        
+
         {/* ── 1. GIAO DIỆN CHỦ THÚ CƯNG (OWNER) ── */}
         {currentRole === 'OWNER' && (
           <div className="space-y-12 animate-in fade-in duration-300">
             <h2 className="text-3xl sm:text-5xl font-black text-[#303330]">Hội viên & Điểm thưởng</h2>
             <p className="text-[#5a5550] text-sm">Chào mừng quay trở lại! Bạn đang sở hữu những đặc quyền khách hàng thân thiết hàng đầu.</p>
-            
+
             {/* Loyalty points card */}
             <div className="bg-[#1e392a] text-white p-8 rounded-3xl flex justify-between items-center shadow-xl">
               <div>
@@ -342,7 +342,7 @@ export const ProfilePage = () => {
                 <h2 className="text-3xl sm:text-5xl font-black text-[#303330]">Quản lý Khách sạn</h2>
                 <p className="text-xs text-[#8a7e75] mt-1.5">Xem danh sách, cập nhật thông tin phòng và quản lý đơn đặt của đối tác.</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAddHotelModal(true)}
                 className="bg-[#fa7150] text-white px-6 py-3 rounded-full font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#fa7150]/20 hover:scale-[1.02] transition-transform cursor-pointer"
               >
@@ -358,8 +358,8 @@ export const ProfilePage = () => {
                   <form onSubmit={handleAddHotel} className="space-y-4 text-xs font-bold">
                     <div>
                       <label className="block text-[#8a7e75] mb-1.5 uppercase">Tên khách sạn</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         required
                         value={newHotelName}
                         onChange={e => setNewHotelName(e.target.value)}
@@ -369,8 +369,8 @@ export const ProfilePage = () => {
                     </div>
                     <div>
                       <label className="block text-[#8a7e75] mb-1.5 uppercase">Địa chỉ cụ thể</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         required
                         value={newHotelAddress}
                         onChange={e => setNewHotelAddress(e.target.value)}
@@ -379,15 +379,15 @@ export const ProfilePage = () => {
                       />
                     </div>
                     <div className="flex gap-3 justify-end pt-2">
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => setShowAddHotelModal(false)}
                         className="px-4 py-2.5 bg-[#f5ede8] rounded-xl hover:bg-[#e5d8d0] cursor-pointer"
                       >
                         Hủy bỏ
                       </button>
-                      <button 
-                        type="submit" 
+                      <button
+                        type="submit"
                         className="px-5 py-2.5 bg-[#fa7150] text-white rounded-xl cursor-pointer"
                       >
                         Đăng ký ngay
@@ -420,9 +420,8 @@ export const ProfilePage = () => {
                       <div>
                         <div className="flex justify-between items-start mb-4">
                           <h3 className="font-bold text-base text-[#303330]">{hotel.name}</h3>
-                          <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                            hotel.status === 'ACTIVE' ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#fff0e6] text-[#fa7150]'
-                          }`}>
+                          <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${hotel.status === 'ACTIVE' ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#fff0e6] text-[#fa7150]'
+                            }`}>
                             {hotel.status === 'ACTIVE' ? 'Đang hoạt động' : 'Đang chờ duyệt'}
                           </span>
                         </div>
@@ -437,7 +436,7 @@ export const ProfilePage = () => {
                           </div>
                         </div>
                       </div>
-                      <button 
+                      <button
                         onClick={() => navigate(`/partner/hotels/${hotel.id}/rooms`)}
                         className="w-full py-2.5 bg-[#fbf7f4] hover:bg-[#fa7150] hover:text-white rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer border border-[#e5d8d0]"
                       >
@@ -476,9 +475,8 @@ export const ProfilePage = () => {
                             <td className="px-4 py-3 text-[#8a7e75] text-left">{b.checkInDate} - {b.checkOutDate}</td>
                             <td className="px-4 py-3 text-right font-black text-[#a43e24]">{(b.totalAmount || 0).toLocaleString('vi-VN')} đ</td>
                             <td className="px-4 py-3 text-right">
-                              <span className={`inline-block px-2.5 py-1 text-[8px] font-black rounded-full uppercase ${
-                                b.status === 'CONFIRMED' || b.status === 'COMPLETED' ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#fff0e6] text-[#fa7150]'
-                              }`}>
+                              <span className={`inline-block px-2.5 py-1 text-[8px] font-black rounded-full uppercase ${b.status === 'CONFIRMED' || b.status === 'COMPLETED' ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#fff0e6] text-[#fa7150]'
+                                }`}>
                                 {b.status}
                               </span>
                             </td>
@@ -509,18 +507,17 @@ export const ProfilePage = () => {
                 {staffTasks.map(task => {
                   const isCompleted = task.status === 'COMPLETED'
                   return (
-                    <div 
+                    <div
                       key={task.id}
                       onClick={() => handleToggleTask(task.id)}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                        isCompleted ? 'bg-[#d0fac0]/10 border-[#44683b]/30' : 'bg-[#fdfaf8] border-[#e5d8d0] hover:bg-white'
-                      }`}
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${isCompleted ? 'bg-[#d0fac0]/10 border-[#44683b]/30' : 'bg-[#fdfaf8] border-[#e5d8d0] hover:bg-white'
+                        }`}
                     >
                       <div className="flex items-center gap-3">
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           checked={isCompleted}
-                          onChange={() => {}}
+                          onChange={() => { }}
                           className="w-4.5 h-4.5 rounded text-[#fa7150] border-[#e5d8d0]"
                         />
                         <div className="text-left">
@@ -528,9 +525,8 @@ export const ProfilePage = () => {
                           <p className="text-[10px] text-[#8a7e75] mt-0.5">Bé: <strong>{task.petName}</strong> • {task.room}</p>
                         </div>
                       </div>
-                      <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase ${
-                        isCompleted ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#f5ede8] text-[#8a7e75]'
-                      }`}>
+                      <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase ${isCompleted ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#f5ede8] text-[#8a7e75]'
+                        }`}>
                         {isCompleted ? 'Đã hoàn thành' : 'Chưa làm'}
                       </span>
                     </div>
@@ -554,7 +550,7 @@ export const ProfilePage = () => {
                 </div>
                 <div>
                   <label className="block text-[#8a7e75] mb-2 uppercase">Nội dung dòng thời gian (Timeline)</label>
-                  <textarea 
+                  <textarea
                     rows={4}
                     value={diaryNotes}
                     onChange={e => setDiaryNotes(e.target.value)}
@@ -563,7 +559,7 @@ export const ProfilePage = () => {
                   />
                 </div>
                 <div className="text-right">
-                  <button 
+                  <button
                     onClick={() => {
                       alert('Đăng nhật ký lên dòng thời gian của chủ bé thành công!')
                       setDiaryNotes('')
@@ -589,7 +585,7 @@ export const ProfilePage = () => {
             {/* List khách sạn chờ duyệt */}
             <div className="bg-white rounded-3xl border border-[#e5d8d0] p-6 shadow-sm space-y-4">
               <h3 className="text-lg font-black mb-6">Yêu cầu đăng ký chờ duyệt</h3>
-              
+
               <div className="overflow-x-auto text-xs">
                 <table className="w-full border-collapse">
                   <thead>
@@ -608,22 +604,21 @@ export const ProfilePage = () => {
                         <td className="px-4 py-3 text-[#5a5550]">{hotel.partnerName}</td>
                         <td className="px-4 py-3 text-[#8a7e75]">{hotel.address}</td>
                         <td className="px-4 py-3">
-                          <span className={`inline-block px-2.5 py-1 text-[8px] font-black rounded-full uppercase ${
-                            hotel.status === 'ACTIVE' ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#fff0e6] text-[#fa7150]'
-                          }`}>
+                          <span className={`inline-block px-2.5 py-1 text-[8px] font-black rounded-full uppercase ${hotel.status === 'ACTIVE' ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#fff0e6] text-[#fa7150]'
+                            }`}>
                             {hotel.status === 'ACTIVE' ? 'Hoạt động' : 'Chờ duyệt'}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
                           {hotel.status === 'PENDING' ? (
                             <div className="flex gap-2 justify-end">
-                              <button 
+                              <button
                                 onClick={() => handleApproveHotel(hotel.id)}
                                 className="p-1.5 bg-[#d0fac0] hover:bg-[#d0fac0]/80 rounded-full text-[#2c4e24] transition-all cursor-pointer"
                               >
                                 <Check size={14} />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleRejectHotel(hotel.id)}
                                 className="p-1.5 bg-[#fdf0ec] hover:bg-[#fdf0ec]/80 rounded-full text-[#a43e24] transition-all cursor-pointer"
                               >

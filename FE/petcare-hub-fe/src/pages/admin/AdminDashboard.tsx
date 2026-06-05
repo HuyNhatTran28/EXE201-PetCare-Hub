@@ -41,10 +41,10 @@ export const AdminDashboard = () => {
   const cardShadow = { boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }
 
   const STATS = [
-    { icon: <Building size={22}/>, label: 'KS đang hoạt động', value: stats.active, color: 'text-blue-600', bg: 'bg-blue-50', path: '/admin/hotels' },
-    { icon: <Clock size={22}/>, label: 'KS chờ duyệt', value: stats.pending, color: 'text-amber-600', bg: 'bg-amber-50', path: '/admin/hotels' },
-    { icon: <Users size={22}/>, label: 'Người dùng', value: '—', color: 'text-purple-600', bg: 'bg-purple-50', path: '/admin/users' },
-    { icon: <Calendar size={22}/>, label: 'Booking hôm nay', value: '—', color: 'text-green-600', bg: 'bg-green-50', path: '/admin/analytics' },
+    { icon: <Building size={22} />, label: 'KS đang hoạt động', value: stats.active, color: 'text-blue-600', bg: 'bg-blue-50', path: '/admin/hotels' },
+    { icon: <Clock size={22} />, label: 'KS chờ duyệt', value: stats.pending, color: 'text-amber-600', bg: 'bg-amber-50', path: '/admin/hotels' },
+    { icon: <Users size={22} />, label: 'Người dùng', value: '—', color: 'text-purple-600', bg: 'bg-purple-50', path: '/admin/users' },
+    { icon: <Calendar size={22} />, label: 'Booking hôm nay', value: '—', color: 'text-green-600', bg: 'bg-green-50', path: '/admin/analytics' },
   ]
 
   return (

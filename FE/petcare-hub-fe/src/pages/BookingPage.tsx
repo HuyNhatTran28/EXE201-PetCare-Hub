@@ -20,7 +20,7 @@ const USER_PETS = [
 export const BookingPage = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  
+
   // Trích xuất các tham số truyền từ trang detail
   const nights = Number(searchParams.get('nights')) || 1
   const initialTotal = Number(searchParams.get('total')) || 750000
@@ -42,7 +42,7 @@ export const BookingPage = () => {
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans selection:bg-[#fa7150] selection:text-white pb-24">
-      
+
       {/* ── HEADER ── */}
       <Header />
 
@@ -57,7 +57,7 @@ export const BookingPage = () => {
             <p className="text-xs text-[#5a5550] leading-relaxed mb-6">
               Đơn hàng của bạn đã được tiếp nhận. Đội ngũ nhân viên bảo mẫu của PetCare Hub sẽ liên hệ với bạn trong vòng 10 phút để xác nhận thủ tục nhận bé cưng.
             </p>
-            
+
             {/* Ảnh QR MoMo / VietQR ảo nếu thanh toán qua Ví */}
             {['MOMO', 'VIETQR'].includes(paymentMethod) && (
               <div className="bg-[#fdfaf8] border border-[#e5d8d0] rounded-2xl p-4 mb-6 flex flex-col items-center">
@@ -67,7 +67,7 @@ export const BookingPage = () => {
               </div>
             )}
 
-            <button 
+            <button
               onClick={() => navigate('/my-bookings')}
               className="w-full bg-[#fa7150] text-white py-3.5 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-[#fa7150]/90 transition-all cursor-pointer"
             >
@@ -79,11 +79,11 @@ export const BookingPage = () => {
 
       {/* ── TIẾN TRÌNH ĐẶT PHÒNG ── */}
       <main className="max-w-7xl mx-auto px-6 py-12">
-        
+
         {/* Stepper chỉ số */}
         <div className="flex justify-center mb-16">
           <div className="flex items-center w-full max-w-2xl justify-between">
-            
+
             {/* Step 1 */}
             <div className="flex flex-col items-center gap-2">
               <div className="w-10 h-10 rounded-full bg-[#44683b] text-white flex items-center justify-center font-bold text-sm">
@@ -127,10 +127,10 @@ export const BookingPage = () => {
 
         {/* Nội dung 2 cột */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 text-left">
-          
+
           {/* CỘT CHỌN THÚ CƯNG & THANH TOÁN (Bên Trái) */}
           <div className="lg:col-span-7 space-y-12">
-            
+
             {/* Chọn Thú Cưng Lưu Trú */}
             <section>
               <h2 className="text-2xl font-black mb-6 text-[#303330]">
@@ -140,18 +140,17 @@ export const BookingPage = () => {
                 {USER_PETS.map((pet) => {
                   const isSelected = selectedPetId === pet.id
                   return (
-                    <div 
+                    <div
                       key={pet.id}
                       onClick={() => setSelectedPetId(pet.id)}
-                      className={`relative p-5 rounded-2xl border transition-all cursor-pointer flex items-center gap-4 ${
-                        isSelected 
-                          ? 'border-[#fa7150] bg-[#fdfcfb] shadow-lg shadow-[#fa7150]/2' 
+                      className={`relative p-5 rounded-2xl border transition-all cursor-pointer flex items-center gap-4 ${isSelected
+                          ? 'border-[#fa7150] bg-[#fdfcfb] shadow-lg shadow-[#fa7150]/2'
                           : 'border-[#e5d8d0] hover:bg-white'
-                      }`}
+                        }`}
                     >
                       <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0">
-                        <img 
-                          src={pet.image} 
+                        <img
+                          src={pet.image}
                           alt={pet.name}
                           className="w-full h-full object-cover"
                         />
@@ -170,7 +169,7 @@ export const BookingPage = () => {
                 })}
 
                 {/* Thêm mới thú cưng ảo */}
-                <button 
+                <button
                   onClick={() => navigate('/pets')}
                   className="flex items-center justify-center gap-3 border-2 border-dashed border-[#e5d8d0] rounded-2xl p-5 text-[#fa7150] hover:border-[#fa7150] hover:bg-[#fa7150]/5 transition-all cursor-pointer"
                 >
@@ -184,13 +183,12 @@ export const BookingPage = () => {
             <section>
               <h2 className="text-2xl font-black mb-6 text-[#303330]">Phương thức thanh toán</h2>
               <div className="space-y-4">
-                
+
                 {/* MoMo */}
-                <label 
+                <label
                   onClick={() => setPaymentMethod('MOMO')}
-                  className={`flex items-center justify-between p-5 rounded-2xl cursor-pointer border transition-all ${
-                    paymentMethod === 'MOMO' ? 'bg-[#fdfcfb] border-[#fa7150]' : 'border-[#e5d8d0] hover:border-[#fa7150]/50'
-                  }`}
+                  className={`flex items-center justify-between p-5 rounded-2xl cursor-pointer border transition-all ${paymentMethod === 'MOMO' ? 'bg-[#fdfcfb] border-[#fa7150]' : 'border-[#e5d8d0] hover:border-[#fa7150]/50'
+                    }`}
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-[#fff0e6] flex items-center justify-center text-[#fa7150] font-black text-sm">
@@ -201,21 +199,20 @@ export const BookingPage = () => {
                       <p className="text-xs text-[#8a7e75]">Quét mã QR MoMo và thanh toán tự động trong 5 giây.</p>
                     </div>
                   </div>
-                  <input 
-                    type="radio" 
+                  <input
+                    type="radio"
                     name="payment"
                     checked={paymentMethod === 'MOMO'}
-                    onChange={() => {}}
+                    onChange={() => { }}
                     className="w-4.5 h-4.5 text-[#fa7150] focus:ring-[#fa7150] border-[#e5d8d0]"
                   />
                 </label>
 
                 {/* VNPay */}
-                <label 
+                <label
                   onClick={() => setPaymentMethod('VNPAY')}
-                  className={`flex items-center justify-between p-5 rounded-2xl cursor-pointer border transition-all ${
-                    paymentMethod === 'VNPAY' ? 'bg-[#fdfcfb] border-[#fa7150]' : 'border-[#e5d8d0] hover:border-[#fa7150]/50'
-                  }`}
+                  className={`flex items-center justify-between p-5 rounded-2xl cursor-pointer border transition-all ${paymentMethod === 'VNPAY' ? 'bg-[#fdfcfb] border-[#fa7150]' : 'border-[#e5d8d0] hover:border-[#fa7150]/50'
+                    }`}
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-[#fff0e6] flex items-center justify-center text-[#fa7150]">
@@ -226,11 +223,11 @@ export const BookingPage = () => {
                       <p className="text-xs text-[#8a7e75]">Thanh toán qua cổng ngân hàng nội địa an toàn SSL.</p>
                     </div>
                   </div>
-                  <input 
-                    type="radio" 
+                  <input
+                    type="radio"
                     name="payment"
                     checked={paymentMethod === 'VNPAY'}
-                    onChange={() => {}}
+                    onChange={() => { }}
                     className="w-4.5 h-4.5 text-[#fa7150] focus:ring-[#fa7150] border-[#e5d8d0]"
                   />
                 </label>
@@ -255,11 +252,11 @@ export const BookingPage = () => {
           <div className="lg:col-span-5">
             <div className="bg-white rounded-3xl p-8 border border-[#e5d8d0] shadow-xl shadow-[#a43e24]/2">
               <h3 className="text-lg font-black text-[#303330] mb-6">Tóm tắt hóa đơn gửi bé</h3>
-              
+
               <div className="flex items-center gap-4 pb-6 mb-6 border-b border-[#e5d8d0]/60">
                 <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-inner">
-                  <img 
-                    src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=200" 
+                  <img
+                    src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=200"
                     alt="Suite Sân Vườn"
                     className="w-full h-full object-cover"
                   />
@@ -299,7 +296,7 @@ export const BookingPage = () => {
 
               {/* Form submit */}
               <form onSubmit={handleCompleteBooking}>
-                <button 
+                <button
                   type="submit"
                   className="w-full bg-[#fa7150] text-white py-4 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-[#fa7150]/90 transition-all cursor-pointer shadow-lg shadow-[#fa7150]/20"
                 >
