@@ -27,4 +27,5 @@ public class ServiceRequest {
     private ServiceType serviceType;
 
     private String imageUrl;
+    private java.util.List<String> imageUrls;
 }

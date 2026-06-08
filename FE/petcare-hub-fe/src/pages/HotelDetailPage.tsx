@@ -109,6 +109,8 @@ export const HotelDetailPage = () => {
 
   // Trạng thái chọn phương thức thanh toán
   const [paymentMethod, setPaymentMethod] = useState<'VIETQR' | 'MOMO' | 'VNPAY'>('VIETQR')
+  const [payosData, setPayosData] = useState<any>(null)
+  const [loadingPayos, setLoadingPayos] = useState(false)
 
   // Trạng thái tải dữ liệu & tạo đơn
   const [loading, setLoading] = useState(true)
@@ -242,13 +244,26 @@ export const HotelDetailPage = () => {
         petIds: [selectedPetId || '00000000-0000-0000-0000-000000000000'],
         serviceIds: selectedServiceIds,
         voucherCode: discountPercent > 0 ? couponCode : null,
-        paymentMethod: paymentMethod
+        paymentMethod: 'VIETQR'
       }
 
       const response = await axiosInstance.post('/api/bookings', payload)
       if (response.data) {
         setInvoiceNumber(response.data.invoiceNumber || 'INV-' + Date.now())
         setIsSuccess(true)
+        setLoadingPayos(true)
+        try {
+          const payRes = await axiosInstance.post('/api/payment/create-payment-link', {
+            bookingId: response.data.id
+          })
+          if (payRes.data) {
+            setPayosData(payRes.data)
+          }
+        } catch (payErr: any) {
+          console.error('Lỗi khi tạo payment link payOS:', payErr)
+        } finally {
+          setLoadingPayos(false)
+        }
       }
     } catch (error: any) {
       console.error('Failed to create booking', error)
@@ -279,56 +294,51 @@ export const HotelDetailPage = () => {
             </p>
 
             {/* QR thanh toán */}
-            {paymentMethod === 'VIETQR' && (
+            {loadingPayos && (
+              <div className="bg-[#f4f4f0] border border-[#e1e3df] rounded-2xl p-8 mb-4 flex flex-col items-center justify-center min-h-[220px]">
+                <span className="w-8 h-8 rounded-full border-4 border-[#a43e24]/20 border-t-[#a43e24] animate-spin inline-block mb-3" />
+                <p className="text-xs text-[#8a7e75] font-bold">Đang tạo mã QR payOS...</p>
+              </div>
+            )}
+
+            {!loadingPayos && payosData && (
               <div className="bg-[#f4f4f0] border border-[#e1e3df] rounded-2xl p-4 mb-4">
                 <img
-                  src={`https://img.vietqr.io/image/MB-0123456789-compact2.png?amount=${totalCost}&addInfo=${invoiceNumber}&accountName=PETCARE%20HUB`}
+                  src={`https://img.vietqr.io/image/${payosData.bin}-${payosData.accountNumber}-compact2.png?amount=${payosData.amount}&addInfo=${payosData.description}&accountName=${encodeURIComponent(payosData.accountName)}`}
                   alt="QR thanh toán"
-                  className="w-52 h-52 mx-auto rounded-xl"
-                  onError={(e) => {
-                    e.currentTarget.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${invoiceNumber}`
-                  }}
+                  className="w-52 h-52 mx-auto rounded-xl shadow-sm border border-stone-200"
                 />
                 <p className="text-[10px] font-black text-[#a43e24] uppercase tracking-wider mt-2">
                   Quét VietQR để thanh toán
                 </p>
                 <p className="text-[10px] text-[#5d605c] mt-0.5 font-bold">
-                  Số tiền: {totalCost.toLocaleString('vi-VN')}đ
+                  Số tiền: {payosData.amount.toLocaleString('vi-VN')}đ
+                </p>
+                <a 
+                  href={payosData.checkoutUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="mt-2.5 text-xs text-[#a43e24] hover:underline font-black block"
+                >
+                  Mở cổng thanh toán payOS ↗
+                </a>
+              </div>
+            )}
+
+            {!loadingPayos && !payosData && (
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 mb-4 text-center">
+                <p className="text-xs text-rose-700 font-bold">
+                  Không thể kết nối cổng thanh toán payOS. Vui lòng thanh toán lại sau trong Lịch sử đặt phòng.
                 </p>
               </div>
             )}
 
-            {paymentMethod === 'MOMO' && (
-              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-6 mb-4">
-                <p className="text-sm font-black text-purple-700">Thanh toán qua MoMo</p>
-                <p className="text-xs text-purple-600 mt-1">
-                  Chuyển khoản đến: <strong>0901234567</strong>
-                </p>
-                <p className="text-xs text-purple-600 mt-1">
-                  Nội dung: <strong>{invoiceNumber}</strong>
-                </p>
-                <p className="text-xs text-purple-600 mt-1">
-                  Số tiền: <strong>{totalCost.toLocaleString('vi-VN')}đ</strong>
-                </p>
+            {payosData && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-left">
+                <p className="text-xs font-bold text-amber-700">Nội dung chuyển khoản:</p>
+                <p className="text-sm font-black text-amber-900 mt-1">{payosData.description}</p>
               </div>
             )}
-
-            {paymentMethod === 'VNPAY' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-4">
-                <p className="text-sm font-black text-blue-700">Thanh toán qua VNPay</p>
-                <p className="text-xs text-blue-600 mt-2">
-                  Nội dung CK: <strong>{invoiceNumber}</strong>
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  Số tiền: <strong>{totalCost.toLocaleString('vi-VN')}đ</strong>
-                </p>
-              </div>
-            )}
-
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-left">
-              <p className="text-xs font-bold text-amber-700">Nội dung chuyển khoản:</p>
-              <p className="text-sm font-black text-amber-900 mt-1">{invoiceNumber}</p>
-            </div>
 
             <p className="text-[10px] text-[#8a7e75] mb-6">
               Sau khi thanh toán, nhân viên sẽ xác nhận và gửi email trong vòng 15 phút.
@@ -877,62 +887,27 @@ export const HotelDetailPage = () => {
                   <h3 className="text-sm font-bold text-[#303330] flex items-center gap-2">
                     <ShieldCheck size={18} className="text-[#a43e24]" /> Phương thức thanh toán
                   </h3>
-                  <div className="space-y-3">
-                    {[
-                      { id: 'VIETQR', label: 'Chuyển khoản VietQR', desc: 'Quét mã để thanh toán nhanh chóng qua các App Ngân hàng' },
-                      { id: 'MOMO',   label: 'Ví MoMo',        desc: 'Thanh toán trực tiếp qua ví điện tử MoMo' },
-                      { id: 'VNPAY',  label: 'Cổng VNPay',     desc: 'Hỗ trợ thẻ nội địa ATM, thẻ quốc tế Visa/MasterCard, QR' },
-                    ].map(method => (
-                      <label
-                        key={method.id}
-                        onClick={() => setPaymentMethod(method.id as any)}
-                        className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer border-2 transition-all ${
-                          paymentMethod === method.id
-                            ? 'border-[#a43e24] bg-[#feeadb]/20 shadow-md'
-                            : 'border-[#e1e3df] hover:border-[#a43e24]/30'
-                        }`}
-                      >
-                        <div className="flex-1">
-                          <p className="text-xs font-bold text-[#303330]">{method.label}</p>
-                          <p className="text-[10px] text-[#8a7e75] mt-0.5">{method.desc}</p>
-                        </div>
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                          paymentMethod === method.id ? 'border-[#a43e24]' : 'border-[#b1b2af]'
-                        }`}>
-                          {paymentMethod === method.id && (
-                            <div className="w-2 h-2 rounded-full bg-[#a43e24]" />
-                          )}
-                        </div>
-                      </label>
-                    ))}
+                  <div className="p-4 bg-[#feeadb]/20 border-2 border-[#a43e24] rounded-2xl flex items-center gap-3">
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-[#303330]">Chuyển khoản VietQR (qua payOS)</p>
+                      <p className="text-[10px] text-[#8a7e75] mt-0.5">Quét mã QR tự động bằng App Ngân hàng bất kỳ.</p>
+                    </div>
+                    <div className="w-4 h-4 rounded-full border-2 border-[#a43e24] flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-[#a43e24]" />
+                    </div>
                   </div>
                 </div>
 
-                {/* QR Thanh Toán Trực Tiếp */}
-                {paymentMethod === 'VIETQR' && (
-                  <div className="bg-white rounded-3xl p-6 border border-[#e1e3df] text-center space-y-4">
-                    <span className="text-xs font-bold text-[#303330] block">Mã QR Thanh Toán</span>
-                    <p className="text-[10px] text-[#8a7e75]">Vui lòng sử dụng ứng dụng Ngân hàng để quét mã bên dưới</p>
-                    
-                    <div className="bg-[#faf9f6] p-6 rounded-2xl border border-[#e5d8d0] inline-block">
-                      <img
-                        src={`https://img.vietqr.io/image/MB-0123456789-compact2.png?amount=${totalCost}&addInfo=DATPHONG&accountName=PETCARE%20HUB`}
-                        alt="QR thanh toán"
-                        className="w-48 h-48 mx-auto rounded-xl shadow-md border"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto text-left text-xs pt-4">
-                      <div className="bg-[#faf9f6] p-3 rounded-xl border border-[#e5d8d0]">
-                        <span className="text-[10px] text-[#8a7e75] block uppercase font-bold">Số tài khoản</span>
-                        <strong className="text-[#303330] font-black">1234 5678 9012</strong>
-                      </div>
-                      <div className="bg-[#faf9f6] p-3 rounded-xl border border-[#e5d8d0]">
-                        <span className="text-[10px] text-[#8a7e75] block uppercase font-bold">Ngân hàng</span>
-                        <strong className="text-[#303330] font-black">MB Bank</strong>
-                      </div>
-                    </div>
+                {/* Hướng dẫn chuyển khoản payOS */}
+                <div className="bg-white rounded-3xl p-6 border border-[#e1e3df] text-center space-y-4">
+                  <div className="w-16 h-16 bg-[#feeadb] text-[#a43e24] rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <ShieldCheck size={32} />
                   </div>
-                )}
+                  <h4 className="text-base font-black text-[#303330]">Cổng thanh toán an toàn payOS</h4>
+                  <p className="text-xs text-[#8a7e75] max-w-md mx-auto leading-relaxed">
+                    Sau khi nhấn <strong>"Thanh Toán Ngay"</strong>, hệ thống sẽ tự động tạo một mã giao dịch duy nhất và chuyển hướng bạn sang trang thanh toán bảo mật của <strong>payOS</strong> để quét mã VietQR.
+                  </p>
+                </div>
 
               </div>
 

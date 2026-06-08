@@ -21,4 +21,5 @@ public class ServiceResponse {
     private ServiceType serviceType;
     private Boolean isEnabled;
     private String imageUrl;
+    private java.util.List<String> imageUrls;
 }

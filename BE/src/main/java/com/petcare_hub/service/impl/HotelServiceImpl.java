@@ -280,6 +280,17 @@ public class HotelServiceImpl implements HotelService {
                     String rooms = node.get("roomsUrl").asText();
                     if (rooms != null && !rooms.isEmpty()) imageUrls.add(rooms);
                 }
+                if (node.has("imageUrls")) {
+                    com.fasterxml.jackson.databind.JsonNode urlsNode = node.get("imageUrls");
+                    if (urlsNode.isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode urlNode : urlsNode) {
+                            String url = urlNode.asText();
+                            if (url != null && !url.trim().isEmpty() && !imageUrls.contains(url)) {
+                                imageUrls.add(url);
+                            }
+                        }
+                    }
+                }
             } catch (Exception e) {
                 // Ignore parse errors, keep empty
             }

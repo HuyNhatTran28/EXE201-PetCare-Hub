@@ -22,4 +22,8 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
 
     @Query("SELECT COUNT(r) FROM Review r WHERE r.hotel.id = :hotelId")
     Long countByHotelId(@Param("hotelId") UUID hotelId);
+
+    void deleteByHotelId(UUID hotelId);
+
+    java.util.Optional<Review> findByBookingId(UUID bookingId);
 }

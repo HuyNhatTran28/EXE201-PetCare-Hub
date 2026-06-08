@@ -37,6 +37,11 @@ public class ServiceServiceImpl implements ServiceService {
                     HttpStatus.FORBIDDEN);
         }
 
+        String finalImageUrl = request.getImageUrl();
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            finalImageUrl = String.join(",", request.getImageUrls());
+        }
+
         com.petcare_hub.entity.Service service =
                 com.petcare_hub.entity.Service.builder()
                 .hotel(hotel)
@@ -45,7 +50,7 @@ public class ServiceServiceImpl implements ServiceService {
                 .price(request.getPrice())
                 .durationMinutes(request.getDurationMinutes())
                 .serviceType(request.getServiceType())
-                .imageUrl(request.getImageUrl())
+                .imageUrl(finalImageUrl)
                 .build();
 
         return toResponse(serviceRepository.save(service));
@@ -75,7 +80,12 @@ public class ServiceServiceImpl implements ServiceService {
         service.setPrice(request.getPrice());
         service.setDurationMinutes(request.getDurationMinutes());
         service.setServiceType(request.getServiceType());
-        service.setImageUrl(request.getImageUrl());
+
+        String finalImageUrl = request.getImageUrl();
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            finalImageUrl = String.join(",", request.getImageUrls());
+        }
+        service.setImageUrl(finalImageUrl);
 
         return toResponse(serviceRepository.save(service));
     }
@@ -106,6 +116,15 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     private ServiceResponse toResponse(com.petcare_hub.entity.Service s) {
+        List<String> imageUrlsList = new java.util.ArrayList<>();
+        if (s.getImageUrl() != null && !s.getImageUrl().trim().isEmpty()) {
+            if (s.getImageUrl().contains(",")) {
+                imageUrlsList.addAll(java.util.Arrays.asList(s.getImageUrl().split(",")));
+            } else {
+                imageUrlsList.add(s.getImageUrl());
+            }
+        }
+
         return ServiceResponse.builder()
                 .id(s.getId())
                 .hotelId(s.getHotel().getId())
@@ -117,6 +136,7 @@ public class ServiceServiceImpl implements ServiceService {
                 .serviceType(s.getServiceType())
                 .isEnabled(s.getIsEnabled())
                 .imageUrl(s.getImageUrl())
+                .imageUrls(imageUrlsList)
                 .build();
     }
 }

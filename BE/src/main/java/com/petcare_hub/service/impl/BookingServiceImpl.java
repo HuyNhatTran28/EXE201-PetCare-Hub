@@ -47,6 +47,7 @@ public class BookingServiceImpl implements BookingService {
     private final SendGrid             sendGrid;
     private final JavaMailSender       mailSender;
     private final ReviewRepository     reviewRepository;
+    private final PartnerWalletRepository partnerWalletRepository;
 
     @Value("${sendgrid.from-email}")
     private String fromEmail;
@@ -296,6 +297,28 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(BookingStatus.COMPLETED);
         log.info("Booking {} đã COMPLETED", bookingId);
+
+        // Chuyển 92% doanh thu từ pendingBalance sang balance khả dụng cho đối tác
+        BigDecimal partnerShare = booking.getTotalAmount().multiply(new BigDecimal("0.92"));
+        User partner = booking.getHotel().getPartner();
+        if (partner != null) {
+            PartnerWallet wallet = partnerWalletRepository.findByPartnerId(partner.getId())
+                    .orElseGet(() -> {
+                        PartnerWallet newWallet = new PartnerWallet();
+                        newWallet.setPartner(partner);
+                        newWallet.setBalance(BigDecimal.ZERO);
+                        newWallet.setPendingBalance(BigDecimal.ZERO);
+                        return partnerWalletRepository.save(newWallet);
+                    });
+
+            BigDecimal pendingToDeduct = wallet.getPendingBalance().min(partnerShare);
+            wallet.setPendingBalance(wallet.getPendingBalance().subtract(pendingToDeduct));
+            wallet.setBalance(wallet.getBalance().add(partnerShare));
+            partnerWalletRepository.save(wallet);
+            log.info("Check-out booking {}: Chuyển {} VNĐ từ pendingBalance sang balance khả dụng cho đối tác {}", 
+                    bookingId, partnerShare, partner.getEmail());
+        }
+
         return toResponse(bookingRepository.save(booking));
     }
 
