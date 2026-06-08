@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom'
 import {
   PawPrint, LayoutDashboard, Building, Users,
   Tag, BarChart2, FileText, LogOut, ChevronRight,
-  Settings, Shield
+  Settings, Shield, DollarSign
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
@@ -12,6 +12,7 @@ const NAV = [
   { icon: <Users size={18}/>, label: 'Quản lý Người dùng', path: '/admin/users' },
   { icon: <Tag size={18}/>, label: 'Marketing & Voucher', path: '/admin/marketing' },
   { icon: <BarChart2 size={18}/>, label: 'Phân tích & Báo cáo', path: '/admin/analytics' },
+  { icon: <DollarSign size={18}/>, label: 'Duyệt Rút Tiền', path: '/admin/withdrawals' },
   { icon: <FileText size={18}/>, label: 'Nhật ký Hệ thống', path: '/admin/audit' },
   { icon: <Shield size={18}/>, label: 'Phân quyền', path: '/admin/permissions' },
 ]

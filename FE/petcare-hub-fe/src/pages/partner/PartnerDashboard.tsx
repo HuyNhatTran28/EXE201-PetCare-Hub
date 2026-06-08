@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  PawPrint, Calendar, Star,
-  Settings, PlusCircle, LogOut, MapPin, ListOrdered,
-  ChevronRight, TrendingUp, Building, BarChart2,
-  Clock, Mail, MessageSquare, Save, Edit, Camera, Sparkles, QrCode, FileText, Download, Printer, ShieldAlert, Upload, Trash2
+  PawPrint, Star,
+  Settings, PlusCircle, MapPin, ListOrdered,
+  TrendingUp, Building, DollarSign,
+  Mail, MessageSquare, Save, Edit, Camera, Sparkles, QrCode, FileText, Download, Printer, ShieldAlert, Upload, Trash2
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import axiosInstance from '@/lib/axios'
@@ -18,10 +18,11 @@ interface HotelType {
   averageRating: number
   imageUrls?: string[]
   googleMapsUrl?: string
+  description?: string
 }
 
 export const PartnerDashboard = () => {
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialTab = (searchParams.get('tab') as any) || 'hotels'
@@ -99,7 +100,16 @@ export const PartnerDashboard = () => {
     rating: 0
   })
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'hotels' | 'analytics' | 'bookings' | 'paperless' | 'settings'>(initialTab)
+  const [activeTab, setActiveTab] = useState<'hotels' | 'analytics' | 'bookings' | 'paperless' | 'settings' | 'finance'>(initialTab)
+
+  useEffect(() => {
+    const tab = searchParams.get('tab') as any
+    if (tab) {
+      setActiveTab(tab)
+    } else {
+      setActiveTab('hotels')
+    }
+  }, [searchParams])
 
   // Đăng ký khách sạn mới qua API thật
   const [showAddHotelModal, setShowAddHotelModal] = useState(false)
@@ -155,9 +165,28 @@ export const PartnerDashboard = () => {
   const [bankName, setBankName] = useState('Techcombank')
   const [bankAccountNumber, setBankAccountNumber] = useState('')
   const [bankAccountName, setBankAccountName] = useState('')
-
   const [uploadingField, setUploadingField] = useState<string | null>(null)
   const [isAddingHotel, setIsAddingHotel] = useState(false)
+
+  // Finance states
+  const [banks, setBanks] = useState<any[]>([])
+  const [wallet, setWallet] = useState<{ balance: number; pendingBalance: number }>({ balance: 0, pendingBalance: 0 })
+  const [withdrawals, setWithdrawals] = useState<any[]>([])
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [withdrawBank, setWithdrawBank] = useState('')
+  const [withdrawAccountNumber, setWithdrawAccountNumber] = useState('')
+  const [withdrawAccountName, setWithdrawAccountName] = useState('')
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
+
+  const STATIC_BANKS = [
+    { code: 'TCB', name: 'Techcombank', bin: '970407', shortName: 'Techcombank' },
+    { code: 'VCB', name: 'Vietcombank', bin: '970436', shortName: 'Vietcombank' },
+    { code: 'MB', name: 'MBBank', bin: '970422', shortName: 'MBBank' },
+    { code: 'BIDV', name: 'BIDV', bin: '970418', shortName: 'BIDV' },
+    { code: 'ACB', name: 'ACB', bin: '970416', shortName: 'ACB' },
+    { code: 'STB', name: 'Sacombank', bin: '970403', shortName: 'Sacombank' },
+    { code: 'CTG', name: 'VietinBank', bin: '970415', shortName: 'VietinBank' }
+  ]
 
   const validateImageFile = (file: File): { isValid: boolean; message: string } => {
     const extension = file.name.split('.').pop()?.toLowerCase();
@@ -214,7 +243,7 @@ export const PartnerDashboard = () => {
     if (!file) return
 
     // Validate file before uploading
-    if (['logo', 'front', 'rooms', 'cccdFront', 'cccdBack', 'selfie'].includes(fieldKey)) {
+    if (['logo', 'front', 'rooms', 'cccdFront', 'cccdBack', 'selfie', 'hotelGallery'].includes(fieldKey)) {
       const validation = validateImageFile(file);
       if (!validation.isValid) {
         alert(validation.message);
@@ -251,6 +280,7 @@ export const PartnerDashboard = () => {
         case 'logo': setLogoUrl(url); break;
         case 'front': setFrontUrl(url); break;
         case 'rooms': setRoomsUrl(url); break;
+        case 'hotelGallery': setHotelImages(prev => [...prev, url]); break;
         case 'cccdFront': setCccdFrontUrl(url); break;
         case 'cccdBack': setCccdBackUrl(url); break;
         case 'selfie': setSelfieUrl(url); break;
@@ -429,6 +459,7 @@ export const PartnerDashboard = () => {
         logoUrl,
         frontUrl,
         roomsUrl,
+        imageUrls: hotelImages,
         cccd: {
           number: cccdNumber,
           frontUrl: cccdFrontUrl,
@@ -469,6 +500,7 @@ export const PartnerDashboard = () => {
       setLogoUrl('')
       setFrontUrl('')
       setRoomsUrl('')
+      setHotelImages([])
       setGoogleMapsUrl('')
       setLat(10.7769)
       setLng(106.7009)
@@ -484,7 +516,27 @@ export const PartnerDashboard = () => {
       window.location.reload()
     } catch (error: any) {
       console.error('Failed to create hotel', error)
-      alert(error.response?.data?.message || 'Không thể đăng ký. Vui lòng thử lại.')
+      let errorMessage = 'Không thể đăng ký. Vui lòng thử lại.'
+      if (error.response) {
+        const data = error.response.data
+        if (data) {
+          if (data.errors && typeof data.errors === 'object') {
+            const detailMsgs = Object.entries(data.errors)
+              .map(([field, msg]) => `- ${msg}`)
+              .join('\n')
+            errorMessage = `Đăng ký thất bại (Dữ liệu không hợp lệ):\n${detailMsgs}`
+          } else if (data.message) {
+            errorMessage = `Đăng ký thất bại: ${data.message}`
+          } else {
+            errorMessage = `Đăng ký thất bại (Mã lỗi: ${error.response.status}). Vui lòng thử lại.`
+          }
+        }
+      } else if (error.request) {
+        errorMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra xem server Backend đang chạy và cổng cấu hình đúng chưa!'
+      } else {
+        errorMessage = `Lỗi hệ thống: ${error.message}`
+      }
+      alert(errorMessage)
     } finally {
       setIsAddingHotel(false)
     }
@@ -511,24 +563,20 @@ export const PartnerDashboard = () => {
     }
   }
 
-  // CRM state
-  const [selectedPet, setSelectedPet] = useState<any>({
-    name: 'Rocky',
-    breed: 'Golden Retriever',
-    age: '3 Tuổi',
-    status: 'Đang lưu trú',
-    behavior: 'Hay gặm nhẹ - Khi gặp người lạ hoặc lúc ăn. Cần tiếp cận chậm rãi.',
-    diet: 'Hạt mềm - Không ăn được xương cứng, thích hạt trộn pate gà.',
-    health: 'Sức khỏe - Dị ứng xà phòng mùi mạnh. Sử dụng loại thảo mộc.',
-    img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150'
-  })
+  // CRM dynamic states
+  const [crmPets, setCrmPets] = useState<any[]>([])
+  const [crmLoading, setCrmLoading] = useState(false)
+  const [selectedPet, setSelectedPet] = useState<any>(null)
+  const [petBookingHistory, setPetBookingHistory] = useState<any[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   // Paperless state
-  const [checkInPetName, setCheckInPetName] = useState('Mochi - Golden Retriever')
-  const [checkInHealth, setCheckInHealth] = useState('Khỏe mạnh, hơi nhát người lạ.')
-  const [promoCode, setPromoCode] = useState('')
-  const [usePoints, setUsePoints] = useState(false)
+  const [selectedCheckInBookingId, setSelectedCheckInBookingId] = useState<string>('')
+  const [selectedCheckOutBookingId, setSelectedCheckOutBookingId] = useState<string>('')
+  const [checkInHealth, setCheckInHealth] = useState('Khỏe mạnh, bình thường.')
+  const [checkInPhotoUrl, setCheckInPhotoUrl] = useState('')
   const [isSigned, setIsSigned] = useState(false)
+  const [usePoints, setUsePoints] = useState(false)
   const [showQrPay, setShowQrPay] = useState(false)
 
   // Settings State
@@ -544,10 +592,30 @@ export const PartnerDashboard = () => {
   })
   const [emailTemplate, setEmailTemplate] = useState('Chào {{owner_name}},\n\nChúng tôi rất háo hức được chào đón {{pet_name}} đến với PetCare Hub vào ngày {{check_in_date}}!')
   const [pointRule, setPointRule] = useState('10,000 VNĐ = 1 Điểm')
-  const [settingsSubTab, setSettingsSubTab] = useState<'channels' | 'loyalty' | 'general'>('channels')
+  const [settingsSubTab, setSettingsSubTab] = useState<'channels' | 'loyalty' | 'general' | 'staff' | 'equipment'>('channels')
+
+  // Staff & Equipment states
+  const [staffList, setStaffList] = useState<any[]>([])
+  const [staffLoading, setStaffLoading] = useState(false)
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false)
+  const [staffForm, setStaffForm] = useState({ email: '', jobPosition: 'Lễ tân', shiftStatus: 'ACTIVE' })
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null)
+
+  const [equipmentList, setEquipmentList] = useState<any[]>([])
+  const [equipmentLoading, setEquipmentLoading] = useState(false)
+  const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false)
+  const [equipmentForm, setEquipmentForm] = useState({ name: '', quantity: 1, status: 'GOOD', lastMaintenance: '' })
+  const [editingEquipmentId, setEditingEquipmentId] = useState<string | null>(null)
+
+  // Hotel registration multiple images
+  const [hotelImages, setHotelImages] = useState<string[]>([])
 
   // Interactive Booking State
   const [bookingFilter, setBookingFilter] = useState('ALL')
+
+  // Notification sandbox state
+  const [showNotificationSandboxModal, setShowNotificationSandboxModal] = useState(false)
+  const [sandboxChannel, setSandboxChannel] = useState<'SMS' | 'Zalo' | 'Email'>('Zalo')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -562,9 +630,10 @@ export const PartnerDashboard = () => {
         }
 
         if (hotelList.length > 0) {
-          const avgRating = hotelList.reduce(
-            (sum: number, h: any) => sum + (h.averageRating || 0), 0
-          ) / hotelList.length
+          const activeHotels = hotelList.filter((h: any) => h.status === 'ACTIVE')
+          const avgRating = activeHotels.length > 0
+            ? activeHotels.reduce((sum: number, h: any) => sum + (h.averageRating || 0), 0) / activeHotels.length
+            : 0
 
           // Fetch bookings across all partner hotels
           let allBookings: any[] = []
@@ -629,6 +698,17 @@ export const PartnerDashboard = () => {
         ])
         setRoomTypes(rtRes.data || [])
         setBookings(bRes.data.content || [])
+        
+        // Auto-select first confirmed/checked-in booking for check-in/out tabs if not set
+        const content = bRes.data.content || []
+        const confirmed = content.filter((b: any) => b.status === 'CONFIRMED')
+        if (confirmed.length > 0) {
+          setSelectedCheckInBookingId(confirmed[0].id)
+        }
+        const checkedIn = content.filter((b: any) => b.status === 'CHECKED_IN')
+        if (checkedIn.length > 0) {
+          setSelectedCheckOutBookingId(checkedIn[0].id)
+        }
       } catch (err) {
         console.error('Failed to load hotel calendar data', err)
       } finally {
@@ -636,48 +716,330 @@ export const PartnerDashboard = () => {
       }
     }
 
-    if (activeTab === 'bookings') {
+    if (activeTab === 'bookings' || activeTab === 'paperless') {
       fetchCalendarData()
     }
   }, [selectedHotelId, activeTab])
 
-  // const [selectedCheckInBookingId, setSelectedCheckInBookingId] = useState<string>('')
-  // const [selectedCheckOutBookingId, setSelectedCheckOutBookingId] = useState<string>('')
+  // CRM fetch pets and booking history
+  useEffect(() => {
+    const fetchCrmPets = async () => {
+      if (activeTab !== 'analytics') return
+      setCrmLoading(true)
+      try {
+        const res = await axiosInstance.get('/api/partner/crm/pets')
+        const petList = res.data || []
+        setCrmPets(petList)
+        if (petList.length > 0) {
+          handleSelectCrmPet(petList[0])
+        } else {
+          setSelectedPet(null)
+          setPetBookingHistory([])
+        }
+      } catch (err) {
+        console.error('Failed to fetch CRM pets', err)
+      } finally {
+        setCrmLoading(false)
+      }
+    }
+    fetchCrmPets()
+  }, [activeTab])
 
-  // const handleRealCheckIn = async () => {
-  //   const targetId = selectedCheckInBookingId
-  //   if (!targetId) {
-  //     alert('Vui lòng chọn một đặt phòng để làm thủ tục check-in.')
-  //     return
-  //   }
-  //   try {
-  //     await axiosInstance.patch(`/api/bookings/${targetId}/checkin`, null, {
-  //       params: {
-  //         checkinPhotoUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1',
-  //         ownerSignatureUrl: 'https://example.com/signature.png'
-  //       }
-  //     })
-  //     alert('Check-in thành công!')
-  //     window.location.reload()
-  //   } catch (err: any) {
-  //     alert(err.response?.data?.message || 'Check-in thất bại.')
-  //   }
-  // }
+  // Finance fetch wallet and banks
+  useEffect(() => {
+    if (activeTab === 'finance') {
+      fetchWalletAndWithdrawals()
+      fetchBanks()
+    }
+  }, [activeTab])
 
-  // const handleRealCheckOut = async () => {
-  //   const targetId = selectedCheckOutBookingId
-  //   if (!targetId) {
-  //     alert('Vui lòng chọn một đặt phòng để làm thủ tục check-out.')
-  //     return
-  //   }
-  //   try {
-  //     await axiosInstance.patch(`/api/bookings/${targetId}/checkout`)
-  //     alert('Thanh toán và Check-out thành công!')
-  //     window.location.reload()
-  //   } catch (err: any) {
-  //     alert(err.response?.data?.message || 'Check-out thất bại.')
-  //   }
-  // }
+  const fetchWalletAndWithdrawals = async () => {
+    try {
+      const walletRes = await axiosInstance.get('/api/partner/wallet')
+      setWallet(walletRes.data)
+
+      const withdrawalsRes = await axiosInstance.get('/api/partner/withdrawals')
+      setWithdrawals(withdrawalsRes.data)
+    } catch (err) {
+      console.error('Failed to fetch finance info:', err)
+    }
+  }
+
+  const fetchBanks = async () => {
+    try {
+      const res = await fetch('https://api.vietqr.io/v2/banks')
+      const data = await res.json()
+      if (data.code === '00') {
+        setBanks(data.data)
+      } else {
+        setBanks(STATIC_BANKS)
+      }
+    } catch (err) {
+      console.error('Failed to fetch banks from VietQR:', err)
+      setBanks(STATIC_BANKS)
+    }
+  }
+
+  const handleWithdrawSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!withdrawAmount || !withdrawBank || !withdrawAccountNumber || !withdrawAccountName) {
+      alert('Vui lòng điền đầy đủ thông tin rút tiền!')
+      return
+    }
+
+    const amountNum = parseFloat(withdrawAmount)
+    if (isNaN(amountNum) || amountNum <= 0) {
+      alert('Số tiền rút phải lớn hơn 0!')
+      return
+    }
+
+    if (amountNum > wallet.balance) {
+      alert('Số dư khả dụng của bạn không đủ!')
+      return
+    }
+
+    setIsWithdrawing(true)
+    try {
+      const selectedBankObj = banks.find(b => b.code === withdrawBank || b.shortName === withdrawBank || b.name === withdrawBank)
+      const bankShortName = selectedBankObj ? (selectedBankObj.shortName || selectedBankObj.code || selectedBankObj.name) : withdrawBank
+
+      await axiosInstance.post('/api/partner/withdraw', {
+        amount: amountNum,
+        bankName: bankShortName,
+        bankAccountNumber: withdrawAccountNumber,
+        bankAccountName: withdrawAccountName.toUpperCase()
+      })
+
+      alert('Gửi yêu cầu rút tiền thành công!')
+      setWithdrawAmount('')
+      fetchWalletAndWithdrawals()
+    } catch (err: any) {
+      console.error('Withdrawal failed:', err)
+      alert('Lỗi: ' + (err.response?.data?.message || 'Không thể thực hiện yêu cầu rút tiền.'))
+    } finally {
+      setIsWithdrawing(false)
+    }
+  }
+
+  const handleSelectCrmPet = async (pet: any) => {
+    setSelectedPet(pet)
+    setHistoryLoading(true)
+    try {
+      const res = await axiosInstance.get(`/api/partner/crm/pets/${pet.id}/bookings`)
+      setPetBookingHistory(res.data || [])
+    } catch (err) {
+      console.error('Failed to fetch pet bookings history', err)
+      setPetBookingHistory([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  // Staff fetch list
+  const fetchStaffList = async () => {
+    if (!selectedHotelId) return
+    setStaffLoading(true)
+    try {
+      const res = await axiosInstance.get(`/api/partner/staff/hotel/${selectedHotelId}`)
+      setStaffList(res.data || [])
+    } catch (err) {
+      console.error('Failed to fetch staff list', err)
+    } finally {
+      setStaffLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'settings' && settingsSubTab === 'staff') {
+      fetchStaffList()
+    }
+  }, [activeTab, settingsSubTab, selectedHotelId])
+
+  // Equipment fetch list
+  const fetchEquipmentList = async () => {
+    if (!selectedHotelId) return
+    setEquipmentLoading(true)
+    try {
+      const res = await axiosInstance.get(`/api/partner/equipments/hotel/${selectedHotelId}`)
+      setEquipmentList(res.data || [])
+    } catch (err) {
+      console.error('Failed to fetch equipment list', err)
+    } finally {
+      setEquipmentLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'settings' && settingsSubTab === 'equipment') {
+      fetchEquipmentList()
+    }
+  }, [activeTab, settingsSubTab, selectedHotelId])
+
+  // Staff actions
+  const handleStaffSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedHotelId) return
+    try {
+      if (editingStaffId) {
+        await axiosInstance.put(`/api/partner/staff/${editingStaffId}`, staffForm)
+        alert('Cập nhật nhân viên thành công!')
+      } else {
+        await axiosInstance.post(`/api/partner/staff/hotel/${selectedHotelId}`, staffForm)
+        alert('Thêm nhân viên thành công!')
+      }
+      setStaffForm({ email: '', jobPosition: 'Lễ tân', shiftStatus: 'ACTIVE' })
+      setEditingStaffId(null)
+      setShowAddStaffModal(false)
+      fetchStaffList()
+    } catch (err: any) {
+      console.error('Failed to submit staff', err)
+      alert(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại!')
+    }
+  }
+
+  const handleDeleteStaff = async (staffId: string) => {
+    if (!window.confirm('Bạn có chắc muốn xóa nhân viên này khỏi cơ sở?')) return
+    try {
+      await axiosInstance.delete(`/api/partner/staff/${staffId}`)
+      alert('Đã xóa nhân viên khỏi hệ thống!')
+      fetchStaffList()
+    } catch (err: any) {
+      console.error('Failed to delete staff', err)
+      alert(err.response?.data?.message || 'Không thể xóa nhân viên.')
+    }
+  }
+
+  // Equipment actions
+  const handleEquipmentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedHotelId) return
+    try {
+      if (editingEquipmentId) {
+        await axiosInstance.put(`/api/partner/equipments/${editingEquipmentId}`, equipmentForm)
+        alert('Cập nhật thiết bị thành công!')
+      } else {
+        await axiosInstance.post(`/api/partner/equipments/hotel/${selectedHotelId}`, equipmentForm)
+        alert('Thêm thiết bị mới thành công!')
+      }
+      setEquipmentForm({ name: '', quantity: 1, status: 'GOOD', lastMaintenance: '' })
+      setEditingEquipmentId(null)
+      setShowAddEquipmentModal(false)
+      fetchEquipmentList()
+    } catch (err: any) {
+      console.error('Failed to submit equipment', err)
+      alert(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại!')
+    }
+  }
+
+  const handleDeleteEquipment = async (id: string) => {
+    if (!window.confirm('Bạn có chắc muốn xóa thiết bị này?')) return
+    try {
+      await axiosInstance.delete(`/api/partner/equipments/${id}`)
+      alert('Đã xóa thiết bị thành công!')
+      fetchEquipmentList()
+    } catch (err: any) {
+      console.error('Failed to delete equipment', err)
+      alert(err.response?.data?.message || 'Không thể xóa thiết bị.')
+    }
+  }
+
+  // Real Check-in action
+  const handleRealCheckIn = async () => {
+    if (!selectedCheckInBookingId) {
+      alert('Vui lòng chọn một đặt phòng để làm thủ tục check-in.')
+      return
+    }
+    if (!isSigned) {
+      alert('Vui lòng yêu cầu chủ sở hữu ký tên xác nhận.')
+      return
+    }
+    try {
+      await axiosInstance.patch(`/api/bookings/${selectedCheckInBookingId}/checkin`, null, {
+        params: {
+          checkinPhotoUrl: checkInPhotoUrl || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1',
+          ownerSignatureUrl: 'https://example.com/signature.png'
+        }
+      })
+      alert('Thủ tục Check-in đã hoàn thành thành công!')
+      setIsSigned(false)
+      setCheckInPhotoUrl('')
+      setCheckInHealth('Khỏe mạnh, bình thường.')
+      // Refresh list
+      if (selectedHotelId) {
+        const bRes = await axiosInstance.get(`/api/bookings/hotel/${selectedHotelId}`, {
+          params: { page: 0, size: 150, sort: [] }
+        })
+        setBookings(bRes.data.content || [])
+        const content = bRes.data.content || []
+        const confirmed = content.filter((b: any) => b.status === 'CONFIRMED')
+        setSelectedCheckInBookingId(confirmed.length > 0 ? confirmed[0].id : '')
+        const checkedIn = content.filter((b: any) => b.status === 'CHECKED_IN')
+        setSelectedCheckOutBookingId(checkedIn.length > 0 ? checkedIn[0].id : '')
+      }
+    } catch (err: any) {
+      console.error('Check-in failed', err)
+      alert(err.response?.data?.message || 'Check-in thất bại.')
+    }
+  }
+
+  // Real Check-out action
+  const handleRealCheckOut = async () => {
+    if (!selectedCheckOutBookingId) {
+      alert('Vui lòng chọn một đặt phòng để làm thủ tục check-out.')
+      return
+    }
+    try {
+      await axiosInstance.patch(`/api/bookings/${selectedCheckOutBookingId}/checkout`)
+      alert('Thủ tục thanh toán và Check-out đã hoàn tất thành công!')
+      setShowQrPay(false)
+      // Refresh list
+      if (selectedHotelId) {
+        const bRes = await axiosInstance.get(`/api/bookings/hotel/${selectedHotelId}`, {
+          params: { page: 0, size: 150, sort: [] }
+        })
+        setBookings(bRes.data.content || [])
+        const content = bRes.data.content || []
+        const confirmed = content.filter((b: any) => b.status === 'CONFIRMED')
+        setSelectedCheckInBookingId(confirmed.length > 0 ? confirmed[0].id : '')
+        const checkedIn = content.filter((b: any) => b.status === 'CHECKED_IN')
+        setSelectedCheckOutBookingId(checkedIn.length > 0 ? checkedIn[0].id : '')
+      }
+    } catch (err: any) {
+      console.error('Check-out failed', err)
+      alert(err.response?.data?.message || 'Check-out thất bại.')
+    }
+  }
+
+  // File upload specifically for check-in photo
+  const handleCheckInPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const validation = validateImageFile(file)
+    if (!validation.isValid) {
+      alert(validation.message)
+      return
+    }
+    setUploadingField('checkinPhoto')
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await axiosInstance.post('/api/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      setCheckInPhotoUrl(res.data.url)
+    } catch (err) {
+      console.error('Check-in photo upload failed', err)
+      alert('Không thể tải ảnh lên. Vui lòng thử lại.')
+    } finally {
+      setUploadingField(null)
+    }
+  }
+
+  // Calculate dynamic stats
+  const totalRoomsCount = roomTypes.reduce((sum, rt) => sum + (rt.totalRooms || 0), 0)
+  const checkedInBookingsCount = bookings.filter((b: any) => b.status === 'CHECKED_IN').length
+  const occupancyRate = totalRoomsCount > 0 ? Math.round((checkedInBookingsCount / totalRoomsCount) * 100) : 0
+  const walkInWaitCount = bookings.filter((b: any) => b.status === 'PENDING').length
 
   // Premium design tokens
   const cardShadow = { boxShadow: '0 20px 40px rgba(164, 62, 36, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02)' }
@@ -685,130 +1047,7 @@ export const PartnerDashboard = () => {
   const greenGradient = { background: 'linear-gradient(135deg, #44683b 0%, #2c4e24 100%)' }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans flex flex-col md:flex-row">
-
-      {/* ── SIDEBAR NAVIGATION ── */}
-      <aside className="w-full md:w-80 bg-white border-r border-[#e5d8d0] flex flex-col justify-between p-6 shrink-0 z-30 shadow-[4px_0_24px_rgba(0,0,0,0.01)]">
-        <div className="space-y-10">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white" style={orangeGradient}>
-              <PawPrint size={22} />
-            </div>
-            <div className="text-left">
-              <span className="text-lg font-black tracking-tight block">PetCare Hub</span>
-              <span className="text-[10px] uppercase font-black tracking-widest text-[#fa7150]">RESORT CONSOLE</span>
-            </div>
-          </Link>
-
-          {/* User Brief */}
-          <div className="bg-[#faf9f6] p-4 rounded-2xl flex items-center gap-3 border border-[#e5d8d0]/60">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-[#e5d8d0] text-sm font-black text-[#fa7150]">
-              {user?.fullName?.charAt(0) || 'P'}
-            </div>
-            <div className="text-left overflow-hidden">
-              <span className="text-sm font-bold text-[#303330] block truncate">{user?.fullName || 'Đối tác'}</span>
-              <span className="text-[10px] font-semibold text-[#8a7e75] block truncate">{user?.email || 'partner@gmail.com'}</span>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="flex flex-col gap-2">
-            <button
-              onClick={() => setActiveTab('hotels')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'hotels'
-                  ? 'bg-[#fa7150]/10 text-[#fa7150] shadow-sm'
-                  : 'text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330]'
-              }`}
-            >
-              <span className="flex items-center gap-3">
-                <Building size={18} /> Quản Lý Khách Sạn
-              </span>
-              <ChevronRight size={14} className={activeTab === 'hotels' ? 'opacity-100' : 'opacity-0'} />
-            </button>
-
-            <button
-              onClick={() => setActiveTab('bookings')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'bookings'
-                  ? 'bg-[#fa7150]/10 text-[#fa7150] shadow-sm'
-                  : 'text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330]'
-              }`}
-            >
-              <span className="flex items-center gap-3">
-                <Calendar size={18} /> Đặt Chỗ & Lịch Trình
-              </span>
-              <ChevronRight size={14} className={activeTab === 'bookings' ? 'opacity-100' : 'opacity-0'} />
-            </button>
-
-            <button
-              onClick={() => setActiveTab('paperless')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'paperless'
-                  ? 'bg-[#fa7150]/10 text-[#fa7150] shadow-sm'
-                  : 'text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330]'
-              }`}
-            >
-              <span className="flex items-center gap-3">
-                <Sparkles size={18} /> Quy trình Không giấy tờ
-              </span>
-              <ChevronRight size={14} className={activeTab === 'paperless' ? 'opacity-100' : 'opacity-0'} />
-            </button>
-
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'analytics'
-                  ? 'bg-[#fa7150]/10 text-[#fa7150] shadow-sm'
-                  : 'text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330]'
-              }`}
-            >
-              <span className="flex items-center gap-3">
-                <BarChart2 size={18} /> Phân Tích & CRM
-              </span>
-              <ChevronRight size={14} className={activeTab === 'analytics' ? 'opacity-100' : 'opacity-0'} />
-            </button>
-
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'settings'
-                  ? 'bg-[#fa7150]/10 text-[#fa7150] shadow-sm'
-                  : 'text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330]'
-              }`}
-            >
-              <span className="flex items-center gap-3">
-                <Settings size={18} /> Cài Đặt Hệ Thống
-              </span>
-              <ChevronRight size={14} className={activeTab === 'settings' ? 'opacity-100' : 'opacity-0'} />
-            </button>
-
-            <div className="h-px bg-[#e5d8d0]/60 my-2" />
-
-            <Link
-              to="/partner/bookings"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330] transition-all"
-            >
-              <span className="flex items-center gap-3">
-                <Calendar size={18} /> Danh sách Bookings
-              </span>
-              <ChevronRight size={14} className="opacity-0 group-hover:opacity-100" />
-            </Link>
-          </nav>
-        </div>
-
-        {/* Footer Logout */}
-        <div className="pt-6 border-t border-[#e5d8d0]/60 mt-10 md:mt-0">
-          <button
-            onClick={() => { logout(); navigate('/login'); }}
-            className="w-full py-3 px-4 rounded-2xl border border-red-100 text-red-500 font-bold text-xs flex items-center justify-center gap-2 hover:bg-red-50 transition-all cursor-pointer"
-          >
-            <LogOut size={16} /> Đăng xuất đối tác
-          </button>
-        </div>
-      </aside>
-
+    <>
       {/* ── MAIN CONTENT ── */}
       <main className="flex-grow p-6 md:p-12 overflow-y-auto max-w-7xl mx-auto w-full">
 
@@ -844,6 +1083,38 @@ export const PartnerDashboard = () => {
             <PlusCircle size={16} /> Đăng ký thêm cơ sở mới
           </button>
         </header>
+
+        {/* Global Hotel Context Selector */}
+        {hotels.length > 0 && activeTab !== 'hotels' && (
+          <div className="flex items-center justify-between gap-4 bg-white border border-[#e5d8d0] rounded-2xl px-6 py-3.5 shadow-sm mb-8 text-left animate-fadeIn">
+            <div className="flex items-center gap-2.5">
+              <Building size={18} className="text-[#fa7150]" />
+              <span className="text-xs font-black text-[#8a7e75] uppercase tracking-wider">Chọn cơ sở quản lý:</span>
+              <select 
+                value={selectedHotelId || ''} 
+                onChange={(e) => setSelectedHotelId(e.target.value)}
+                className="bg-transparent border-none text-sm font-black text-[#303330] focus:outline-none cursor-pointer hover:text-[#fa7150] transition-colors"
+              >
+                {hotels.map(h => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-[10px] font-black text-[#8a7e75] uppercase tracking-wider">
+              <span>Trạng thái:</span>
+              {(() => {
+                const sel = hotels.find(h => h.id === selectedHotelId)
+                if (!sel) return null
+                const active = sel.status === 'ACTIVE'
+                return (
+                  <span className={`px-2.5 py-0.5 rounded-full ${active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                    {sel.status}
+                  </span>
+                )
+              })()}
+            </div>
+          </div>
+        )}
 
         {/* ── TAB 1: RESORT LIST SECTION ── */}
         {activeTab === 'hotels' && (
@@ -1270,10 +1541,10 @@ export const PartnerDashboard = () => {
               <div className="bg-emerald-50 rounded-3xl border border-emerald-100 p-6 flex flex-col justify-between" style={cardShadow}>
                 <div>
                   <span className="text-xs font-bold text-emerald-800 block mb-1">Công suất phòng</span>
-                  <span className="text-3xl font-black text-emerald-950">84%</span>
+                  <span className="text-3xl font-black text-emerald-950">{occupancyRate}%</span>
                 </div>
                 <span className="text-[10px] font-black text-emerald-700 mt-4 flex items-center gap-1">
-                  <TrendingUp size={12} /> +12% so với hôm qua
+                  <TrendingUp size={12} /> {occupancyRate > 0 ? `Tỷ lệ hoạt động thực tế` : `Chưa có phòng lưu trú hôm nay`}
                 </span>
               </div>
 
@@ -1290,10 +1561,11 @@ export const PartnerDashboard = () => {
               <div className="bg-rose-50 rounded-3xl border border-rose-100 p-6 flex flex-col justify-between" style={cardShadow}>
                 <div>
                   <span className="text-xs font-bold text-rose-800 block mb-1">Khách Walk-in chờ</span>
-                  <span className="text-3xl font-black text-rose-950">03 bé</span>
+                  <span className="text-3xl font-black text-rose-950">{walkInWaitCount} bé</span>
                 </div>
                 <button
                   type="button"
+                  onClick={() => setActiveTab('paperless')}
                   className="mt-4 px-4 py-2.5 bg-[#a43e24] hover:bg-[#fa7150] text-white text-xs font-bold uppercase rounded-xl transition-colors cursor-pointer w-fit"
                 >
                   Xử lý ngay
@@ -1303,7 +1575,11 @@ export const PartnerDashboard = () => {
 
             {/* Quick Actions Footer */}
             <div className="grid grid-cols-3 gap-6 pt-4">
-              <div className="bg-white p-4 rounded-2xl border border-[#e5d8d0] flex items-center gap-3 cursor-pointer hover:border-[#fa7150] transition-colors" style={cardShadow}>
+              <div 
+                onClick={() => setActiveTab('paperless')}
+                className="bg-white p-4 rounded-2xl border border-[#e5d8d0] flex items-center gap-3 cursor-pointer hover:border-[#fa7150] transition-colors" 
+                style={cardShadow}
+              >
                 <QrCode className="text-[#fa7150]" size={20} />
                 <div className="text-left">
                   <span className="text-xs font-black text-[#303330] block">Check-in nhanh</span>
@@ -1329,219 +1605,444 @@ export const PartnerDashboard = () => {
         )}
 
         {/* ── TAB 3: PAPERLESS OPERATION (QUY TRÌNH KHÔNG GIẤY TỜ) ── */}
-        {activeTab === 'paperless' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left animate-fadeIn">
-            {/* Column 1 & 2: Check-in / Check-out Workspace */}
-            <div className="lg:col-span-2 bg-white rounded-[2rem] border border-[#e5d8d0] p-8 space-y-8" style={cardShadow}>
-              <div className="flex justify-between items-center border-b border-[#e5d8d0]/60 pb-4">
-                <h3 className="text-2xl font-black text-[#303330]">Quy trình Không giấy tờ</h3>
-                <button className="flex items-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">
-                  <Clock size={14} /> Lịch sử Giao dịch
-                </button>
-              </div>
+        {activeTab === 'paperless' && (() => {
+          const confirmedBookings = bookings.filter((b: any) => b.status === 'CONFIRMED')
+          const checkedInBookings = bookings.filter((b: any) => b.status === 'CHECKED_IN')
+          
+          const currentCheckInBooking = bookings.find((b: any) => b.id === selectedCheckInBookingId)
+          const currentCheckOutBooking = bookings.find((b: any) => b.id === selectedCheckOutBookingId)
+          
+          const selectedBookingForInvoice = currentCheckOutBooking || currentCheckInBooking || (bookings.length > 0 ? bookings[0] : null)
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* 1. Check-in Section */}
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-[#a43e24] text-white flex items-center justify-center font-black text-xs">1</span>
-                    <h4 className="text-base font-black text-[#303330]">Thủ tục Check-in</h4>
-                  </div>
+          // Determine banking details for VietQR
+          let bankAccountNo = "1903456789001"
+          let bankNameCode = "TCB"
+          let bankAccountNameText = "PETCARE HUB PARTNER"
+          const selectedHotel = hotels.find(h => h.id === selectedHotelId)
+          if (selectedHotel && selectedHotel.description) {
+            try {
+              const extraInfo = JSON.parse(selectedHotel.description)
+              if (extraInfo.banking) {
+                bankAccountNo = extraInfo.banking.accountNumber || bankAccountNo
+                const bName = (extraInfo.banking.bankName || "").toLowerCase()
+                if (bName.includes("vietcombank")) bankNameCode = "VCB"
+                else if (bName.includes("mbbank")) bankNameCode = "MB"
+                else if (bName.includes("bidv")) bankNameCode = "BIDV"
+                else if (bName.includes("acb")) bankNameCode = "ACB"
+                else if (bName.includes("sacombank")) bankNameCode = "STB"
+                else bankNameCode = "TCB"
+                bankAccountNameText = extraInfo.banking.accountName || bankAccountNameText
+              }
+            } catch (e) {
+              console.error("Failed to parse hotel description JSON", e)
+            }
+          }
 
-                  {/* Photo Capture Area */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-[#8a7e75] tracking-wider mb-2">Ảnh khi đến</label>
-                    <div className="h-44 bg-[#faf9f6] border border-[#e5d8d0] rounded-3xl flex flex-col items-center justify-center gap-2 text-[#8a7e75] cursor-pointer hover:border-[#fa7150] transition-colors">
-                      <Camera size={26} />
-                      <span className="text-[10px] font-bold">Chụp ảnh thú cưng hiện tại</span>
+          const checkoutRoomAmount = currentCheckOutBooking 
+            ? (currentCheckOutBooking.totalAmount - (currentCheckOutBooking.vatAmount || 0) - (currentCheckOutBooking.convenienceFee || 0) + (currentCheckOutBooking.voucherDiscountAmount || 0))
+            : 0
+          
+          const finalCheckoutAmount = currentCheckOutBooking
+            ? (usePoints ? Math.max(0, currentCheckOutBooking.totalAmount - 50000) : currentCheckOutBooking.totalAmount)
+            : 0
+
+          const handlePrintInvoice = () => {
+            const printContent = document.getElementById('printable-invoice-content')?.innerHTML;
+            if (!printContent) return;
+            const windowUrl = 'about:blank';
+            const uniqueName = new Date().getTime();
+            const windowName = 'Print' + uniqueName;
+            const printWindow = window.open(windowUrl, windowName, 'left=50,top=50,width=800,height=900');
+            if (printWindow) {
+              printWindow.document.write(`
+                <html>
+                  <head>
+                    <title>In Hóa Đơn - ${selectedBookingForInvoice?.invoiceNumber}</title>
+                    <style>
+                      body { font-family: 'Inter', sans-serif; padding: 40px; color: #303330; }
+                      .invoice-box { max-width: 800px; margin: auto; border: 1px solid #eee; padding: 30px; border-radius: 10px; }
+                      .header { display: flex; justify-content: space-between; border-bottom: 2px solid #f0ece9; padding-bottom: 20px; margin-bottom: 20px; }
+                      .title { font-size: 24px; font-weight: 900; color: #a43e24; }
+                      .row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+                      .bold { font-weight: bold; }
+                      .divider { height: 1px; border-top: 1px dashed #e5d8d0; margin: 20px 0; }
+                      .total { font-size: 18px; font-weight: 950; color: #a43e24; }
+                      @media print {
+                        body { padding: 0; }
+                        .invoice-box { border: none; padding: 0; }
+                      }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="invoice-box">
+                      ${printContent}
                     </div>
-                  </div>
+                    <script>
+                      window.onload = function() {
+                        window.print();
+                        window.close();
+                      }
+                    </script>
+                  </body>
+                </html>
+              `);
+              printWindow.document.close();
+            }
+          };
 
-                  {/* Pet Name input */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-[#8a7e75] tracking-wider mb-2">Tên Thú cưng</label>
-                    <input
-                      type="text"
-                      value={checkInPetName}
-                      onChange={e => setCheckInPetName(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#f0ece9]/60 border-none rounded-2xl text-xs font-bold outline-none"
-                    />
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left animate-fadeIn">
+              {/* Column 1 & 2: Check-in / Check-out Workspace */}
+              <div className="lg:col-span-2 bg-white rounded-[2rem] border border-[#e5d8d0] p-8 space-y-8" style={cardShadow}>
+                <div className="flex justify-between items-center border-b border-[#e5d8d0]/60 pb-4">
+                  <h3 className="text-2xl font-black text-[#303330]">Quy trình Không giấy tờ</h3>
+                  <div className="flex gap-2">
+                    <span className="px-3 py-1 bg-[#fa7150]/15 text-[#fa7150] rounded-full text-[10px] font-black uppercase">
+                      {confirmedBookings.length} Chờ Check-in
+                    </span>
+                    <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full text-[10px] font-black uppercase">
+                      {checkedInBookings.length} Đang lưu trú
+                    </span>
                   </div>
-
-                  {/* Health status notes */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-[#8a7e75] tracking-wider mb-2">Tình trạng Sức khỏe</label>
-                    <textarea
-                      value={checkInHealth}
-                      onChange={e => setCheckInHealth(e.target.value)}
-                      rows={3}
-                      placeholder="Ghi chú về thương tích, tâm trạng, thói quen ăn uống..."
-                      className="w-full p-4 bg-[#f0ece9]/60 border-none rounded-2xl text-xs font-bold outline-none"
-                    />
-                  </div>
-
-                  {/* Signature pad representation */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-[#8a7e75] tracking-wider mb-2">Chữ ký Xác nhận (Chủ sở hữu)</label>
-                    <div className="h-28 bg-[#faf9f6] border border-[#e5d8d0] rounded-3xl relative flex items-center justify-center">
-                      {isSigned ? (
-                        <span className="text-xs font-black font-mono text-[#44683b] uppercase tracking-widest border-2 border-[#44683b] px-3 py-1.5 rounded-xl rotate-[-6deg]">
-                          ✓ ĐÃ KÝ XÁC NHẬN
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => { setIsSigned(true); }}
-                          className="px-4 py-2 border border-dashed border-[#fa7150] rounded-xl text-[#fa7150] text-[10px] font-black uppercase cursor-pointer"
-                        >
-                          Ký xác nhận tại đây
-                        </button>
-                      )}
-                      {isSigned && (
-                        <button
-                          type="button"
-                          onClick={() => { setIsSigned(false); }}
-                          className="absolute bottom-2 right-4 text-[9px] font-black text-[#a43e24] uppercase hover:underline cursor-pointer"
-                        >
-                          XÓA CHỮ KÝ
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    style={orangeGradient}
-                    className="w-full py-4 text-white rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    Gửi hóa đơn qua Zalo/SMS
-                  </button>
                 </div>
 
-                {/* 2. Check-out Payment Section */}
-                <div className="space-y-6 border-t md:border-t-0 md:border-l border-[#e5d8d0]/60 md:pl-8">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-[#44683b] text-white flex items-center justify-center font-black text-xs">2</span>
-                    <h4 className="text-base font-black text-[#303330]">Thanh toán Check-out</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* 1. Check-in Section */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-[#a43e24] text-white flex items-center justify-center font-black text-xs">1</span>
+                      <h4 className="text-base font-black text-[#303330]">Thủ tục Check-in</h4>
+                    </div>
+
+                    {/* Booking Select */}
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-[#8a7e75] tracking-wider mb-2">Chọn đơn check-in</label>
+                      {confirmedBookings.length === 0 ? (
+                        <p className="p-3 bg-[#faf9f6] border border-[#e5d8d0] rounded-2xl text-[10px] font-bold text-[#8a7e75]">Không có đơn nào chờ check-in hôm nay.</p>
+                      ) : (
+                        <select
+                          value={selectedCheckInBookingId}
+                          onChange={e => setSelectedCheckInBookingId(e.target.value)}
+                          className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none cursor-pointer text-xs font-bold"
+                        >
+                          {confirmedBookings.map((b: any) => (
+                            <option key={b.id} value={b.id}>
+                              {b.invoiceNumber} - Bé {b.pets?.map((p: any) => p.name).join(', ')} ({b.ownerName})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    {currentCheckInBooking && (
+                      <>
+                        {/* Photo Capture Area */}
+                        <div>
+                          <label className="block text-[10px] font-black uppercase text-[#8a7e75] tracking-wider mb-2">Ảnh khi nhận thú cưng</label>
+                          <label className="cursor-pointer h-40 bg-[#faf9f6]/60 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-3xl flex flex-col items-center justify-center gap-2 text-[#8a7e75] transition-colors relative overflow-hidden">
+                            <input 
+                              type="file" 
+                              accept=".png,.jpg,.jpeg" 
+                              className="hidden" 
+                              disabled={!!uploadingField}
+                              onChange={handleCheckInPhotoUpload}
+                            />
+                            {uploadingField === 'checkinPhoto' && (
+                              <div className="absolute inset-0 bg-[#faf9f6]/95 flex flex-col items-center justify-center z-20">
+                                <span className="w-6 h-6 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
+                              </div>
+                            )}
+                            {checkInPhotoUrl ? (
+                              <img src={checkInPhotoUrl} className="w-full h-full object-cover" />
+                            ) : (
+                              <>
+                                <Camera size={26} className="text-[#fa7150]" />
+                                <span className="text-[10px] font-black uppercase tracking-wider">Tải ảnh nhận bé</span>
+                              </>
+                            )}
+                          </label>
+                        </div>
+
+                        {/* Health status notes */}
+                        <div>
+                          <label className="block text-[10px] font-black uppercase text-[#8a7e75] tracking-wider mb-2">Tình trạng Sức khỏe thực tế</label>
+                          <textarea
+                            value={checkInHealth}
+                            onChange={e => setCheckInHealth(e.target.value)}
+                            rows={2}
+                            placeholder="Ghi chú vết thương, trạng thái tâm lý..."
+                            className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-2xl text-xs font-bold outline-none"
+                          />
+                        </div>
+
+                        {/* Signature pad representation */}
+                        <div>
+                          <label className="block text-[10px] font-black uppercase text-[#8a7e75] tracking-wider mb-2">Chữ ký Xác nhận (Chủ sở hữu)</label>
+                          <div className="h-24 bg-[#faf9f6] border border-[#e5d8d0] rounded-2xl relative flex items-center justify-center">
+                            {isSigned ? (
+                              <span className="text-[10px] font-black font-mono text-[#44683b] uppercase tracking-widest border-2 border-[#44683b] px-3 py-1 rounded-xl rotate-[-4deg]">
+                                ✓ ĐÃ KÝ XÁC NHẬN
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => { setIsSigned(true); }}
+                                className="px-4 py-2 border border-dashed border-[#fa7150] rounded-xl text-[#fa7150] text-[10px] font-black uppercase cursor-pointer"
+                              >
+                                Ký điện tử tại đây
+                              </button>
+                            )}
+                            {isSigned && (
+                              <button
+                                type="button"
+                                onClick={() => { setIsSigned(false); }}
+                                className="absolute bottom-2 right-4 text-[9px] font-black text-[#a43e24] uppercase hover:underline cursor-pointer"
+                              >
+                                Xóa
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleRealCheckIn}
+                          style={orangeGradient}
+                          className="w-full py-3.5 text-white rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] transition-transform shadow-md shadow-[#fa7150]/10"
+                        >
+                          Xác nhận & Nhận thú cưng
+                        </button>
+                      </>
+                    )}
                   </div>
 
-                  {/* Line items details */}
-                  <div className="space-y-3 bg-[#faf9f6] p-5 rounded-3xl border border-[#e5d8d0]/60">
-                    <div className="flex justify-between items-center text-xs font-bold text-[#5a5550]">
-                      <span>Phòng Deluxe (3 đêm)</span>
-                      <span className="font-black text-[#303330]">1,050,000đ</span>
+                  {/* 2. Check-out Payment Section */}
+                  <div className="space-y-6 border-t md:border-t-0 md:border-l border-[#e5d8d0]/60 md:pl-8">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-[#44683b] text-white flex items-center justify-center font-black text-xs">2</span>
+                      <h4 className="text-base font-black text-[#303330]">Thanh toán Check-out</h4>
                     </div>
-                    <div className="flex justify-between items-center text-xs font-bold text-[#5a5550]">
-                      <span>Tắm & Spa (Gói Cơ bản)</span>
-                      <span className="font-black text-[#303330]">250,000đ</span>
+
+                    {/* Booking Select */}
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-[#8a7e75] tracking-wider mb-2">Chọn đơn check-out</label>
+                      {checkedInBookings.length === 0 ? (
+                        <p className="p-3 bg-[#faf9f6] border border-[#e5d8d0] rounded-2xl text-[10px] font-bold text-[#8a7e75]">Không có bé nào đang lưu trú chờ check-out.</p>
+                      ) : (
+                        <select
+                          value={selectedCheckOutBookingId}
+                          onChange={e => setSelectedCheckOutBookingId(e.target.value)}
+                          className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none cursor-pointer text-xs font-bold"
+                        >
+                          {checkedInBookings.map((b: any) => (
+                            <option key={b.id} value={b.id}>
+                              {b.invoiceNumber} - Bé {b.pets?.map((p: any) => p.name).join(', ')} ({b.ownerName})
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center text-xs font-bold text-[#5a5550]">
-                      <span>Thức ăn hạt cao cấp (x2)</span>
-                      <span className="font-black text-[#303330]">120,000đ</span>
-                    </div>
-                    <div className="h-px bg-[#e5d8d0]/60 my-2" />
-                    <div className="flex justify-between items-center text-sm font-bold text-[#303330]">
-                      <span>Tạm tính</span>
-                      <span className="text-[#a43e24] font-black text-base">1,420,000đ</span>
-                    </div>
+
+                    {currentCheckOutBooking && (
+                      <>
+                        {/* Line items details */}
+                        <div className="space-y-2.5 bg-[#faf9f6] p-4.5 rounded-2.5xl border border-[#e5d8d0]/60">
+                          <div className="flex justify-between items-center text-xs font-bold text-[#5a5550]">
+                            <span>Phòng {currentCheckOutBooking.roomTypeName} ({currentCheckOutBooking.totalNights} đêm)</span>
+                            <span className="font-black text-[#303330]">{checkoutRoomAmount.toLocaleString('vi-VN')}đ</span>
+                          </div>
+                          
+                          {currentCheckOutBooking.voucherDiscountAmount > 0 && (
+                            <div className="flex justify-between items-center text-xs font-bold text-rose-700">
+                              <span>Voucher giảm giá</span>
+                              <span className="font-black">-{currentCheckOutBooking.voucherDiscountAmount.toLocaleString('vi-VN')}đ</span>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between items-center text-xs font-bold text-[#5a5550]">
+                            <span>Phí tiện ích dịch vụ</span>
+                            <span className="font-black text-[#303330]">{currentCheckOutBooking.convenienceFee?.toLocaleString('vi-VN')}đ</span>
+                          </div>
+
+                          <div className="flex justify-between items-center text-xs font-bold text-[#5a5550]">
+                            <span>Thuế VAT (8%)</span>
+                            <span className="font-black text-[#303330]">{currentCheckOutBooking.vatAmount?.toLocaleString('vi-VN')}đ</span>
+                          </div>
+
+                          <div className="h-px bg-[#e5d8d0]/60 my-1.5" />
+                          <div className="flex justify-between items-center text-xs font-bold text-[#303330]">
+                            <span>Tổng tiền dự kiến</span>
+                            <span className="text-[#a43e24] font-black text-sm">{currentCheckOutBooking.totalAmount?.toLocaleString('vi-VN')}đ</span>
+                          </div>
+                        </div>
+
+                        {/* Points Loyalty Toggle */}
+                        <div className="flex justify-between items-center p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                          <span className="text-[10px] font-bold text-emerald-800 flex items-center gap-1">
+                            <Sparkles size={12} /> Áp dụng 500 điểm (-50.000 VNĐ)
+                          </span>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={usePoints}
+                              onChange={e => setUsePoints(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-8 h-4.5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[#44683b]" />
+                          </label>
+                        </div>
+
+                        {/* Totals */}
+                        <div className="flex justify-between items-center py-1">
+                          <div>
+                            <span className="text-[8px] font-black text-[#8a7e75] uppercase block">TỔNG THANH TOÁN THỰC TẾ</span>
+                            <span className="text-2xl font-black text-[#303330]">{finalCheckoutAmount.toLocaleString('vi-VN')}đ</span>
+                          </div>
+                          
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setShowQrPay(!showQrPay)}
+                              className="px-4.5 py-3 bg-[#303330] text-white font-black text-[9px] uppercase tracking-wider rounded-xl flex items-center gap-1.5 hover:bg-black transition-colors cursor-pointer"
+                            >
+                              <QrCode size={14} /> Quét VietQR
+                            </button>
+
+                            {showQrPay && (
+                              <div className="absolute right-0 bottom-14 bg-white border border-[#e5d8d0] p-4 rounded-2.5xl shadow-2xl w-48 text-center animate-in fade-in zoom-in duration-200 z-10">
+                                <span className="text-[9px] font-black uppercase text-[#8a7e75] block mb-2">Mã QR Chuyển khoản</span>
+                                <img 
+                                  src={`https://img.vietqr.io/image/${bankNameCode}-${bankAccountNo}-compact2.png?amount=${finalCheckoutAmount}&addInfo=${currentCheckOutBooking.invoiceNumber}&accountName=${encodeURIComponent(bankAccountNameText)}`} 
+                                  className="w-32 h-32 mx-auto mb-2 border border-gray-100 rounded-lg" 
+                                />
+                                <span className="text-[9px] font-bold text-gray-500 block mb-0.5">{bankNameCode} - {bankAccountNo}</span>
+                                <span className="text-[10px] font-black text-[#a43e24] block">{finalCheckoutAmount.toLocaleString('vi-VN')}đ</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleRealCheckOut}
+                          style={greenGradient}
+                          className="w-full py-3.5 text-white rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] transition-transform shadow-md"
+                        >
+                          Xác nhận Đã thu tiền & Check-out
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 3: E-Invoice Preview */}
+              <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-6 flex flex-col justify-between" style={cardShadow}>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center border-b border-[#e5d8d0]/40 pb-4">
+                    <h3 className="text-base font-black text-[#303330] flex items-center gap-2">
+                      <FileText size={18} className="text-[#fa7150]" />
+                      Hóa đơn điện tử
+                    </h3>
                   </div>
 
-                  {/* Promo code */}
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Nhập mã giảm giá..."
-                      value={promoCode}
-                      onChange={e => setPromoCode(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-[#f0ece9]/60 border-none rounded-2xl text-xs font-bold outline-none"
-                    />
-                    <button className="px-4 py-2.5 bg-[#44683b] hover:bg-[#2c4e24] text-white rounded-2xl text-xs font-bold cursor-pointer">
-                      Áp dụng
+                  {selectedBookingForInvoice ? (
+                    <div className="space-y-4.5 text-xs font-bold text-left">
+                      <div className="flex justify-between">
+                        <span className="text-[#8a7e75] uppercase text-[9px]">Mã Hóa đơn</span>
+                        <span className="text-[#303330] font-black">{selectedBookingForInvoice.invoiceNumber}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8a7e75] uppercase text-[9px]">Khách hàng</span>
+                        <span className="text-[#303330]">{selectedBookingForInvoice.ownerName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8a7e75] uppercase text-[9px]">Thú cưng</span>
+                        <span className="text-[#303330] uppercase">
+                          {selectedBookingForInvoice.pets?.map((p: any) => `${p.name} (${p.species === 'CAT' || p.species?.toLowerCase().includes('cat') ? 'Mèo' : 'Chó'})`).join(', ')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8a7e75] uppercase text-[9px]">Thời gian</span>
+                        <span className="text-[#303330]">{selectedBookingForInvoice.checkInDate} - {selectedBookingForInvoice.checkOutDate}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8a7e75] uppercase text-[9px]">Hạng phòng</span>
+                        <span className="text-[#303330]">{selectedBookingForInvoice.roomTypeName}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-[#e5d8d0]/60 pt-3">
+                        <span className="text-[#303330] uppercase text-[10px] font-black">Tổng thanh toán</span>
+                        <span className="text-[#a43e24] font-black text-sm">{selectedBookingForInvoice.totalAmount?.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#8a7e75] font-bold py-12 text-center">Chọn một đặt lịch nghỉ dưỡng ở bên để xem chi tiết hóa đơn.</p>
+                  )}
+                </div>
+
+                {selectedBookingForInvoice && (
+                  <div className="pt-6 border-t border-[#e5d8d0]/60 mt-6 flex gap-3">
+                    <button 
+                      onClick={() => alert('Đang tạo tệp PDF tải xuống...')}
+                      className="flex-1 py-3 bg-[#f0ece9] text-[#5a5550] rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-[#e5d8d0] transition-colors cursor-pointer"
+                    >
+                      <Download size={14} /> PDF
+                    </button>
+                    <button 
+                      onClick={handlePrintInvoice}
+                      className="flex-1 py-3 bg-[#303330] text-white rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-black transition-colors cursor-pointer"
+                    >
+                      <Printer size={14} /> In nhanh
                     </button>
                   </div>
+                )}
+              </div>
 
-                  {/* Points Loyalty Toggle */}
-                  <div className="flex justify-between items-center p-3.5 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
-                    <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
-                      <Sparkles size={14} /> Sử dụng 500 điểm thưởng
-                    </span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={usePoints}
-                        onChange={e => setUsePoints(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#44683b]" />
-                    </label>
+              {/* Printable Invoice Container (Hidden from UI, used by printWindow) */}
+              {selectedBookingForInvoice && (
+                <div id="printable-invoice-content" className="hidden">
+                  <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                    <h2 style={{ margin: 0, fontWeight: 900, color: '#a43e24' }}>PETCARE HUB INVOICE</h2>
+                    <p style={{ margin: '5px 0', fontSize: '12px', color: '#8a7e75' }}>Hóa đơn thanh toán dịch vụ khách sạn thú cưng</p>
                   </div>
-
-                  {/* Totals */}
-                  <div className="flex justify-between items-center py-2">
-                    <div>
-                      <span className="text-[10px] font-black text-[#8a7e75] uppercase block">TỔNG THANH TOÁN</span>
-                      <span className="text-3xl font-black text-[#303330]">{usePoints ? '1,370,000đ' : '1,420,000đ'}</span>
+                  <div style={{ marginBottom: '20px', fontSize: '13px' }}>
+                    <p style={{ margin: '5px 0' }}><strong>Cơ sở:</strong> {selectedBookingForInvoice.hotelName}</p>
+                    <p style={{ margin: '5px 0' }}><strong>Mã hóa đơn:</strong> {selectedBookingForInvoice.invoiceNumber}</p>
+                    <p style={{ margin: '5px 0' }}><strong>Khách hàng:</strong> {selectedBookingForInvoice.ownerName}</p>
+                    <p style={{ margin: '5px 0' }}><strong>Thú cưng:</strong> {selectedBookingForInvoice.pets?.map((p: any) => p.name).join(', ')}</p>
+                    <p style={{ margin: '5px 0' }}><strong>Thời gian lưu trú:</strong> {selectedBookingForInvoice.checkInDate} đến {selectedBookingForInvoice.checkOutDate} ({selectedBookingForInvoice.totalNights} đêm)</p>
+                  </div>
+                  <hr style={{ borderTop: '1px dashed #e5d8d0', margin: '20px 0' }} />
+                  <div style={{ fontSize: '13px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <span>Phòng {selectedBookingForInvoice.roomTypeName} ({selectedBookingForInvoice.totalNights} đêm)</span>
+                      <span>{((selectedBookingForInvoice.totalAmount || 0) - (selectedBookingForInvoice.vatAmount || 0) - (selectedBookingForInvoice.convenienceFee || 0) + (selectedBookingForInvoice.voucherDiscountAmount || 0)).toLocaleString('vi-VN')}đ</span>
                     </div>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setShowQrPay(!showQrPay)}
-                        className="px-5 py-3.5 bg-[#303330] text-white font-black text-[10px] uppercase tracking-wider rounded-2xl flex items-center gap-2 hover:bg-black transition-colors cursor-pointer"
-                      >
-                        <QrCode size={16} /> Quét để thanh toán
-                      </button>
-
-                      {showQrPay && (
-                        <div className="absolute right-0 bottom-16 bg-white border border-[#e5d8d0] p-4 rounded-3xl shadow-xl w-48 text-center animate-in fade-in zoom-in duration-200 z-10">
-                          <span className="text-[9px] font-black uppercase text-[#8a7e75] block mb-2">Quét mã VietQR</span>
-                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=vietqr-payment-payload" className="w-32 h-32 mx-auto mb-2" />
-                          <span className="text-[10px] font-black text-[#303330] block">{usePoints ? '1,370,000đ' : '1,420,000đ'}</span>
-                        </div>
-                      )}
+                    {selectedBookingForInvoice.voucherDiscountAmount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: '#a43e24' }}>
+                        <span>Voucher giảm giá</span>
+                        <span>-{selectedBookingForInvoice.voucherDiscountAmount.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <span>Phí tiện ích dịch vụ</span>
+                      <span>{selectedBookingForInvoice.convenienceFee?.toLocaleString('vi-VN')}đ</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <span>Thuế VAT (8%)</span>
+                      <span>{selectedBookingForInvoice.vatAmount?.toLocaleString('vi-VN')}đ</span>
                     </div>
                   </div>
+                  <hr style={{ borderTop: '1px solid #303330', margin: '20px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 'bold' }}>
+                    <span>TỔNG CỘNG THU</span>
+                    <span style={{ color: '#a43e24' }}>{selectedBookingForInvoice.totalAmount?.toLocaleString('vi-VN')}đ</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
-
-            {/* Column 3: E-Invoice Preview */}
-            <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-6 flex flex-col justify-between" style={cardShadow}>
-              <div className="space-y-6">
-                <div className="flex justify-between items-center border-b border-[#e5d8d0]/40 pb-4">
-                  <h3 className="text-base font-black text-[#303330] flex items-center gap-2">
-                    <FileText size={18} className="text-[#fa7150]" />
-                    Hóa đơn điện tử #INV-9902
-                  </h3>
-                  <button className="text-[10px] font-black text-[#fa7150] hover:underline">Xem bản đầy đủ</button>
-                </div>
-
-                <div className="space-y-4 text-xs font-bold">
-                  <div className="flex justify-between">
-                    <span className="text-[#8a7e75] uppercase text-[10px]">Khách hàng</span>
-                    <span className="text-[#303330]">NGUYỄN ANH THƯ</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#8a7e75] uppercase text-[10px]">Thú cưng</span>
-                    <span className="text-[#303330]">MOCHI (GOLDEN)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#8a7e75] uppercase text-[10px]">Thời gian</span>
-                    <span className="text-[#303330]">12/10 - 15/10/2023</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-[#e5d8d0]/60 mt-6 flex gap-3">
-                <button className="flex-1 py-3 bg-[#f0ece9] text-[#5a5550] rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-[#e5d8d0] transition-colors cursor-pointer">
-                  <Download size={14} /> Tải xuống PDF
-                </button>
-                <button className="flex-1 py-3 bg-[#f0ece9] text-[#5a5550] rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-[#e5d8d0] transition-colors cursor-pointer">
-                  <Printer size={14} /> In nhanh
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* ── TAB 4: CRM ANALYTICS & PET PROFILES (PHÂN TÍCH & CRM) ── */}
         {activeTab === 'analytics' && (
@@ -1600,99 +2101,185 @@ export const PartnerDashboard = () => {
               {/* Customers list */}
               <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-6" style={cardShadow}>
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-black text-[#303330]">Danh sách Khách hàng</h3>
-                  <button className="px-4 py-2 bg-[#a43e24] hover:bg-[#fa7150] text-white text-xs font-bold rounded-full cursor-pointer">
-                    Thêm Khách hàng Mới
-                  </button>
+                  <h3 className="text-lg font-black text-[#303330]">Danh sách Hồ sơ Thú cưng (CRM)</h3>
+                  <span className="text-xs font-black text-[#8a7e75] bg-[#faf9f6] border border-[#e5d8d0] px-3 py-1.5 rounded-full">
+                    Tổng cộng: {crmPets.length} bé
+                  </span>
                 </div>
 
-                <div className="space-y-4">
-                  {[
-                    { name: 'Nguyễn Minh Anh', pets: '2 Thú cưng (Mochi, Bơ)', amount: '12.500.000đ', rating: '4.9', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=60' },
-                    { name: 'Trần Hoàng Long', pets: 'Đã nhận phòng (Rocky)', amount: '8.200.000đ', rating: '5.0', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=60' },
-                    { name: 'Lê Tuyết Mai', pets: 'Lịch sử: 8 lần đặt', amount: '24.150.000đ', rating: '4.8', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=60' },
-                  ].map((cust, idx) => (
-                    <div key={idx} className="p-4 bg-[#faf9f6] border border-[#e5d8d0]/60 rounded-2xl flex items-center justify-between hover:border-[#fa7150]/40 cursor-pointer transition-colors"
-                      onClick={() => setSelectedPet({
-                        name: 'Rocky',
-                        breed: 'Golden Retriever',
-                        age: '3 Tuổi',
-                        status: 'Đang lưu trú',
-                        behavior: 'Hay gặm nhẹ - Khi gặp người lạ hoặc lúc ăn. Cần tiếp cận chậm rãi.',
-                        diet: 'Hạt mềm - Không ăn được xương cứng, thích hạt trộn pate gà.',
-                        health: 'Sức khỏe - Dị ứng xà phòng mùi mạnh. Sử dụng loại thảo mộc.',
-                        img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150'
-                      })}
-                    >
-                      <div className="flex items-center gap-4">
-                        <img src={cust.avatar} className="w-10 h-10 rounded-full object-cover shrink-0" />
-                        <div className="text-left leading-tight">
-                          <span className="font-black text-sm text-[#303330] block">{cust.name}</span>
-                          <span className="text-[10px] text-[#8a7e75] block mt-0.5">{cust.pets}</span>
+                {crmLoading ? (
+                  <div className="py-12 text-center text-[#8a7e75] font-bold text-xs">
+                    <span className="inline-block w-5 h-5 rounded-full border-2 border-[#fa7150]/20 border-t-[#fa7150] animate-spin mr-2"></span>
+                    Đang tải danh sách thú cưng...
+                  </div>
+                ) : crmPets.length === 0 ? (
+                  <p className="text-xs text-[#8a7e75] font-bold text-center py-12">Không tìm thấy hồ sơ thú cưng nào từng lưu trú tại cơ sở của bạn.</p>
+                ) : (
+                  <div className="space-y-4 max-h-[550px] overflow-y-auto pr-1">
+                    {crmPets.map((pet) => {
+                      const isSelected = selectedPet?.id === pet.id
+                      return (
+                        <div 
+                          key={pet.id} 
+                          className={`p-4 border rounded-2xl flex items-center justify-between cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'bg-[#fa7150]/5 border-[#fa7150] shadow-sm shadow-[#fa7150]/10' 
+                              : 'bg-[#faf9f6] border-[#e5d8d0]/60 hover:border-[#fa7150]/40'
+                          }`}
+                          onClick={() => handleSelectCrmPet(pet)}
+                        >
+                          <div className="flex items-center gap-4">
+                            <img 
+                              src={pet.avatarUrl || getPetAvatar(pet.species)} 
+                              className="w-11 h-11 rounded-full object-cover border border-[#e5d8d0] shrink-0" 
+                            />
+                            <div className="text-left leading-tight">
+                              <span className="font-black text-sm text-[#303330] block">{pet.name}</span>
+                              <span className="text-[10px] text-[#8a7e75] block mt-0.5">
+                                {pet.breed || 'Không rõ giống'} • {pet.ageYears != null ? `${pet.ageYears} tuổi` : 'Không rõ tuổi'}
+                              </span>
+                              <span className="text-[9px] text-[#fa7150] font-black uppercase tracking-wider block mt-1">
+                                Chủ: {pet.ownerName}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right flex flex-col gap-1 items-end">
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
+                              pet.isVaccinated 
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              {pet.isVaccinated ? 'Đã tiêm phòng' : 'Chưa tiêm phòng'}
+                            </span>
+                            <span className="text-[9px] text-[#8a7e75] font-mono block">
+                              {pet.ownerPhone || '—'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-black text-sm text-[#303330] block">{cust.amount}</span>
-                        <span className="text-[10px] text-[#f59e0b] font-black flex items-center justify-end gap-0.5 mt-0.5">
-                          ★ {cust.rating}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Right Column Profile Details */}
             {selectedPet && (
-              <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-6 flex flex-col justify-between" style={cardShadow}>
+              <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-6 space-y-6 flex flex-col justify-between" style={cardShadow}>
                 <div className="space-y-6">
                   {/* Pet Photo */}
-                  <div className="relative rounded-2xl overflow-hidden h-40">
-                    <img src={selectedPet.img} alt={selectedPet.name} className="w-full h-full object-cover" />
-                    <span className="absolute top-3 right-3 bg-emerald-50 text-emerald-800 border border-emerald-200 text-[9px] font-black uppercase px-3 py-1 rounded-full">
-                      {selectedPet.status}
+                  <div className="relative rounded-2xl overflow-hidden h-40 bg-gray-50 border border-[#e5d8d0]/60">
+                    <img 
+                      src={selectedPet.avatarUrl || getPetAvatar(selectedPet.species)} 
+                      alt={selectedPet.name} 
+                      className="w-full h-full object-cover" 
+                    />
+                    <span className={`absolute top-3 right-3 border text-[9px] font-black uppercase px-3 py-1 rounded-full ${
+                      selectedPet.isVaccinated 
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                    }`}>
+                      {selectedPet.isVaccinated ? 'Đầy đủ vaccine' : 'Thiếu vaccine'}
                     </span>
                   </div>
 
                   {/* Title & Info */}
-                  <div className="border-b border-[#e5d8d0]/40 pb-4">
+                  <div className="border-b border-[#e5d8d0]/40 pb-4 text-left">
                     <h3 className="text-2xl font-black text-[#303330]">{selectedPet.name}</h3>
-                    <p className="text-xs text-[#8a7e75] mt-1 font-bold">{selectedPet.breed} • {selectedPet.age}</p>
+                    <p className="text-xs text-[#8a7e75] mt-1 font-bold">
+                      {selectedPet.species === 'CAT' || selectedPet.species?.toLowerCase().includes('cat') ? '🐱 Mèo' : '🐶 Chó'} • {selectedPet.breed || 'Chưa rõ giống'} • {selectedPet.ageYears != null ? `${selectedPet.ageYears} tuổi` : 'Chưa rõ tuổi'} ({selectedPet.weightKg || '—'} kg)
+                    </p>
+                  </div>
+
+                  {/* Contact details card (Masked) */}
+                  <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/80 text-left space-y-1.5 text-[11px] font-bold text-[#5a5550]">
+                    <span className="text-[9px] font-black uppercase text-[#8a7e75] tracking-wider block mb-1">Thông tin Chủ nuôi</span>
+                    <div>Chủ sở hữu: <span className="text-[#303330] font-black">{selectedPet.ownerName}</span></div>
+                    <div>Số điện thoại: <span className="text-[#303330] font-mono">{selectedPet.ownerPhone || '—'}</span></div>
+                    <div>Email: <span className="text-[#303330] font-mono">{selectedPet.ownerEmail || '—'}</span></div>
+                    {selectedPet.microchipId && <div>Mã chip: <span className="text-[#303330] font-mono">{selectedPet.microchipId}</span></div>}
                   </div>
 
                   {/* Special Care Rules */}
-                  <div className="space-y-4 text-xs font-bold text-[#5a5550]">
-                    <span className="text-[9px] font-black uppercase text-[#8a7e75] tracking-wider block">Ghi chú chăm sóc đặc biệt</span>
+                  <div className="space-y-4 text-xs font-bold text-[#5a5550] text-left">
+                    <span className="text-[9px] font-black uppercase text-[#8a7e75] tracking-wider block">Hướng dẫn Chăm sóc</span>
                     
                     <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 rounded-2xl flex gap-2 items-start">
-                      <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+                      <ShieldAlert size={16} className="shrink-0 mt-0.5 text-rose-600" />
                       <div>
-                        <span className="font-black block uppercase text-[8px] text-rose-800">Tính cách</span>
-                        <p className="text-[10px] leading-relaxed mt-0.5 font-bold">{selectedPet.behavior}</p>
+                        <span className="font-black block uppercase text-[8px] text-rose-800">Đặc tính / Hành vi</span>
+                        <p className="text-[10px] leading-relaxed mt-0.5 font-bold">
+                          {selectedPet.specialNotes || 'Thân thiện, hoạt bát, chưa có ghi chú đặc biệt.'}
+                        </p>
                       </div>
                     </div>
 
                     <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-2xl flex gap-2 items-start">
-                      <PawPrint size={16} className="shrink-0 mt-0.5" />
+                      <PawPrint size={16} className="shrink-0 mt-0.5 text-emerald-600" />
                       <div>
-                        <span className="font-black block uppercase text-[8px] text-emerald-800">Chế độ ăn</span>
-                        <p className="text-[10px] leading-relaxed mt-0.5 font-bold">{selectedPet.diet}</p>
+                        <span className="font-black block uppercase text-[8px] text-emerald-800">Dinh dưỡng & Cho ăn</span>
+                        <p className="text-[10px] leading-relaxed mt-0.5 font-bold">
+                          {selectedPet.foodType || 'Thức ăn hạt thông thường'} • {selectedPet.feedingSchedule || '2 bữa/ngày (Sáng/Tối)'}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="p-3 bg-[#faf9f6] border border-[#e5d8d0] text-[#303330] rounded-2xl flex gap-2 items-start">
-                      <Settings size={16} className="shrink-0 mt-0.5 text-[#8a7e75]" />
-                      <div>
-                        <span className="font-black block uppercase text-[8px] text-[#8a7e75]">Sức khỏe</span>
-                        <p className="text-[10px] leading-relaxed mt-0.5 font-bold">{selectedPet.health}</p>
+                    {selectedPet.personalityTags && selectedPet.personalityTags.length > 0 && (
+                      <div className="flex gap-1.5 flex-wrap pt-1">
+                        {selectedPet.personalityTags.map((tag: string, i: number) => (
+                          <span key={i} className="px-2.5 py-1 bg-[#fa7150]/10 border border-[#fa7150]/20 text-[#a43e24] text-[9px] font-black rounded-lg">
+                            #{tag}
+                          </span>
+                        ))}
                       </div>
-                    </div>
+                    )}
+                  </div>
+
+                  {/* Lịch sử đặt phòng timeline */}
+                  <div className="space-y-4 pt-6 border-t border-[#e5d8d0]/60 text-left">
+                    <span className="text-[9px] font-black uppercase text-[#8a7e75] tracking-wider block">Lịch sử nghỉ dưỡng tại cơ sở</span>
+                    {historyLoading ? (
+                      <div className="py-8 text-center text-xs text-[#8a7e75]">
+                        <span className="inline-block w-4 h-4 rounded-full border-2 border-[#fa7150]/20 border-t-[#fa7150] animate-spin mr-2 align-middle"></span>
+                        Đang tải lịch sử...
+                      </div>
+                    ) : petBookingHistory.length === 0 ? (
+                      <p className="text-[10px] font-bold text-[#8a7e75] text-center py-4 bg-[#faf9f6] border border-[#e5d8d0]/60 rounded-2xl">Chưa có lịch sử đặt phòng nào cho bé tại đây.</p>
+                    ) : (
+                      <div className="relative pl-4 border-l-2 border-[#e5d8d0] space-y-4 max-h-[300px] overflow-y-auto">
+                        {petBookingHistory.map((b: any) => {
+                          let statusColor = 'bg-gray-100 text-gray-800 border-gray-200'
+                          if (b.status === 'COMPLETED') statusColor = 'bg-blue-50 text-blue-800 border-blue-200'
+                          else if (b.status === 'CHECKED_IN') statusColor = 'bg-rose-50 text-rose-800 border-rose-200'
+                          else if (b.status === 'CONFIRMED') statusColor = 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          else if (b.status === 'CANCELLED') statusColor = 'bg-red-50 text-red-800 border-red-200'
+
+                          return (
+                            <div key={b.id} className="relative">
+                              <span className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full border border-white bg-[#fa7150] shadow-sm"></span>
+                              <div className="leading-tight space-y-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-black text-[11px] text-[#303330]">{b.invoiceNumber}</span>
+                                  <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${statusColor}`}>{b.status}</span>
+                                </div>
+                                <span className="block text-[10px] text-[#8a7e75] font-bold">{b.hotelName} • {b.roomTypeName}</span>
+                                <span className="block text-[9px] text-gray-500 font-mono">{b.checkInDate} đến {b.checkOutDate} ({b.totalNights} đêm)</span>
+                                <span className="block text-[10px] text-[#a43e24] font-black">Tổng chi: {b.totalAmount?.toLocaleString('vi-VN')}đ</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <button className="w-full py-3.5 bg-[#303330] hover:bg-black text-white text-xs font-black uppercase rounded-full tracking-wider mt-6 flex items-center justify-center gap-1.5 cursor-pointer">
-                  <Edit size={14} /> Cập nhật Hồ sơ {selectedPet.name}
+                <button 
+                  type="button"
+                  onClick={() => alert(`Đang cập nhật hồ sơ cho bé ${selectedPet.name}. Vui lòng thực hiện trên ứng dụng Khách hàng hoặc liên hệ Admin nếu cần chỉnh sửa đặc tính sinh học.`)}
+                  className="w-full py-3.5 bg-[#303330] hover:bg-black text-white text-xs font-black uppercase rounded-full tracking-wider mt-6 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Edit size={14} /> Chỉnh sửa nhanh hồ sơ
                 </button>
               </div>
             )}
@@ -1729,6 +2316,22 @@ export const PartnerDashboard = () => {
                   }`}
                 >
                   Thông số Chung
+                </button>
+                <button
+                  onClick={() => setSettingsSubTab('staff')}
+                  className={`pb-2 px-3 text-xs font-black relative ${
+                    settingsSubTab === 'staff' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
+                  }`}
+                >
+                  Nhân sự
+                </button>
+                <button
+                  onClick={() => setSettingsSubTab('equipment')}
+                  className={`pb-2 px-3 text-xs font-black relative ${
+                    settingsSubTab === 'equipment' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
+                  }`}
+                >
+                  Trang thiết bị
                 </button>
               </div>
 
@@ -1901,6 +2504,190 @@ export const PartnerDashboard = () => {
                   </div>
                 </div>
               )}
+
+              {/* Staff Management Panel */}
+              {settingsSubTab === 'staff' && (
+                <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-8 space-y-6 animate-fadeIn" style={cardShadow}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-black text-[#303330] flex items-center gap-2">
+                        <Building size={18} className="text-[#fa7150]" />
+                        Quản lý Nhân sự
+                      </h3>
+                      <p className="text-xs text-[#8a7e75] mt-1">Quản lý chức vụ, ca trực và phân quyền nhân viên cho cơ sở.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingStaffId(null);
+                        setStaffForm({ email: '', jobPosition: 'Lễ tân', shiftStatus: 'ACTIVE' });
+                        setShowAddStaffModal(true);
+                      }}
+                      style={orangeGradient}
+                      className="px-4 py-2.5 text-white font-bold text-xs uppercase tracking-wider rounded-xl cursor-pointer hover:scale-[1.02] active:scale-95 transition-all shadow-sm"
+                    >
+                      + Thêm Nhân viên
+                    </button>
+                  </div>
+
+                  {staffLoading ? (
+                    <div className="py-12 text-center text-[#8a7e75] font-bold text-xs">
+                      <span className="inline-block w-5 h-5 rounded-full border-2 border-[#fa7150]/20 border-t-[#fa7150] animate-spin mr-2"></span>
+                      Đang tải danh sách nhân sự...
+                    </div>
+                  ) : staffList.length === 0 ? (
+                    <div className="py-12 text-center border border-dashed border-[#e5d8d0] rounded-2xl bg-[#faf9f6]/40 text-[#8a7e75] font-bold text-xs">
+                      Chưa có nhân viên nào trong cơ sở. Thêm nhân viên bằng tài khoản email.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-xs">
+                        <thead>
+                          <tr className="bg-[#faf9f6] border-b border-[#e5d8d0] text-[9px] font-black text-[#8a7e75] uppercase tracking-wider">
+                            <th className="p-4 pl-6">Họ tên nhân viên</th>
+                            <th className="p-4">Email liên lạc</th>
+                            <th className="p-4">Chức vụ</th>
+                            <th className="p-4">Trạng thái ca trực</th>
+                            <th className="p-4 text-center">Thao tác</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#e5d8d0]/60 font-bold">
+                          {staffList.map((st) => (
+                            <tr key={st.id} className="hover:bg-[#faf9f6]/30">
+                              <td className="p-4 pl-6 text-[#303330]">{st.fullName || '—'}</td>
+                              <td className="p-4 text-[#8a7e75] font-mono">{st.email}</td>
+                              <td className="p-4 text-[#303330]">{st.jobPosition}</td>
+                              <td className="p-4">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                  st.shiftStatus === 'ACTIVE'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : st.shiftStatus === 'OFF_DUTY'
+                                    ? 'bg-gray-100 text-gray-700 border border-gray-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}>
+                                  {st.shiftStatus === 'ACTIVE' ? 'Đang làm việc' : st.shiftStatus === 'OFF_DUTY' ? 'Nghỉ ca' : 'Nghỉ phép'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-center flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingStaffId(st.id);
+                                    setStaffForm({ email: st.email, jobPosition: st.jobPosition, shiftStatus: st.shiftStatus });
+                                    setShowAddStaffModal(true);
+                                  }}
+                                  className="p-1.5 text-gray-500 hover:text-[#fa7150]"
+                                >
+                                  <Edit size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteStaff(st.id)}
+                                  className="p-1.5 text-gray-500 hover:text-rose-600"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Equipment Management Panel */}
+              {settingsSubTab === 'equipment' && (
+                <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-8 space-y-6 animate-fadeIn" style={cardShadow}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-black text-[#303330] flex items-center gap-2">
+                        <Settings size={18} className="text-[#fa7150]" />
+                        Quản lý Trang thiết bị
+                      </h3>
+                      <p className="text-xs text-[#8a7e75] mt-1">Theo dõi số lượng, tình trạng vận hành và bảo trì máy móc, công cụ.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingEquipmentId(null);
+                        setEquipmentForm({ name: '', quantity: 1, status: 'GOOD', lastMaintenance: '' });
+                        setShowAddEquipmentModal(true);
+                      }}
+                      style={orangeGradient}
+                      className="px-4 py-2.5 text-white font-bold text-xs uppercase tracking-wider rounded-xl cursor-pointer hover:scale-[1.02] active:scale-95 transition-all shadow-sm"
+                    >
+                      + Thêm Thiết bị
+                    </button>
+                  </div>
+
+                  {equipmentLoading ? (
+                    <div className="py-12 text-center text-[#8a7e75] font-bold text-xs">
+                      <span className="inline-block w-5 h-5 rounded-full border-2 border-[#fa7150]/20 border-t-[#fa7150] animate-spin mr-2"></span>
+                      Đang tải danh sách thiết bị...
+                    </div>
+                  ) : equipmentList.length === 0 ? (
+                    <div className="py-12 text-center border border-dashed border-[#e5d8d0] rounded-2xl bg-[#faf9f6]/40 text-[#8a7e75] font-bold text-xs">
+                      Chưa có thiết bị nào được ghi nhận cho cơ sở này.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-xs">
+                        <thead>
+                          <tr className="bg-[#faf9f6] border-b border-[#e5d8d0] text-[9px] font-black text-[#8a7e75] uppercase tracking-wider">
+                            <th className="p-4 pl-6">Tên thiết bị</th>
+                            <th className="p-4 text-center">Số lượng</th>
+                            <th className="p-4">Trạng thái vận hành</th>
+                            <th className="p-4">Ngày bảo trì gần nhất</th>
+                            <th className="p-4 text-center">Thao tác</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#e5d8d0]/60 font-bold">
+                          {equipmentList.map((eq) => (
+                            <tr key={eq.id} className="hover:bg-[#faf9f6]/30">
+                              <td className="p-4 pl-6 text-[#303330]">{eq.name}</td>
+                              <td className="p-4 text-center text-[#303330] font-black">{eq.quantity}</td>
+                              <td className="p-4">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                  eq.status === 'GOOD'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : eq.status === 'MAINTENANCE'
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                }`}>
+                                  {eq.status === 'GOOD' ? 'Tốt (Sẵn sàng)' : eq.status === 'MAINTENANCE' ? 'Đang bảo trì' : 'Hỏng hóc'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-[#8a7e75] font-mono">{eq.lastMaintenance || 'Chưa bảo trì'}</td>
+                              <td className="p-4 text-center flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingEquipmentId(eq.id);
+                                    setEquipmentForm({ name: eq.name, quantity: eq.quantity, status: eq.status, lastMaintenance: eq.lastMaintenance || '' });
+                                    setShowAddEquipmentModal(true);
+                                  }}
+                                  className="p-1.5 text-gray-500 hover:text-[#fa7150]"
+                                >
+                                  <Edit size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteEquipment(eq.id)}
+                                  className="p-1.5 text-gray-500 hover:text-rose-600"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Notification Template editor */}
@@ -1955,13 +2742,178 @@ export const PartnerDashboard = () => {
                   type="button"
                   style={orangeGradient}
                   className="flex-1 py-3 text-white rounded-full font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md shadow-[#fa7150]/10 hover:opacity-95 cursor-pointer"
+                  onClick={() => alert('Đã lưu mẫu thông báo thành công!')}
                 >
                   <Save size={14} /> Lưu Mẫu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNotificationSandboxModal(true)}
+                  className="flex-1 py-3 bg-[#303330] hover:bg-black text-white rounded-full font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md hover:opacity-95 cursor-pointer"
+                >
+                  <MessageSquare size={14} /> Gửi tin thử nghiệm
                 </button>
               </div>
             </div>
           </div>
         )}
+
+          {/*  TAB 6: QUẢN LÝ TÀI CHÍNH (FINANCE)  */}
+          {activeTab === 'finance' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left animate-fadeIn">
+              {/* Column 1 & 2: Wallet and Request Form */}
+              <div className="lg:col-span-2 space-y-8">
+                {/* Wallet Balance Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Active Balance */}
+                  <div className="bg-white rounded-3xl border border-[#e5d8d0] p-6 shadow-sm flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-black tracking-wider text-[#8a7e75] block mb-1">Số dư Khả dụng</span>
+                      <span className="text-2xl font-black text-[#303330]">{wallet.balance.toLocaleString('vi-VN')} VNĐ</span>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <DollarSign size={24} />
+                    </div>
+                  </div>
+
+                  {/* Pending Balance */}
+                  <div className="bg-white rounded-3xl border border-[#e5d8d0] p-6 shadow-sm flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-black tracking-wider text-[#8a7e75] block mb-1">Doanh thu Chờ đối soát</span>
+                      <span className="text-2xl font-black text-amber-600">{wallet.pendingBalance.toLocaleString('vi-VN')} VNĐ</span>
+                      <span className="text-[9px] text-[#8a7e75] block mt-1">(Cộng khi khách check-out thành công)</span>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                      <TrendingUp size={24} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Withdrawal Form */}
+                <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-8 space-y-6">
+                  <div className="border-b border-[#e5d8d0]/60 pb-4">
+                    <h3 className="text-lg font-black text-[#303330]">Yêu cầu Rút Tiền</h3>
+                    <p className="text-xs text-[#8a7e75]">Rút tiền từ số dư khả dụng về tài khoản ngân hàng của bạn.</p>
+                  </div>
+
+                  <form onSubmit={handleWithdrawSubmit} className="space-y-4 text-xs font-bold">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Ngân hàng</label>
+                        <select
+                          required
+                          value={withdrawBank}
+                          onChange={e => setWithdrawBank(e.target.value)}
+                          className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
+                        >
+                          <option value="">-- Chọn ngân hàng --</option>
+                          {banks.map((b: any) => (
+                            <option key={b.code || b.bin} value={b.code || b.shortName || b.name}>
+                              {b.shortName || b.name} ({b.code || b.bin})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Số tài khoản</label>
+                        <input
+                          type="text"
+                          required
+                          value={withdrawAccountNumber}
+                          onChange={e => setWithdrawAccountNumber(e.target.value)}
+                          placeholder="Nhập số tài khoản ngân hàng"
+                          className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Tên chủ tài khoản</label>
+                        <input
+                          type="text"
+                          required
+                          value={withdrawAccountName}
+                          onChange={e => setWithdrawAccountName(e.target.value)}
+                          placeholder="VIẾT HOA KHÔNG DẤU"
+                          className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Số tiền rút (VNĐ)</label>
+                        <input
+                          type="number"
+                          required
+                          min={50000}
+                          value={withdrawAmount}
+                          onChange={e => setWithdrawAmount(e.target.value)}
+                          placeholder="Ví dụ: 500000"
+                          className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isWithdrawing}
+                      style={{ background: 'linear-gradient(135deg, #fa7150 0%, #a43e24 100%)' }}
+                      className="w-full py-3 text-white rounded-full font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      {isWithdrawing ? 'Đang gửi yêu cầu...' : 'Gửi yêu cầu rút tiền'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {/* Column 3: History Logs */}
+              <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-8 space-y-6">
+                <div className="border-b border-[#e5d8d0]/60 pb-4">
+                  <h3 className="text-lg font-black text-[#303330]">Lịch sử Rút Tiền</h3>
+                  <p className="text-xs text-[#8a7e75]">Danh sách các giao dịch rút tiền của bạn.</p>
+                </div>
+
+                <div className="space-y-4 max-h-[450px] overflow-y-auto pr-1">
+                  {withdrawals.length === 0 ? (
+                    <p className="text-center text-xs text-[#8a7e75] py-8">Chưa có giao dịch rút tiền nào.</p>
+                  ) : (
+                    withdrawals.map((w: any) => (
+                      <div key={w.id} className="p-4 bg-[#faf9f6] border border-[#e5d8d0]/60 rounded-2xl space-y-2 text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className="font-black text-[#fa7150]">{w.amount.toLocaleString('vi-VN')}đ</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                            w.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                            w.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                            'bg-rose-50 text-rose-700 border border-rose-100'
+                          }`}>
+                            {w.status === 'PENDING' ? 'Chờ duyệt' :
+                             w.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}
+                          </span>
+                        </div>
+                        <div className="text-[#8a7e75] leading-normal font-semibold space-y-0.5">
+                          <div>Ngân hàng: <span className="text-[#303330]">{w.bankName}</span></div>
+                          <div>Số tài khoản: <span className="text-[#303330]">{w.bankAccountNumber}</span></div>
+                          <div>Chủ tài khoản: <span className="text-[#303330]">{w.bankAccountName}</span></div>
+                          <div className="text-[10px] text-gray-400 mt-1">Yêu cầu lúc: {new Date(w.createdAt).toLocaleString('vi-VN')}</div>
+                        </div>
+                        {w.receiptImageUrl && (
+                          <a
+                            href={w.receiptImageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 block w-full py-1.5 bg-[#fdfaf8] border border-[#e5d8d0] hover:border-[#fa7150] text-[#fa7150] text-center rounded-lg font-black text-[10px] uppercase transition-colors"
+                          >
+                            Xem biên lai chuyển tiền
+                          </a>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
       </main>
 
@@ -2258,6 +3210,39 @@ export const PartnerDashboard = () => {
                           </label>
                         </div>
                       </div>
+                      
+                      {/* Album ảnh bổ sung */}
+                      <div className="mt-4 pt-3 border-t border-[#e5d8d0]/40 text-left">
+                        <span className="block text-[#8a7e75] uppercase text-[10px] tracking-wider mb-2">Album ảnh bổ sung ({hotelImages.length} ảnh)</span>
+                        <div className="grid grid-cols-4 gap-2">
+                          {hotelImages.map((imgUrl, idx) => (
+                            <div key={idx} className="relative group aspect-video rounded-xl overflow-hidden border border-[#e5d8d0]">
+                              <img src={imgUrl} className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => setHotelImages(prev => prev.filter((_, i) => i !== idx))}
+                                className="absolute top-1 right-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                              >
+                                <Trash2 size={10} />
+                              </button>
+                            </div>
+                          ))}
+                          
+                          {/* Upload button card */}
+                          <label className="cursor-pointer bg-[#faf9f6]/40 hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-xl flex flex-col items-center justify-center aspect-video transition-all">
+                            <input 
+                              type="file" 
+                              accept=".png,.jpg,.jpeg" 
+                              disabled={!!uploadingField} 
+                              className="hidden" 
+                              onChange={e => handleFileUpload(e, 'hotelGallery')} 
+                            />
+                            <Upload size={14} className="text-[#fa7150] mb-0.5" />
+                            <span className="text-[8px] uppercase font-black">Thêm ảnh</span>
+                          </label>
+                        </div>
+                      </div>
+
                       {uploadingField && <p className="text-[9px] text-[#fa7150] font-bold animate-pulse text-right">Đang tải tệp tin lên hệ thống...</p>}
                     </div>
                   </div>
@@ -2617,7 +3602,285 @@ export const PartnerDashboard = () => {
           </div>
         </div>
       )}
+      {/* MODAL THÊM/SỬA NHÂN VIÊN */}
+      {showAddStaffModal && (
+        <div className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-[#e5d8d0] animate-in fade-in zoom-in duration-200 text-left">
+            <h3 className="text-xl font-black text-[#303330] mb-4">
+              {editingStaffId ? 'Cập nhật Nhân viên' : 'Thêm Nhân sự Mới'}
+            </h3>
+            <form onSubmit={handleStaffSubmit} className="space-y-4 text-xs font-bold">
+              <div>
+                <label className="block text-[#8a7e75] mb-1.5 uppercase">Email tài khoản đăng ký</label>
+                <input
+                  type="email"
+                  required
+                  disabled={!!editingStaffId}
+                  value={staffForm.email}
+                  onChange={e => setStaffForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Ví dụ: nhanvien@gmail.com"
+                  className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none focus:border-[#fa7150] disabled:bg-gray-100 disabled:text-gray-400"
+                />
+                {!editingStaffId && (
+                  <p className="text-[9px] text-[#8a7e75] mt-1 font-normal">
+                    * Lưu ý: Email này phải thuộc về tài khoản đã đăng ký trên hệ thống PetCare Hub.
+                  </p>
+                )}
+              </div>
 
-    </div>
+              <div>
+                <label className="block text-[#8a7e75] mb-1.5 uppercase">Chức vụ phụ trách</label>
+                <select
+                  value={staffForm.jobPosition}
+                  onChange={e => setStaffForm(prev => ({ ...prev, jobPosition: e.target.value }))}
+                  className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
+                >
+                  <option value="Lễ tân">Lễ tân (Receptionist)</option>
+                  <option value="Bác sĩ thú y">Bác sĩ thú y (Veterinarian)</option>
+                  <option value="Chăm sóc viên">Chăm sóc viên (Pet Care Specialist)</option>
+                  <option value="Giám sát">Giám sát (Supervisor)</option>
+                  <option value="Vệ sinh">Vệ sinh (Cleaner)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[#8a7e75] mb-1.5 uppercase">Trạng thái ca trực</label>
+                <select
+                  value={staffForm.shiftStatus}
+                  onChange={e => setStaffForm(prev => ({ ...prev, shiftStatus: e.target.value as any }))}
+                  className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
+                >
+                  <option value="ACTIVE">Đang trực ca (Active)</option>
+                  <option value="OFF_DUTY">Nghỉ ca (Off-Duty)</option>
+                  <option value="ON_LEAVE">Nghỉ phép (On Leave)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#e5d8d0]/60">
+                <button
+                  type="button"
+                  onClick={() => setShowAddStaffModal(false)}
+                  className="px-5 py-2.5 bg-[#f5ede8] hover:bg-[#e5d8d0] rounded-xl cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#fa7150] text-white rounded-xl cursor-pointer shadow-md"
+                >
+                  {editingStaffId ? 'Lưu thay đổi' : 'Thêm mới'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL THÊM/SỬA THIẾT BỊ */}
+      {showAddEquipmentModal && (
+        <div className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-[#e5d8d0] animate-in fade-in zoom-in duration-200 text-left">
+            <h3 className="text-xl font-black text-[#303330] mb-4">
+              {editingEquipmentId ? 'Cập nhật Thiết bị' : 'Thêm Thiết bị Mới'}
+            </h3>
+            <form onSubmit={handleEquipmentSubmit} className="space-y-4 text-xs font-bold">
+              <div>
+                <label className="block text-[#8a7e75] mb-1.5 uppercase">Tên thiết bị / Dụng cụ</label>
+                <input
+                  type="text"
+                  required
+                  value={equipmentForm.name}
+                  onChange={e => setEquipmentForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Ví dụ: Máy sấy lông chuyên dụng 3000W"
+                  className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none focus:border-[#fa7150]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[#8a7e75] mb-1.5 uppercase">Số lượng</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={equipmentForm.quantity}
+                    onChange={e => setEquipmentForm(prev => ({ ...prev, quantity: Math.max(1, Number(e.target.value)) }))}
+                    className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#8a7e75] mb-1.5 uppercase">Trạng thái vận hành</label>
+                  <select
+                    value={equipmentForm.status}
+                    onChange={e => setEquipmentForm(prev => ({ ...prev, status: e.target.value as any }))}
+                    className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
+                  >
+                    <option value="GOOD">Hoạt động tốt</option>
+                    <option value="MAINTENANCE">Đang bảo dưỡng</option>
+                    <option value="BROKEN">Hỏng hóc / Chờ sửa</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[#8a7e75] mb-1.5 uppercase">Ngày bảo trì gần nhất (Năm-Tháng-Ngày)</label>
+                <input
+                  type="date"
+                  value={equipmentForm.lastMaintenance}
+                  onChange={e => setEquipmentForm(prev => ({ ...prev, lastMaintenance: e.target.value }))}
+                  className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#e5d8d0]/60">
+                <button
+                  type="button"
+                  onClick={() => setShowAddEquipmentModal(false)}
+                  className="px-5 py-2.5 bg-[#f5ede8] hover:bg-[#e5d8d0] rounded-xl cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#fa7150] text-white rounded-xl cursor-pointer shadow-md"
+                >
+                  {editingEquipmentId ? 'Lưu thay đổi' : 'Thêm mới'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL GIẢ LẬP GỬI THÔNG BÁO (SANDBOX) */}
+      {showNotificationSandboxModal && (
+        <div className="fixed inset-0 z-[110] bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl border border-[#e5d8d0] animate-in fade-in zoom-in duration-200 text-left">
+            <h3 className="text-xl font-black text-[#303330] mb-2 flex items-center gap-2">
+              <MessageSquare size={22} className="text-[#fa7150]" />
+              Giả lập Gửi Thông báo & Live Preview
+            </h3>
+            <p className="text-xs text-[#8a7e75] mb-6">Trải nghiệm cách khách hàng nhận thông báo theo mẫu cấu hình của bạn.</p>
+            
+            {/* Channel selection */}
+            <div className="flex gap-2 p-1 bg-[#f0ece9]/60 rounded-xl mb-6 font-bold">
+              {(['SMS', 'Zalo', 'Email'] as const).map(channel => (
+                <button
+                  key={channel}
+                  type="button"
+                  onClick={() => setSandboxChannel(channel)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-black transition-all ${
+                    sandboxChannel === channel
+                      ? 'bg-white text-[#303330] shadow-sm'
+                      : 'text-[#8a7e75] hover:text-[#303330]'
+                  }`}
+                >
+                  {channel}
+                </button>
+              ))}
+            </div>
+
+            {/* Simulated Live Preview */}
+            <div className="bg-[#faf9f6] border border-[#e5d8d0] rounded-2xl p-6 mb-6">
+              <span className="text-[9px] font-black text-[#8a7e75] uppercase block mb-3">Xem trước nội dung (Live Preview)</span>
+              
+              {sandboxChannel === 'Zalo' && (
+                <div className="bg-white border border-[#e5d8d0] rounded-xl overflow-hidden shadow-sm max-w-sm mx-auto">
+                  {/* Zalo Header */}
+                  <div className="bg-[#0068ff] p-3 flex items-center gap-2.5 text-white">
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-black text-xs">P</div>
+                    <div className="leading-tight text-left">
+                      <span className="font-bold text-xs block">PetCare Hub Official</span>
+                      <span className="text-[9px] opacity-85 block">✓ Tài khoản xác thực</span>
+                    </div>
+                  </div>
+                  {/* Zalo Body */}
+                  <div className="p-4 space-y-3 text-left">
+                    <h4 className="font-black text-xs text-[#303330]">THÔNG BÁO XÁC NHẬN NHẬN PHÒNG</h4>
+                    <p className="text-xs font-semibold text-[#5a5550] whitespace-pre-line leading-relaxed">
+                      {emailTemplate
+                        .replace('{{pet_name}}', 'Bé Bơ 🐶')
+                        .replace('{{check_in_date}}', '15/06/2026')
+                        .replace('{{room_type}}', 'Phòng Deluxe')
+                        .replace('{{owner_name}}', 'Nguyễn Minh Anh')}
+                    </p>
+                    <div className="h-px bg-gray-100" />
+                    <button type="button" className="w-full py-2 bg-[#f0f7ff] text-[#0068ff] font-black text-[10px] rounded-lg border border-[#0068ff]/10 hover:bg-[#e1f0ff] transition-colors cursor-pointer uppercase">
+                      Xem chi tiết lịch đặt
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {sandboxChannel === 'SMS' && (
+                <div className="bg-[#e9e9eb] p-4 rounded-3xl max-w-xs mx-auto text-left relative">
+                  <div className="text-[10px] text-gray-500 font-black text-center mb-2">SMS từ PetCareHub</div>
+                  <div className="bg-white p-3 rounded-2xl text-xs font-semibold text-gray-800 leading-relaxed shadow-sm relative after:content-[''] after:absolute after:bottom-2 after:-left-1.5 after:w-3 after:h-3 after:bg-white after:rotate-45">
+                    {emailTemplate
+                      .replace('{{pet_name}}', 'Bé Bơ 🐶')
+                      .replace('{{check_in_date}}', '15/06/2026')
+                      .replace('{{room_type}}', 'Phòng Deluxe')
+                      .replace('{{owner_name}}', 'Nguyễn Minh Anh')}
+                  </div>
+                </div>
+              )}
+
+              {sandboxChannel === 'Email' && (
+                <div className="bg-white border border-[#e5d8d0] rounded-xl overflow-hidden shadow-sm text-left">
+                  {/* Email header */}
+                  <div className="bg-[#faf9f6] border-b border-[#e5d8d0]/60 p-3 text-[10px] text-[#8a7e75] space-y-1 font-bold">
+                    <div>Từ: <span className="text-gray-700 font-mono">no-reply@petcarehub.com</span></div>
+                    <div>Tới: <span className="text-gray-700 font-mono">minhanh.nguyen@gmail.com</span></div>
+                    <div>Tiêu đề: <span className="text-gray-900 font-black">Xác nhận dịch vụ tại PetCare Hub</span></div>
+                  </div>
+                  {/* Email body */}
+                  <div className="p-4 space-y-4">
+                    <div className="w-12 h-12 bg-[#fa7150]/10 rounded-full flex items-center justify-center text-[#fa7150] mb-2">
+                      <PawPrint size={24} />
+                    </div>
+                    <p className="text-xs font-semibold text-gray-700 whitespace-pre-line leading-relaxed">
+                      {emailTemplate
+                        .replace('{{pet_name}}', 'Bé Bơ 🐶')
+                        .replace('{{check_in_date}}', '15/06/2026')
+                        .replace('{{room_type}}', 'Phòng Deluxe')
+                        .replace('{{owner_name}}', 'Nguyễn Minh Anh')}
+                    </p>
+                    <p className="text-[10px] text-gray-400 font-normal">
+                      Đây là email tự động gửi từ đối tác của PetCare Hub. Vui lòng không trả lời trực tiếp email này.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal actions */}
+            <div className="flex justify-between items-center pt-4 border-t border-[#e5d8d0]/60 font-bold">
+              <span className="text-[10px] font-bold text-gray-400">Trạng thái: Sẵn sàng gửi tin giả lập</span>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowNotificationSandboxModal(false)}
+                  className="px-5 py-2.5 bg-[#f5ede8] hover:bg-[#e5d8d0] rounded-xl cursor-pointer font-bold text-xs"
+                >
+                  Đóng
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert(`Đã giả lập gửi tin nhắn thành công qua kênh ${sandboxChannel} tới khách hàng Nguyễn Minh Anh!`);
+                    setShowNotificationSandboxModal(false);
+                  }}
+                  style={orangeGradient}
+                  className="px-6 py-2.5 text-white rounded-xl cursor-pointer shadow-md font-bold text-xs uppercase tracking-wider hover:scale-[1.02] transition-transform"
+                >
+                  Gửi ngay
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </>
   )
 }

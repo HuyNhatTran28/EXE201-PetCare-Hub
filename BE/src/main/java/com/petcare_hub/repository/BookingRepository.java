@@ -55,4 +55,16 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.status = 'COMPLETED'")
     java.math.BigDecimal sumTotalAmount();
+
+    @Query("""
+        SELECT b FROM Booking b
+        JOIN b.pets p
+        WHERE p.id = :petId AND b.hotel.partner.id = :partnerId
+        ORDER BY b.createdAt DESC
+    """)
+    List<Booking> findBookingsByPetIdAndPartnerId(
+        @Param("petId") UUID petId,
+        @Param("partnerId") UUID partnerId
+    );
 }
+

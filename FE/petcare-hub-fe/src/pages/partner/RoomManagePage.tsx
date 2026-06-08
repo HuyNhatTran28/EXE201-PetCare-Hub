@@ -1,18 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import {
-  PawPrint,
   ArrowLeft,
   PlusCircle,
   Video,
   DollarSign,
   Maximize2,
   Edit3,
-  Calendar,
   Building,
-  LogOut,
-  ChevronRight,
-  BarChart2,
   Eye,
   EyeOff
 } from 'lucide-react'
@@ -62,8 +57,7 @@ const RoomImageSlideshow = ({ images, name }: { images: string[]; name: string }
 }
 
 export const RoomManagePage = () => {
-  const { user, logout } = useAuthStore()
-  const navigate = useNavigate()
+  const { user } = useAuthStore()
   const { hotelId } = useParams<{ hotelId: string }>()
   const [rooms, setRooms] = useState<RoomType[]>([])
   const [loading, setLoading] = useState(true)
@@ -207,94 +201,10 @@ export const RoomManagePage = () => {
   }, [hotelId])
 
   // Design Tokens
-  const orangeGradient = { background: 'linear-gradient(135deg, #fa7150 0%, #a43e24 100%)' }
   const cardShadow = { boxShadow: '0 20px 40px rgba(164, 62, 36, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02)' }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans flex flex-col md:flex-row">
-
-      {/* ── SIDEBAR NAVIGATION ── */}
-      <aside className="w-full md:w-80 bg-white border-r border-[#e5d8d0] flex flex-col justify-between p-6 shrink-0 z-30 shadow-[4px_0_24px_rgba(0,0,0,0.01)]">
-        <div className="space-y-10">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white" style={orangeGradient}>
-              <PawPrint size={22} />
-            </div>
-            <div className="text-left">
-              <span className="text-lg font-black tracking-tight block">PetCare Hub</span>
-              <span className="text-[10px] uppercase font-black tracking-widest text-[#fa7150]">RESORT CONSOLE</span>
-            </div>
-          </Link>
-
-          {/* User Brief */}
-          <div className="bg-[#faf9f6] p-4 rounded-2xl flex items-center gap-3 border border-[#e5d8d0]/60">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-[#e5d8d0] text-sm font-black text-[#fa7150]">
-              {user?.fullName?.charAt(0) || 'P'}
-            </div>
-            <div className="text-left overflow-hidden">
-              <span className="text-sm font-bold text-[#303330] block truncate">{user?.fullName || 'Đối tác'}</span>
-              <span className="text-[10px] font-semibold text-[#8a7e75] block truncate">{user?.email || 'partner@gmail.com'}</span>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="flex flex-col gap-2">
-            <Link
-              to="/partner/dashboard"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330] transition-all"
-            >
-              <span className="flex items-center gap-3">
-                <Building size={18} /> Quản Lý Khách Sạn
-              </span>
-              <ChevronRight size={14} className="opacity-0" />
-            </Link>
-
-            <Link
-              to="/partner/dashboard?tab=analytics"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330] transition-all"
-            >
-              <span className="flex items-center gap-3">
-                <BarChart2 size={18} /> Báo Cáo Thống Kê
-              </span>
-              <ChevronRight size={14} className="opacity-0" />
-            </Link>
-
-            <Link
-              to="/partner/bookings"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330] transition-all"
-            >
-              <span className="flex items-center gap-3">
-                <Calendar size={18} /> Duyệt Bookings
-              </span>
-              <ChevronRight size={14} className="opacity-0" />
-            </Link>
-
-            <Link
-              to="/partner/hotels/new"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330] transition-all"
-            >
-              <span className="flex items-center gap-3">
-                <Building size={18} /> Đăng Ký Cơ Sở
-              </span>
-              <PlusCircle size={14} className="text-[#fa7150]" />
-            </Link>
-          </nav>
-        </div>
-
-        {/* Footer Logout */}
-        <div className="pt-6 border-t border-[#e5d8d0]/60 mt-10 md:mt-0">
-          <button
-            onClick={() => { logout(); navigate('/login'); }}
-            className="w-full py-3 px-4 rounded-2xl border border-red-100 text-red-500 font-bold text-xs flex items-center justify-center gap-2 hover:bg-red-50 transition-all cursor-pointer"
-          >
-            <LogOut size={16} /> Đăng xuất đối tác
-          </button>
-        </div>
-      </aside>
-
-      {/* ── MAIN CONTENT AREA ── */}
-      <main className="flex-grow flex flex-col min-w-0">
+    <div className="flex-grow flex flex-col min-w-0">
 
         {/* ── TOP UTILITIES BAR ── */}
         <header className="h-20 bg-white border-b border-[#e5d8d0] px-8 flex items-center justify-between shrink-0">
@@ -435,8 +345,6 @@ export const RoomManagePage = () => {
           )}
 
         </div>
-
-      </main>
 
       {/* ── MODAL TẠO PHÒNG ── */}
       {showModal && (

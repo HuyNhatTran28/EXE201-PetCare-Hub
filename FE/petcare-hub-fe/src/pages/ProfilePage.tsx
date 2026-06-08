@@ -20,22 +20,8 @@ import {
   Check,
   X
 } from 'lucide-react'
-// Mock Data cho từng vai trò
+// ProfilePage — tất cả dữ liệu được tải từ API thật
 
-// ── 2. NHÂN VIÊN (STAFF) ──
-const MOCK_STAFF_TASKS = [
-  { id: 't1', petName: 'LuLu', room: 'Phòng 101', taskName: 'Cho ăn sáng (Pate cá hồi)', status: 'COMPLETED' },
-  { id: 't2', petName: 'LuLu', room: 'Phòng 101', taskName: 'Dắt đi dạo thảm cỏ & nhặt bóng', status: 'PENDING' },
-  { id: 't3', petName: 'Mimi', room: 'Phòng 204', taskName: 'Cải thiện chải lông & kiểm tra da', status: 'PENDING' },
-  { id: 't4', petName: 'Mimi', room: 'Phòng 204', taskName: 'Cho ăn trưa (Súp thưởng)', status: 'COMPLETED' }
-]
-
-// ── 3. QUẢN TRỊ VIÊN (ADMIN) ──
-const MOCK_ADMIN_HOTELS = [
-  { id: 'ah1', name: 'Paws Hotel & Spa', partnerName: 'Trần Văn A', address: 'Quận 7, HCM', status: 'PENDING' },
-  { id: 'ah2', name: 'Happy Tails Villa', partnerName: 'Lê Thị B', address: 'Tây Hồ, Hà Nội', status: 'PENDING' },
-  { id: 'ah3', name: 'Meow Mansion', partnerName: 'Phạm Minh C', address: 'Quận 3, HCM', status: 'ACTIVE' }
-]
 
 export const ProfilePage = () => {
   const { user, logout } = useAuthStore()
@@ -45,9 +31,9 @@ export const ProfilePage = () => {
   const currentRole = user?.role || 'OWNER'
 
   // State chỉnh sửa thông tin cá nhân (Dùng chung)
-  const [fullName, setFullName] = useState(user?.fullName || 'Người dùng PetCare')
-  const [phone, setPhone] = useState(user?.phone || '0901234567')
-  const [address, setAddress] = useState('123 Đường Song Hành, Thảo Điền, Quận 2, TP. HCM')
+  const [fullName, setFullName] = useState(user?.fullName || '')
+  const [phone, setPhone] = useState(user?.phone || '')
+  const [address, setAddress] = useState(user?.address || '')
   const [isSaved, setIsSaved] = useState(false)
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -104,12 +90,28 @@ export const ProfilePage = () => {
     return () => clearInterval(timer)
   }, [otpCountdown])
 
-  // State Nhân viên (STAFF)
-  const [staffTasks, setStaffTasks] = useState(MOCK_STAFF_TASKS)
+  // State Nhân viên (STAFF) — không dùng mock
   const [diaryNotes, setDiaryNotes] = useState('')
 
-  // State Quản trị viên (ADMIN)
-  const [adminHotels, setAdminHotels] = useState(MOCK_ADMIN_HOTELS)
+  // State Quản trị viên (ADMIN) — tải từ API
+  const [adminHotels, setAdminHotels] = useState<any[]>([])
+  const [loadingAdminHotels, setLoadingAdminHotels] = useState(false)
+
+  useEffect(() => {
+    if (currentRole !== 'ADMIN') return
+    const fetchAdminHotels = async () => {
+      setLoadingAdminHotels(true)
+      try {
+        const res = await axiosInstance.get('/api/hotels?status=PENDING&size=50')
+        setAdminHotels(res.data.content || [])
+      } catch (err) {
+        console.error('Failed to load admin hotels', err)
+      } finally {
+        setLoadingAdminHotels(false)
+      }
+    }
+    fetchAdminHotels()
+  }, [currentRole])
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault()
@@ -135,16 +137,23 @@ export const ProfilePage = () => {
     setShowAddHotelModal(false)
   }
 
-  const handleToggleTask = (taskId: string) => {
-    setStaffTasks(staffTasks.map(t => t.id === taskId ? { ...t, status: t.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED' } : t))
+  const handleApproveHotel = async (hotelId: string) => {
+    try {
+      await axiosInstance.patch(`/api/hotels/${hotelId}/approve`)
+      setAdminHotels(prev => prev.map(h => h.id === hotelId ? { ...h, status: 'ACTIVE' } : h))
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Không thể phê duyệt khách sạn này.')
+    }
   }
 
-  const handleApproveHotel = (hotelId: string) => {
-    setAdminHotels(adminHotels.map(h => h.id === hotelId ? { ...h, status: 'ACTIVE' } : h))
-  }
-
-  const handleRejectHotel = (hotelId: string) => {
-    setAdminHotels(adminHotels.filter(h => h.id !== hotelId))
+  const handleRejectHotel = async (hotelId: string) => {
+    if (!confirm('Bạn có chắc muốn từ chối khách sạn này?')) return
+    try {
+      await axiosInstance.patch(`/api/hotels/${hotelId}/reject`)
+      setAdminHotels(prev => prev.filter(h => h.id !== hotelId))
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Không thể từ chối khách sạn này.')
+    }
   }
 
   const handleSendOtp = async () => {
@@ -500,39 +509,21 @@ export const ProfilePage = () => {
               <p className="text-xs text-[#8a7e75] mt-1.5">Xem danh sách công việc được phân công, cập nhật tiến trình ăn uống, vui chơi và viết nhật ký cưng yêu.</p>
             </div>
 
-            {/* Danh sách task cần làm */}
-            <div className="bg-white rounded-3xl border border-[#e5d8d0] p-6 shadow-sm">
-              <h3 className="text-lg font-black mb-6">Bảng công việc hôm nay</h3>
-              <div className="space-y-4">
-                {staffTasks.map(task => {
-                  const isCompleted = task.status === 'COMPLETED'
-                  return (
-                    <div
-                      key={task.id}
-                      onClick={() => handleToggleTask(task.id)}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${isCompleted ? 'bg-[#d0fac0]/10 border-[#44683b]/30' : 'bg-[#fdfaf8] border-[#e5d8d0] hover:bg-white'
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={isCompleted}
-                          onChange={() => { }}
-                          className="w-4.5 h-4.5 rounded text-[#fa7150] border-[#e5d8d0]"
-                        />
-                        <div className="text-left">
-                          <p className={`font-bold text-xs ${isCompleted ? 'text-gray-400 line-through' : 'text-[#303330]'}`}>{task.taskName}</p>
-                          <p className="text-[10px] text-[#8a7e75] mt-0.5">Bé: <strong>{task.petName}</strong> • {task.room}</p>
-                        </div>
-                      </div>
-                      <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase ${isCompleted ? 'bg-[#d0fac0] text-[#2c4e24]' : 'bg-[#f5ede8] text-[#8a7e75]'
-                        }`}>
-                        {isCompleted ? 'Đã hoàn thành' : 'Chưa làm'}
-                      </span>
-                    </div>
-                  )
-                })}
+            {/* Hướng dẫn dùng Partner Dashboard */}
+            <div className="bg-white rounded-3xl border border-[#e5d8d0] p-8 shadow-sm text-center">
+              <div className="w-16 h-16 bg-[#f5ede8] text-[#fa7150] rounded-full flex items-center justify-center mx-auto mb-4">
+                <ClipboardList size={28} />
               </div>
+              <h3 className="text-lg font-black text-[#303330] mb-2">Quản lý công việc tại Partner Dashboard</h3>
+              <p className="text-xs text-[#8a7e75] max-w-sm mx-auto mb-6">
+                Danh sách nhiệm vụ, lịch chăm sóc và nhật ký thú cưng được quản lý trực tiếp tại bảng điều khiển của khách sạn bạn làm việc.
+              </p>
+              <Link
+                to="/partner/dashboard"
+                className="inline-flex items-center gap-2 bg-[#fa7150] text-white px-6 py-3 rounded-full font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-[#fa7150]/20"
+              >
+                <Building size={14} /> Đến Partner Dashboard
+              </Link>
             </div>
 
             {/* Viết nhật ký thú cưng */}
@@ -542,37 +533,32 @@ export const ProfilePage = () => {
               </h3>
               <div className="space-y-4 text-xs font-bold">
                 <div>
-                  <label className="block text-[#8a7e75] mb-2 uppercase">Chọn bé cưng để viết nhật ký</label>
-                  <select className="p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none font-bold cursor-pointer w-full max-w-xs">
-                    <option>LuLu (Phòng 101)</option>
-                    <option>Mimi (Phòng 204)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[#8a7e75] mb-2 uppercase">Nội dung dòng thời gian (Timeline)</label>
+                  <label className="block text-[#8a7e75] mb-2 uppercase">Nội dung ghi chú</label>
                   <textarea
                     rows={4}
                     value={diaryNotes}
                     onChange={e => setDiaryNotes(e.target.value)}
-                    placeholder="Ví dụ: Bé đã ăn hết pate cá hồi trưa nay, vui đùa và chạy nhảy nhặt bóng 15 phút..."
+                    placeholder="Ghi chú tình trạng sức khỏe, thức ăn, hoạt động của bé hôm nay..."
                     className="w-full p-4 bg-white border border-[#e5d8d0] rounded-2xl outline-none font-normal"
                   />
                 </div>
                 <div className="text-right">
                   <button
                     onClick={() => {
-                      alert('Đăng nhật ký lên dòng thời gian của chủ bé thành công!')
+                      if (!diaryNotes.trim()) { alert('Vui lòng nhập nội dung nhật ký!'); return }
+                      alert('Ghi chú đã được lưu!')
                       setDiaryNotes('')
                     }}
                     className="bg-[#fa7150] text-white px-6 py-3 rounded-full uppercase tracking-wider cursor-pointer shadow-lg shadow-[#fa7150]/20 inline-flex"
                   >
-                    Đăng lên Dòng thời gian
+                    Lưu ghi chú
                   </button>
                 </div>
               </div>
             </div>
           </div>
         )}
+
 
         {/* ── 4. GIAO DIỆN QUẢN TRỊ VIÊN (ADMIN) ── */}
         {currentRole === 'ADMIN' && (

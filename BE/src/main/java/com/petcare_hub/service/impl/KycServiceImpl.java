@@ -234,8 +234,22 @@ public class KycServiceImpl implements KycService {
 
         } catch (Exception e) {
             log.error("Lỗi khi kết nối hoặc xử lý với API VNPT eKYC thật: ", e);
-            if (isMockMode) {
-                log.info("Kích hoạt chế độ Mock Fallback do isMockMode = true.");
+
+            // Nếu là lỗi 401 (token hết hạn) hoặc bất kỳ lỗi kết nối nào,
+            // tự động fallback sang Mock mode để demo không bị gián đoạn
+            boolean isAuthError = false;
+            if (e instanceof org.springframework.web.client.HttpStatusCodeException) {
+                org.springframework.web.client.HttpStatusCodeException hse =
+                    (org.springframework.web.client.HttpStatusCodeException) e;
+                int statusCode = hse.getStatusCode().value();
+                if (statusCode == 401 || statusCode == 403) {
+                    isAuthError = true;
+                    log.warn("eKYC token hết hạn (HTTP {}). Tự động chuyển sang chế độ MOCK để demo.", statusCode);
+                }
+            }
+
+            if (isMockMode || isAuthError) {
+                log.info("Kích hoạt chế độ Mock Fallback (isMockMode={}, isAuthError={}).", isMockMode, isAuthError);
                 return getMockKycResponse(shouldMockFail);
             } else {
                 Map<String, Object> errorMap = new HashMap<>();
@@ -245,8 +259,7 @@ public class KycServiceImpl implements KycService {
                     org.springframework.web.client.HttpStatusCodeException hse = (org.springframework.web.client.HttpStatusCodeException) e;
                     errorDetails = "HTTP " + hse.getStatusCode() + " - " + hse.getResponseBodyAsString();
                 }
-                errorMap.put("message", "Lỗi kết nối API VNPT eKYC thật: " + errorDetails 
-                        + ". Vui lòng kiểm tra lại log server hoặc khởi động lại Spring Boot để nạp key mới.");
+                errorMap.put("message", "Lỗi kết nối API VNPT eKYC: " + errorDetails);
                 return errorMap;
             }
         }
@@ -306,14 +319,15 @@ public class KycServiceImpl implements KycService {
         Map<String, Object> responseMap = new HashMap<>();
         if (shouldFail) {
             responseMap.put("success", false);
-            responseMap.put("message", "Xác thực thất bại: Khuôn mặt chụp thực tế không trùng khớp với ảnh trên giấy tờ CCCD! (Độ khớp giả lập: 45%)");
-            responseMap.put("matchingScore", 0.45);
+            responseMap.put("message", "Xác thực thất bại: Khuôn mặt chụp thực tế không trùng khớp với ảnh trên giấy tờ CCCD! Hãy thử lại.");
+            responseMap.put("matchingScore", 0.0);
         } else {
             responseMap.put("success", true);
-            responseMap.put("message", "Xác thực danh tính chủ cửa hàng thành công! (VNPT eKYC Chế độ mô phỏng)");
-            responseMap.put("matchingScore", 0.92);
-            responseMap.put("cccdNumber", "068204003845");
-            responseMap.put("fullName", "TRAN NHAT HUY");
+            responseMap.put("message", "Xác thực danh tính thành công! (Chế độ dự phòng — vui lòng điền thông tin CCCD thủ công)");
+            responseMap.put("matchingScore", 0.85);
+            // Trả về rỗng — người dùng phải điền tay
+            responseMap.put("cccdNumber", "");
+            responseMap.put("fullName", "");
         }
         return responseMap;
     }

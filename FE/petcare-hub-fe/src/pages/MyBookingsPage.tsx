@@ -80,6 +80,21 @@ export const MyBookingsPage = () => {
     }
   }
 
+  const handlePayNow = async (booking: Booking) => {
+    try {
+      const res = await axiosInstance.post('/api/payment/create-payment-link', {
+        bookingId: booking.id
+      })
+      if (res.data && res.data.checkoutUrl) {
+        window.location.href = res.data.checkoutUrl
+      } else {
+        alert('Không thể tạo liên kết thanh toán.')
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Lỗi khi kết nối đến cổng thanh toán.')
+    }
+  }
+
   const filtered = activeTab === 'ALL'
     ? bookings
     : bookings.filter(b => b.status === activeTab)
@@ -417,6 +432,27 @@ const PaymentModal = ({ booking, onClose, onConfirmed }: {
 }) => {
   const [polling, setPolling] = useState(true)
   const [countdown, setCountdown] = useState(900) // 15 phút
+  const [payosData, setPayosData] = useState<any>(null)
+  const [loadingPayos, setLoadingPayos] = useState(true)
+
+  // Fetch payOS link
+  useEffect(() => {
+    const initPayment = async () => {
+      try {
+        const res = await axiosInstance.post('/api/payment/create-payment-link', {
+          bookingId: booking.id
+        })
+        if (res.data) {
+          setPayosData(res.data)
+        }
+      } catch (err) {
+        console.error('Error creating payment link', err)
+      } finally {
+        setLoadingPayos(false)
+      }
+    }
+    initPayment()
+  }, [booking.id])
 
   // Countdown
   useEffect(() => {
@@ -469,22 +505,43 @@ const PaymentModal = ({ booking, onClose, onConfirmed }: {
         </div>
 
         {/* QR */}
-        <div className="bg-[#faf9f6] rounded-2xl p-4 mb-4 border border-[#e5d8d0] text-center">
-          <img
-            src={`https://img.vietqr.io/image/MB-0123456789-compact2.png?amount=${booking.totalAmount}&addInfo=${booking.invoiceNumber}&accountName=PETCARE HUB`}
-            alt="QR thanh toán"
-            className="w-48 h-48 mx-auto"
-          />
-          <p className="text-[10px] text-[#8a7e75] mt-2 font-bold">
-            Quét bằng app ngân hàng bất kỳ
-          </p>
+        <div className="bg-[#faf9f6] rounded-2xl p-4 mb-4 border border-[#e5d8d0] text-center min-h-[220px] flex flex-col items-center justify-center">
+          {loadingPayos ? (
+            <>
+              <span className="w-8 h-8 rounded-full border-4 border-[#a43e24]/20 border-t-[#a43e24] animate-spin inline-block mb-3" />
+              <p className="text-[10px] text-[#8a7e75] font-bold">Đang tạo mã QR payOS...</p>
+            </>
+          ) : payosData ? (
+            <>
+              <img
+                src={`https://img.vietqr.io/image/${payosData.bin}-${payosData.accountNumber}-compact2.png?amount=${payosData.amount}&addInfo=${payosData.description}&accountName=${encodeURIComponent(payosData.accountName)}`}
+                alt="QR thanh toán"
+                className="w-48 h-48 mx-auto rounded-xl shadow-sm border border-stone-200"
+              />
+              <p className="text-[10px] text-[#8a7e75] mt-2 font-bold">
+                Tài khoản: {payosData.accountNumber} - {payosData.accountName}
+              </p>
+              <a 
+                href={payosData.checkoutUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="mt-3 text-xs text-[#a43e24] hover:underline font-black block"
+              >
+                Mở link thanh toán payOS ↗
+              </a>
+            </>
+          ) : (
+            <p className="text-xs text-rose-500 font-bold py-6">Không thể khởi tạo cổng thanh toán payOS</p>
+          )}
         </div>
 
         {/* Nội dung CK */}
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-          <p className="text-xs font-bold text-amber-700">Nội dung chuyển khoản:</p>
-          <p className="text-xs font-black text-amber-900 mt-1">{booking.invoiceNumber}</p>
-        </div>
+        {payosData && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-left">
+            <p className="text-xs font-bold text-amber-700">Nội dung chuyển khoản:</p>
+            <p className="text-xs font-black text-[#303330] mt-1">{payosData.description}</p>
+          </div>
+        )}
 
         {/* Polling status */}
         <div className="flex items-center justify-center gap-2 mb-4">

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import {
-  PawPrint,
   ArrowLeft,
   PlusCircle,
   Clock,
@@ -11,11 +10,6 @@ import {
   Utensils,
   PlusSquare,
   Edit2,
-  Calendar,
-  Building,
-  LogOut,
-  ChevronRight,
-  BarChart2,
   Eye,
   EyeOff
 } from 'lucide-react'
@@ -30,12 +24,12 @@ interface Service {
   durationMinutes: number
   serviceType: string
   imageUrl?: string
+  imageUrls?: string[]
   isEnabled?: boolean
 }
 
 export const ServiceManagePage = () => {
-  const { user, logout } = useAuthStore()
-  const navigate = useNavigate()
+  const { user } = useAuthStore()
   const { hotelId } = useParams<{ hotelId: string }>()
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,7 +45,8 @@ export const ServiceManagePage = () => {
     price: '',
     durationMinutes: '',
     serviceType: 'SPA',
-    imageUrl: ''
+    imageUrl: '',
+    imageUrls: [] as string[]
   })
 
   const SERVICE_TYPES = ['SPA', 'GROOMING', 'TRANSPORT', 'FOOD', 'MEDICATION']
@@ -81,9 +76,15 @@ export const ServiceManagePage = () => {
       })
       const url = res.data.url
       if (editService) {
-        setEditService(prev => prev ? { ...prev, imageUrl: url } : null)
+        setEditService(prev => prev ? {
+          ...prev,
+          imageUrls: [...(prev.imageUrls || []), url]
+        } : null)
       } else {
-        setForm(prev => ({ ...prev, imageUrl: url }))
+        setForm(prev => ({
+          ...prev,
+          imageUrls: [...(prev.imageUrls || []), url]
+        }))
       }
     } catch (err) {
       console.error('Upload failed', err)
@@ -111,11 +112,11 @@ export const ServiceManagePage = () => {
         price: Number(form.price),
         durationMinutes: Number(form.durationMinutes) || 0,
         serviceType: form.serviceType,
-        imageUrl: form.imageUrl
+        imageUrls: form.imageUrls
       })
       await fetchServices()
       setShowModal(false)
-      setForm({ name: '', description: '', price: '', durationMinutes: '', serviceType: 'SPA', imageUrl: '' })
+      setForm({ name: '', description: '', price: '', durationMinutes: '', serviceType: 'SPA', imageUrl: '', imageUrls: [] })
     } catch (err) {
       console.error('Failed to create service', err)
       alert('Không thể tạo dịch vụ')
@@ -142,7 +143,7 @@ export const ServiceManagePage = () => {
         price: Number(editService.price),
         durationMinutes: Number(editService.durationMinutes) || 0,
         serviceType: editService.serviceType,
-        imageUrl: editService.imageUrl
+        imageUrls: editService.imageUrls || []
       })
       await fetchServices()
       setEditService(null)
@@ -178,94 +179,10 @@ export const ServiceManagePage = () => {
   }
 
   // Design Tokens
-  const orangeGradient = { background: 'linear-gradient(135deg, #fa7150 0%, #a43e24 100%)' }
   const cardShadow = { boxShadow: '0 20px 40px rgba(164, 62, 36, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02)' }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans flex flex-col md:flex-row">
-
-      {/* ── SIDEBAR NAVIGATION ── */}
-      <aside className="w-full md:w-80 bg-white border-r border-[#e5d8d0] flex flex-col justify-between p-6 shrink-0 z-30 shadow-[4px_0_24px_rgba(0,0,0,0.01)]">
-        <div className="space-y-10">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white" style={orangeGradient}>
-              <PawPrint size={22} />
-            </div>
-            <div className="text-left">
-              <span className="text-lg font-black tracking-tight block">PetCare Hub</span>
-              <span className="text-[10px] uppercase font-black tracking-widest text-[#fa7150]">RESORT CONSOLE</span>
-            </div>
-          </Link>
-
-          {/* User Brief */}
-          <div className="bg-[#faf9f6] p-4 rounded-2xl flex items-center gap-3 border border-[#e5d8d0]/60">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-[#e5d8d0] text-sm font-black text-[#fa7150]">
-              {user?.fullName?.charAt(0) || 'P'}
-            </div>
-            <div className="text-left overflow-hidden">
-              <span className="text-sm font-bold text-[#303330] block truncate">{user?.fullName || 'Đối tác'}</span>
-              <span className="text-[10px] font-semibold text-[#8a7e75] block truncate">{user?.email || 'partner@gmail.com'}</span>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="flex flex-col gap-2">
-            <Link
-              to="/partner/dashboard"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330] transition-all"
-            >
-              <span className="flex items-center gap-3">
-                <Building size={18} /> Quản Lý Khách Sạn
-              </span>
-              <ChevronRight size={14} className="opacity-0" />
-            </Link>
-
-            <Link
-              to="/partner/dashboard?tab=analytics"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330] transition-all"
-            >
-              <span className="flex items-center gap-3">
-                <BarChart2 size={18} /> Báo Cáo Thống Kê
-              </span>
-              <ChevronRight size={14} className="opacity-0" />
-            </Link>
-
-            <Link
-              to="/partner/bookings"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330] transition-all"
-            >
-              <span className="flex items-center gap-3">
-                <Calendar size={18} /> Duyệt Bookings
-              </span>
-              <ChevronRight size={14} className="opacity-0" />
-            </Link>
-
-            <Link
-              to="/partner/hotels/new"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-xs text-[#5a5550] hover:bg-[#faf9f6] hover:text-[#303330] transition-all"
-            >
-              <span className="flex items-center gap-3">
-                <Building size={18} /> Đăng Ký Cơ Sở
-              </span>
-              <PlusCircle size={14} className="text-[#fa7150]" />
-            </Link>
-          </nav>
-        </div>
-
-        {/* Footer Logout */}
-        <div className="pt-6 border-t border-[#e5d8d0]/60 mt-10 md:mt-0">
-          <button
-            onClick={() => { logout(); navigate('/login'); }}
-            className="w-full py-3 px-4 rounded-2xl border border-red-100 text-red-500 font-bold text-xs flex items-center justify-center gap-2 hover:bg-red-50 transition-all cursor-pointer"
-          >
-            <LogOut size={16} /> Đăng xuất đối tác
-          </button>
-        </div>
-      </aside>
-
-      {/* ── MAIN CONTENT AREA ── */}
-      <main className="flex-grow flex flex-col min-w-0">
+    <div className="flex-grow flex flex-col min-w-0">
 
         {/* ── TOP UTILITIES BAR ── */}
         <header className="h-20 bg-white border-b border-[#e5d8d0] px-8 flex items-center justify-between shrink-0">
@@ -324,7 +241,20 @@ export const ServiceManagePage = () => {
                   style={cardShadow}
                 >
                   <div>
-                    {service.imageUrl && (
+                    {(service.imageUrls && service.imageUrls.length > 0) ? (
+                      <div className="relative h-40 overflow-hidden rounded-2xl mb-4 bg-gray-50">
+                        <img
+                          src={service.imageUrls[0]}
+                          alt={service.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {service.imageUrls.length > 1 && (
+                          <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
+                            + {service.imageUrls.length - 1} ảnh
+                          </div>
+                        )}
+                      </div>
+                    ) : service.imageUrl ? (
                       <div className="relative h-40 overflow-hidden rounded-2xl mb-4 bg-gray-50">
                         <img
                           src={service.imageUrl}
@@ -332,7 +262,7 @@ export const ServiceManagePage = () => {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                    )}
+                    ) : null}
                     <div className="flex items-center gap-4 mb-4">
                       <div className="w-12 h-12 rounded-2xl bg-[#fff0e6] text-[#fa7150] flex items-center justify-center border border-[#fa7150]/10">
                         {getServiceIcon(service.serviceType)}
@@ -399,8 +329,6 @@ export const ServiceManagePage = () => {
 
         </div>
 
-      </main>
-
       {/* ── MODAL TẠO / EDIT SERVICE ── */}
       {(showModal || editService) && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -412,53 +340,55 @@ export const ServiceManagePage = () => {
             <div className="space-y-4">
               {/* Image Upload Area */}
               <div>
-                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-2 block">Hình ảnh dịch vụ</label>
-                <div className="flex gap-4 items-center">
-                  <div className="w-24 h-24 rounded-2xl border border-[#e5d8d0] overflow-hidden bg-gray-50 flex items-center justify-center shrink-0">
-                    {(editService ? editService.imageUrl : form.imageUrl) ? (
-                      <img 
-                        src={editService ? editService.imageUrl : form.imageUrl} 
-                        alt="Service Preview" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-[#8a7e75] text-[10px] font-bold text-center p-2">Chưa có ảnh</span>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-col gap-2">
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      id="service-image-upload"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleUploadImage(file);
-                      }}
-                    />
+                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-2 block">Hình ảnh dịch vụ (Có thể tải lên nhiều)</label>
+                <div className="flex flex-col gap-3">
+                  <div className="flex gap-2 flex-wrap">
+                    {(editService ? editService.imageUrls : form.imageUrls)?.map((url, idx) => (
+                      <div key={idx} className="relative w-16 h-16 rounded-xl border border-[#e5d8d0] overflow-hidden bg-gray-50 group shrink-0">
+                        <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editService) {
+                              setEditService(prev => prev ? {
+                                ...prev,
+                                imageUrls: (prev.imageUrls || []).filter((_, i) => i !== idx)
+                              } : null);
+                            } else {
+                              setForm(prev => ({
+                                ...prev,
+                                imageUrls: (prev.imageUrls || []).filter((_, i) => i !== idx)
+                              }));
+                            }
+                          }}
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] flex items-center justify-center cursor-pointer shadow-sm"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    
                     <label 
                       htmlFor="service-image-upload"
-                      className="px-4 py-2.5 rounded-full border border-[#e5d8d0] text-xs font-bold text-[#5a5550] hover:border-[#fa7150] hover:text-[#fa7150] transition-all cursor-pointer block text-center"
+                      className="w-16 h-16 rounded-xl border border-dashed border-[#e5d8d0] hover:border-[#fa7150] flex flex-col items-center justify-center text-[#8a7e75] hover:text-[#fa7150] transition-all cursor-pointer bg-[#faf9f6] shrink-0"
                     >
-                      {uploadingImage ? 'Đang tải lên...' : 'Chọn ảnh từ thiết bị'}
+                      <PlusCircle size={20} />
+                      <span className="text-[8px] font-bold mt-1">Thêm ảnh</span>
                     </label>
-                    {(editService ? editService.imageUrl : form.imageUrl) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (editService) {
-                            setEditService(prev => prev ? { ...prev, imageUrl: '' } : null);
-                          } else {
-                            setForm(prev => ({ ...prev, imageUrl: '' }));
-                          }
-                        }}
-                        className="text-left text-[10px] text-rose-500 font-bold hover:underline"
-                      >
-                        Xóa ảnh
-                      </button>
-                    )}
                   </div>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    id="service-image-upload"
+                    className="hidden"
+                    disabled={uploadingImage}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUploadImage(file);
+                      e.target.value = '';
+                    }}
+                  />
+                  {uploadingImage && <span className="text-[10px] text-[#fa7150] font-bold">Đang tải lên...</span>}
                 </div>
               </div>
 

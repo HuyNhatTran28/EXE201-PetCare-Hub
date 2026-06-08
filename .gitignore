@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local properties files ###
+**/application-local.properties
+
+### Node.js ###
+**/node_modules/
+dist/
+dist-ssr/
+*.local

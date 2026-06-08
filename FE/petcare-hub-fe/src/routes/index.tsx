@@ -13,8 +13,10 @@ import { MyBookingsPage } from '@/pages/MyBookingsPage'
 import { PetProfilePage } from '@/pages/PetProfilePage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { PaymentResultPage } from '@/pages/PaymentResultPage'
 
 // Partner Pages
+import { PartnerLayout } from '@/pages/partner/PartnerLayout'
 import { PartnerDashboard } from '@/pages/partner/PartnerDashboard'
 import { RoomManagePage } from '@/pages/partner/RoomManagePage'
 import { ServiceManagePage } from '@/pages/partner/ServiceManagePage'
@@ -30,6 +32,7 @@ import { MarketingPage } from '@/pages/admin/MarketingPage'
 import { AnalyticsPage } from '@/pages/admin/AnalyticsPage'
 import { AuditLogPage } from '@/pages/admin/AuditLogPage'
 import { SettingsPage } from '@/pages/admin/SettingsPage'
+import { WithdrawalApprovePage } from '@/pages/admin/WithdrawalApprovePage'
 
 export const router = createBrowserRouter([
 
@@ -47,6 +50,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/profile', element: <ProfilePage /> },
       { path: '/my-bookings', element: <MyBookingsPage /> },
+      { path: '/payment-result', element: <PaymentResultPage /> },
     ],
   },
 
@@ -63,11 +67,16 @@ export const router = createBrowserRouter([
   {
     element: <PrivateRoute allowedRoles={[Role.PARTNER]} />,
     children: [
-      { path: '/partner/dashboard', element: <PartnerDashboard /> },
-      { path: '/partner/hotels/:hotelId/rooms', element: <RoomManagePage /> },
-      { path: '/partner/hotels/:hotelId/services', element: <ServiceManagePage /> },
-      { path: '/partner/bookings', element: <BookingManagePage /> },
-      { path: '/partner/hotels/new', element: <HotelCreatePage /> },
+      {
+        element: <PartnerLayout />,
+        children: [
+          { path: '/partner/dashboard', element: <PartnerDashboard /> },
+          { path: '/partner/hotels/:hotelId/rooms', element: <RoomManagePage /> },
+          { path: '/partner/hotels/:hotelId/services', element: <ServiceManagePage /> },
+          { path: '/partner/bookings', element: <BookingManagePage /> },
+          { path: '/partner/hotels/new', element: <HotelCreatePage /> },
+        ]
+      }
     ],
   },
 
@@ -85,6 +94,7 @@ export const router = createBrowserRouter([
           { path: '/admin/analytics', element: <AnalyticsPage /> },
           { path: '/admin/audit', element: <AuditLogPage /> },
           { path: '/admin/settings', element: <SettingsPage /> },
+          { path: '/admin/withdrawals', element: <WithdrawalApprovePage /> },
         ]
       }
     ]

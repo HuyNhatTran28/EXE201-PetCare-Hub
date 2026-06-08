@@ -2,43 +2,26 @@ import { useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   CheckCircle,
-  Building,
-  ShieldCheck,
   ArrowRight,
-  PlusCircle,
-  QrCode
 } from 'lucide-react'
 
 import { Header } from '@/components/Header'
-
-// Mock Data Thú Cưng có sẵn của User
-const USER_PETS = [
-  { id: 'p1', name: 'LuLu', breed: 'Corgi', image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=200' },
-  { id: 'p2', name: 'Mimi', breed: 'Mèo Xiêm', image: 'https://images.unsplash.com/photo-1513360309081-36f5e878fc9e?auto=format&fit=crop&q=80&w=200' }
-]
 
 export const BookingPage = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  // Trích xuất các tham số truyền từ trang detail
   const nights = Number(searchParams.get('nights')) || 1
-  const initialTotal = Number(searchParams.get('total')) || 750000
+  const initialTotal = Number(searchParams.get('total')) || 0
 
-  // Trạng thái đơn hàng
-  const [selectedPetId, setSelectedPetId] = useState('p2')
-  const [paymentMethod, setPaymentMethod] = useState('MOMO') // MOMO, VNPAY, VIETQR, COD
   const [isSuccess, setIsSuccess] = useState(false)
 
-  // Xử lý tạo booking
   const handleCompleteBooking = (e: React.FormEvent) => {
     e.preventDefault()
     setIsSuccess(true)
   }
 
-  // Tên phòng được truyền giả lập
-  const roomName = 'Suite Sân Vườn (Garden Suite)'
-  const roomPrice = 750000
+  const roomName = searchParams.get('roomName') || 'Phòng đã chọn'
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans selection:bg-[#fa7150] selection:text-white pb-24">
