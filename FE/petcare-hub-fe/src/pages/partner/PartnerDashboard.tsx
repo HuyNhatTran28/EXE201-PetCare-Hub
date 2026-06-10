@@ -146,6 +146,7 @@ export const PartnerDashboard = () => {
   const [businessLicenseUrl, setBusinessLicenseUrl] = useState('')
   const [vetCertUrl, setVetCertUrl] = useState('')
   
+  
   // Raw files for eKYC API
   const [cccdFrontFile, setCccdFrontFile] = useState<File | null>(null)
   const [cccdBackFile, setCccdBackFile] = useState<File | null>(null)

@@ -50,6 +50,9 @@ export const Header = () => {
           <Link to="/hotels" className={getLinkClass('/hotels')}>
             Đặt phòng
           </Link>
+          <Link to="/route-search" className={getLinkClass('/route-search')}>
+            Tìm theo tuyến đường
+          </Link>
           {user?.role === 'OWNER' && (
             <Link to="/pets" className={getLinkClass('/pets')}>
               Nhật ký Thú cưng

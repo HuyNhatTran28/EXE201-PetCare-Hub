@@ -8,6 +8,7 @@ import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { HomePage } from '@/pages/HomePage'
 import { HotelListPage } from '@/pages/HotelListPage'
 import { HotelDetailPage } from '@/pages/HotelDetailPage'
+import { RouteSearchPage } from '@/pages/RouteSearchPage'
 import { BookingPage } from '@/pages/BookingPage'
 import { MyBookingsPage } from '@/pages/MyBookingsPage'
 import { PetProfilePage } from '@/pages/PetProfilePage'
@@ -43,6 +44,8 @@ export const router = createBrowserRouter([
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/hotels', element: <HotelListPage /> },
   { path: '/hotels/:id', element: <HotelDetailPage /> },
+  { path: '/route-search', element: <RouteSearchPage /> },
+  { path: '/map', element: <RouteSearchPage /> },
 
   // Cần đăng nhập
   {

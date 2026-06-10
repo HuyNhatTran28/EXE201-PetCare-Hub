@@ -235,6 +235,19 @@ public class HotelServiceImpl implements HotelService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<HotelResponse> findHotelsAlongRoute(String routeLineString, Double radiusInMeters) {
+        log.info("Searching hotels along route with radius: {} meters", radiusInMeters);
+        if (routeLineString == null || routeLineString.trim().isEmpty()) {
+            return List.of();
+        }
+        return hotelRepository.findHotelsAlongRoute(routeLineString, radiusInMeters)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     // ── Private helpers ────────────────────────────────────────
 
     private Hotel findHotelById(UUID hotelId) {
