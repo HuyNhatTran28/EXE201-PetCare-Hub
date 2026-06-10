@@ -68,5 +68,14 @@ public interface HotelRepository extends
         @Param("maxPrice") BigDecimal maxPrice
     );
 
+    @Query(value = "SELECT * FROM hotels h " +
+                   "WHERE h.status = 'ACTIVE' " +
+                   "AND ST_Contains(" +
+                   "  ST_Buffer(ST_GeomFromText(:routeLineString, 4326)::geography, :radiusInMeters)::geometry, " +
+                   "  ST_SetSRID(ST_Point(h.location_long, h.location_lat), 4326)" +
+                   ")", nativeQuery = true)
+    List<Hotel> findHotelsAlongRoute(@Param("routeLineString") String routeLineString, 
+                                     @Param("radiusInMeters") Double radiusInMeters);
+
     long countByStatus(HotelStatus status);
 }
