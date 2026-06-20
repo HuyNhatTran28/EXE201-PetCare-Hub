@@ -1,6 +1,6 @@
 services:
   db:
-    image: pgvector/pgvector:pg16
+    image: postgis/postgis:16-3.4
     container_name: petcare_db
     restart: unless-stopped
     environment:

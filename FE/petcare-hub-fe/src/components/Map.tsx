@@ -17,7 +17,7 @@ export const Map = ({ lat, lng, onChange, readonly = false, height = '300px' }: 
   useEffect(() => {
     if (mapRef.current && markerRef.current) {
       markerRef.current.setLngLat([lng, lat])
-      mapRef.current.panTo([lng, lat])
+      mapRef.current.jumpTo({ center: [lng, lat] })
     }
   }, [lat, lng])
 
@@ -92,7 +92,49 @@ export const Map = ({ lat, lng, onChange, readonly = false, height = '300px' }: 
       })
     }
 
+    // Trigger map resize on load
+    map.on('load', () => {
+      map.resize()
+      // Ẩn logo và attribution của Goong/Mapbox ngay khi load xong
+      hideMapBranding()
+    })
+
+    // Helper: ẩn tất cả logo/attribution elements
+    const hideMapBranding = () => {
+      const container = mapContainerRef.current
+      if (!container) return
+      const selectors = [
+        '.mapboxgl-ctrl-logo',
+        '.goongjs-ctrl-logo',
+        '.mapboxgl-ctrl-attrib',
+        '.goongjs-ctrl-attrib',
+        '.mapboxgl-ctrl-bottom-right',
+        '.mapboxgl-ctrl-bottom-left',
+      ]
+      selectors.forEach(sel => {
+        container.querySelectorAll(sel).forEach(el => {
+          (el as HTMLElement).style.cssText = 'display:none!important;width:0!important;height:0!important;overflow:hidden!important'
+        })
+      })
+    }
+
+    // MutationObserver: bắt logo ngay khi nó được thêm vào DOM
+    const observer = new MutationObserver(hideMapBranding)
+    if (mapContainerRef.current) {
+      observer.observe(mapContainerRef.current, { childList: true, subtree: true })
+    }
+
+    // Delayed resize to handle modal entrance transition / animation completion
+    const resizeTimer = setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.resize()
+      }
+      hideMapBranding()
+    }, 400)
+
     return () => {
+      observer.disconnect()
+      clearTimeout(resizeTimer)
       if (mapRef.current) {
         mapRef.current.remove()
         mapRef.current = null

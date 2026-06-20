@@ -11,11 +11,23 @@ import {
   Heart,
   Scissors,
   Bookmark,
-  ShieldCheck
+  ShieldCheck,
+  Car,
+  Utensils,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Edit,
+  Upload,
+  Trash2,
+  Loader2,
+  Plus
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { Header } from '@/components/Header'
-import { Map } from '@/components/Map'
+import { useAuthStore } from '@/store/authStore'
+
+
 
 interface RoomType {
   id: string
@@ -32,6 +44,7 @@ interface ExtraService {
   name: string
   price: number
   desc: string
+  imageUrl?: string
 }
 
 interface PetType {
@@ -39,6 +52,10 @@ interface PetType {
   name: string
   breed: string
   avatarUrl: string | null
+  species?: string
+  ageYears?: number
+  weightKg?: number
+  specialNotes?: string | null
 }
 
 const DEFAULT_ROOMS: RoomType[] = [
@@ -72,6 +89,7 @@ const DEFAULT_SERVICES: ExtraService[] = [
 export const HotelDetailPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuthStore()
 
   const [hotelName, setHotelName] = useState('PetCare Sanctuary')
   const [hotelAddress, setHotelAddress] = useState('Đường Nguyễn Thị Minh Khai, Quận 1, TP. HCM')
@@ -80,6 +98,55 @@ export const HotelDetailPage = () => {
   const [googleMapsUrl, setGoogleMapsUrl] = useState<string | null>(null)
   const [roomTypes, setRoomTypes] = useState<RoomType[]>(DEFAULT_ROOMS)
   const [services, setServices] = useState<ExtraService[]>(DEFAULT_SERVICES)
+  
+  // Hotel details and gallery images states
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [frontUrls, setFrontUrls] = useState<string[]>([])
+  const [roomsUrls, setRoomsUrls] = useState<string[]>([])
+  const [imageUrls, setImageUrls] = useState<string[]>([])
+  const [hotelDescriptionText, setHotelDescriptionText] = useState<string | null>(null)
+  
+  // Additional payload states to support updates
+  const [partnerId, setPartnerId] = useState<string | null>(null)
+  const [amenities, setAmenities] = useState<string[]>([])
+  const [checkInTime, setCheckInTime] = useState('14:00')
+  const [checkOutTime, setCheckOutTime] = useState('12:00')
+
+  // Carousel slider state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  const allImages = [
+    ...(frontUrls || []),
+    ...(roomsUrls || []),
+    ...(imageUrls || [])
+  ].filter(Boolean) as string[]
+
+  const handleNextImage = () => {
+    if (allImages.length === 0) return
+    setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
+  }
+
+  const handlePrevImage = () => {
+    if (allImages.length === 0) return
+    setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length)
+  }
+
+  // Edit modals state
+  const [isEditDescOpen, setIsEditDescOpen] = useState(false)
+  const [isEditImagesOpen, setIsEditImagesOpen] = useState(false)
+
+  // Edit inputs state
+  const [editLogoUrl, setEditLogoUrl] = useState('')
+  const [editFrontUrls, setEditFrontUrls] = useState<string[]>([])
+  const [editRoomsUrls, setEditRoomsUrls] = useState<string[]>([])
+  const [editImageUrls, setEditImageUrls] = useState<string[]>([])
+  const [editDescriptionText, setEditDescriptionText] = useState('')
+  const [updating, setUpdating] = useState(false)
+  const [uploadingField, setUploadingField] = useState<string | null>(null)
+
+  // Show profile or booking flow
+  const [showBookingFlow, setShowBookingFlow] = useState(false)
+  const [reviews, setReviews] = useState<any[]>([])
   
   // Trạng thái Stepper: 1 -> 5
   const [step, setStep] = useState<number>(1)
@@ -118,6 +185,7 @@ export const HotelDetailPage = () => {
   const [isSuccess, setIsSuccess] = useState(false)
   const [invoiceNumber, setInvoiceNumber] = useState('')
 
+
   useEffect(() => {
     const loadDetails = async () => {
       try {
@@ -128,7 +196,38 @@ export const HotelDetailPage = () => {
           setLocationLat(hotelRes.data.locationLat)
           setLocationLong(hotelRes.data.locationLong)
           setGoogleMapsUrl(hotelRes.data.googleMapsUrl)
+          setPartnerId(hotelRes.data.partnerId)
+          setAmenities(hotelRes.data.amenities || [])
+          setCheckInTime(hotelRes.data.checkInTime || '14:00')
+          setCheckOutTime(hotelRes.data.checkOutTime || '12:00')
+          
+          const desc = hotelRes.data.description
+          if (desc && desc.trim().startsWith('{')) {
+            try {
+              const extra = JSON.parse(desc)
+              setLogoUrl(extra.logoUrl || null)
+              const parsedFront = Array.isArray(extra.frontUrl) ? extra.frontUrl : (extra.frontUrl ? [extra.frontUrl] : [])
+              const parsedRooms = Array.isArray(extra.roomsUrl) ? extra.roomsUrl : (extra.roomsUrl ? [extra.roomsUrl] : [])
+              setFrontUrls(parsedFront)
+              setRoomsUrls(parsedRooms)
+              setImageUrls(extra.imageUrls || [])
+              setHotelDescriptionText(extra.description || null)
+
+              // Prepopulate edit states
+              setEditLogoUrl(extra.logoUrl || '')
+              setEditFrontUrls(parsedFront)
+              setEditRoomsUrls(parsedRooms)
+              setEditImageUrls(extra.imageUrls || [])
+              setEditDescriptionText(extra.description || '')
+            } catch (e) {
+              console.error('Failed to parse hotel description JSON:', e)
+            }
+          } else {
+            setHotelDescriptionText(desc || null)
+            setEditDescriptionText(desc || '')
+          }
         }
+
 
         const roomsRes = await axiosInstance.get(`/api/room-types/hotel/${id}`)
         if (roomsRes.data && roomsRes.data.length > 0) {
@@ -150,9 +249,20 @@ export const HotelDetailPage = () => {
             id: s.id,
             name: s.name,
             price: s.price,
-            desc: s.description || 'Gói dịch vụ chăm sóc tiện ích bổ sung.'
+            desc: s.description || 'Gói dịch vụ chăm sóc tiện ích bổ sung.',
+            imageUrl: s.imageUrl || ''
           }))
           setServices(list)
+        }
+
+        // Fetch reviews
+        try {
+          const reviewsRes = await axiosInstance.get(`/api/reviews/hotel/${id}`)
+          if (reviewsRes.data) {
+            setReviews(reviewsRes.data.content || reviewsRes.data || [])
+          }
+        } catch (e) {
+          console.error('Failed to load hotel reviews:', e)
         }
       } catch (error) {
         console.error('Failed to fetch details, falling back to mock data', error)
@@ -180,8 +290,9 @@ export const HotelDetailPage = () => {
       if (selected) {
         setPetNameInput(selected.name)
         setPetBreedInput(selected.breed || '')
-        setPetAgeInput('1') // default
-        setPetWeightInput('5') // default
+        setPetAgeInput(selected.ageYears !== undefined ? selected.ageYears.toString() : '1')
+        setPetWeightInput(selected.weightKg !== undefined ? selected.weightKg.toString() : '5')
+        setSpecialRequestInput(selected.specialNotes || '')
       }
     }
   }, [selectedPetId, pets])
@@ -204,18 +315,18 @@ export const HotelDetailPage = () => {
     }
   }
 
-  // Tính toán chi phí
+  // Tính toán chi phí — công thức: totalAmount = (room + services − voucher) × 1.08 (VAT 8%)
   const activeRoom = roomTypes.find(r => r.id === selectedRoomId) || DEFAULT_ROOMS[0]
   const chargeNights = nights === 0 ? 1 : nights
   const roomCost = activeRoom.pricePerNight * chargeNights
   const selectedServicesList = services.filter(s => selectedServiceIds.includes(s.id))
   const servicesCost = selectedServicesList.reduce((sum, s) => sum + s.price, 0)
-  
+
   const subTotal = roomCost + servicesCost
-  const taxAmount = Math.round(subTotal * 0.1) // Phí dịch vụ/thuế 10%
-  const beforeDiscount = subTotal + taxAmount
-  const discountAmount = Math.round(beforeDiscount * (discountPercent / 100))
-  const totalCost = beforeDiscount - discountAmount
+  const voucherDiscountAmount = discountPercent > 0 ? Math.round(subTotal * discountPercent / 100) : 0
+  const taxableBase = subTotal - voucherDiscountAmount
+  const vatAmount = Math.round(taxableBase * 0.08)
+  const totalCost = taxableBase + vatAmount
 
   // Tính nights từ checkIn/checkOut
   useEffect(() => {
@@ -227,6 +338,120 @@ export const HotelDetailPage = () => {
       if (diff >= 0) setNights(diff)
     }
   }, [checkInDate, checkOutDate])
+
+  const validateImageFile = (file: File): { isValid: boolean; message: string } => {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'];
+    if (!extension || !allowedExtensions.includes(extension)) {
+      return {
+        isValid: false,
+        message: `Định dạng tệp "${file.name}" không hợp lệ. Chỉ chấp nhận .jpg, .jpeg, .png, .webp, .avif, .gif.`
+      };
+    }
+
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
+    if (!allowedMimeTypes.includes(file.type)) {
+      return {
+        isValid: false,
+        message: `Định dạng tệp "${file.name}" không hợp lệ. Vui lòng chọn ảnh JPEG, PNG, WebP hoặc AVIF.`
+      };
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return {
+        isValid: false,
+        message: `Kích thước ảnh "${file.name}" quá lớn (${(file.size / 1024 / 1024).toFixed(1)}MB). Vui lòng chọn ảnh dưới 5MB.`
+      };
+    }
+
+    return { isValid: true, message: '' };
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldKey: string) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const validation = validateImageFile(file)
+    if (!validation.isValid) {
+      alert(validation.message)
+      e.target.value = ''
+      return
+    }
+
+    setUploadingField(fieldKey)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await axiosInstance.post('/api/upload/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      const url = res.data.url
+      if (fieldKey === 'logo') {
+        setEditLogoUrl(url)
+      } else if (fieldKey === 'front') {
+        setEditFrontUrls(prev => [...prev, url])
+      } else if (fieldKey === 'rooms') {
+        setEditRoomsUrls(prev => [...prev, url])
+      } else if (fieldKey === 'album') {
+        setEditImageUrls(prev => [...prev, url])
+      }
+    } catch (err) {
+      console.error('File upload failed', err)
+      alert('Không thể tải ảnh lên. Vui lòng thử lại.')
+    } finally {
+      setUploadingField(null)
+      e.target.value = ''
+    }
+  }
+
+  const isPartnerOwner = user && (user.role === 'ADMIN' || (user.role === 'PARTNER' && partnerId === user.id))
+
+  const handleUpdateHotelDetail = async (updatedDescText: string, updatedLogo: string, updatedFront: string[], updatedRooms: string[], updatedAlbum: string[]) => {
+    setUpdating(true)
+    try {
+      const updatedExtra = {
+        logoUrl: updatedLogo,
+        frontUrl: updatedFront,
+        roomsUrl: updatedRooms,
+        imageUrls: updatedAlbum,
+        description: updatedDescText
+      }
+      
+      const payload = {
+        name: hotelName,
+        address: hotelAddress,
+        locationLat: locationLat,
+        locationLong: locationLong,
+        googleMapsUrl: googleMapsUrl,
+        description: JSON.stringify(updatedExtra),
+        amenities: amenities,
+        checkInTime: checkInTime,
+        checkOutTime: checkOutTime
+      }
+
+      const res = await axiosInstance.put(`/api/hotels/${id}`, payload)
+      if (res.data) {
+        setLogoUrl(updatedLogo || null)
+        setFrontUrls(updatedFront)
+        setRoomsUrls(updatedRooms)
+        setImageUrls(updatedAlbum)
+        setHotelDescriptionText(updatedDescText || null)
+        
+        setIsEditDescOpen(false)
+        setIsEditImagesOpen(false)
+        alert('Cập nhật thông tin khách sạn thành công!')
+      }
+    } catch (error: any) {
+      console.error('Failed to update hotel details', error)
+      alert(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật thông tin khách sạn. Hãy chắc chắn bạn đã điền đầy đủ và đúng định dạng.')
+    } finally {
+      setUpdating(false)
+    }
+  }
 
   const handleCreateBooking = async () => {
     if (!selectedPetId && !petNameInput) {
@@ -357,72 +582,373 @@ export const HotelDetailPage = () => {
       )}
 
       {/* ── STEPPER HEADER INDICATOR ── */}
-      <div className="max-w-7xl mx-auto px-8 pt-8">
-        <div className="flex items-center justify-center gap-4 py-6 border-b border-[#e1e3df]">
-          {[
-            { s: 1, label: 'Chọn phòng' },
-            { s: 2, label: 'Thông tin' },
-            { s: 3, label: 'Dịch vụ' },
-            { s: 4, label: 'Xác nhận' },
-            { s: 5, label: 'Thanh toán' }
-          ].map((item, idx) => {
-            const isCompleted = step > item.s
-            const isActive = step === item.s
-            return (
-              <div key={item.s} className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all border-2 ${
-                  isCompleted ? 'bg-[#a43e24] border-[#a43e24] text-white' :
-                  isActive ? 'bg-[#feeadb] border-[#a43e24] text-[#a43e24]' :
-                  'bg-white border-[#e1e3df] text-[#8a7e75]'
-                }`}>
-                  {isCompleted ? <CheckCircle size={14} /> : item.s}
-                </div>
-                <span className={`text-xs font-bold ${isActive ? 'text-[#303330]' : 'text-[#8a7e75]'}`}>
-                  {item.label}
-                </span>
-                {idx < 4 && (
-                  <div className={`w-12 h-0.5 rounded-full ${step > item.s ? 'bg-[#a43e24]' : 'bg-[#e1e3df]'}`} />
-                )}
-              </div>
-            )
-          })}
+      {showBookingFlow && (
+        <div className="max-w-7xl mx-auto px-8 pt-8">
+          <div className="flex items-center justify-between py-6 border-b border-[#e1e3df] flex-wrap gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              {[
+                { s: 1, label: 'Chọn phòng' },
+                { s: 2, label: 'Thông tin' },
+                { s: 3, label: 'Dịch vụ' },
+                { s: 4, label: 'Xác nhận' },
+                { s: 5, label: 'Thanh toán' }
+              ].map((item, idx) => {
+                const isCompleted = step > item.s
+                const isActive = step === item.s
+                return (
+                  <div key={item.s} className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all border-2 ${
+                      isCompleted ? 'bg-[#a43e24] border-[#a43e24] text-white' :
+                      isActive ? 'bg-[#feeadb] border-[#a43e24] text-[#a43e24]' :
+                      'bg-white border-[#e1e3df] text-[#8a7e75]'
+                    }`}>
+                      {isCompleted ? <CheckCircle size={14} /> : item.s}
+                    </div>
+                    <span className={`text-xs font-bold ${isActive ? 'text-[#303330]' : 'text-[#8a7e75]'}`}>
+                      {item.label}
+                    </span>
+                    {idx < 4 && (
+                      <div className={`w-12 h-0.5 rounded-full ${step > item.s ? 'bg-[#a43e24]' : 'bg-[#e1e3df]'}`} />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <button 
+              onClick={() => {
+                setShowBookingFlow(false)
+                setStep(1)
+              }}
+              className="px-4 py-2 text-xs font-bold text-[#a43e24] hover:bg-[#a43e24]/10 rounded-full border border-[#a43e24]/30 transition-all"
+            >
+              Thoát trình đặt phòng
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <main className="max-w-7xl mx-auto px-8 py-12">
-        {/* ── BƯỚC 1: CHỌN PHÒNG ── */}
-        {step === 1 && (
-          <div>
-            <header className="mb-12 relative text-left">
-              <span className="text-[#44683b] font-semibold tracking-wider uppercase text-xs">Bước 1: Chọn nơi lưu trú</span>
-              <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-[#303330] mb-3 mt-1">
-                {hotelName}
-              </h1>
-              <p className="text-[#5d605c] flex items-center gap-1.5 text-xs sm:text-sm mb-4">
-                <MapPin size={14} className="text-[#a43e24]" />
-                {hotelAddress}
-                {googleMapsUrl && (
-                  <a 
-                    href={googleMapsUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="ml-2 text-[#a43e24] hover:underline font-bold"
-                  >
-                    (Xem trên Google Maps ↗)
-                  </a>
+        {/* ── PROFILE & INTRODUCTION VIEW ── */}
+        {!showBookingFlow && (
+          <div className="space-y-10">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#e1e3df] pb-6">
+              <div className="flex items-center gap-4">
+                {logoUrl ? (
+                  <img 
+                    src={logoUrl} 
+                    alt="Hotel Logo" 
+                    className="w-20 h-20 rounded-full border-4 border-[#feeadb] object-cover shadow-md shrink-0"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-[#feeadb] text-[#a43e24] flex items-center justify-center font-black text-2xl border-4 border-[#faf9f6] shadow-md shrink-0">
+                    {hotelName.charAt(0)}
+                  </div>
                 )}
-              </p>
-              {locationLat && locationLong && (
-                <div className="mb-6 max-w-full">
-                  <span className="text-[10px] text-[#8a7e75] uppercase tracking-wider block mb-2 font-bold">Bản đồ vị trí (Leaflet)</span>
-                  <div className="h-[250px] relative z-10">
-                    <Map lat={locationLat} lng={locationLong} readonly={true} height="100%" />
+                <div>
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#303330]">
+                    {hotelName}
+                  </h1>
+                  <p className="text-[#5d605c] flex items-center gap-1.5 text-xs sm:text-sm mt-2">
+                    <MapPin size={14} className="text-[#a43e24]" />
+                    {hotelAddress}
+                    {googleMapsUrl && (
+                      <a 
+                        href={googleMapsUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-[#a43e24] hover:underline font-bold"
+                      >
+                        (Xem trên Google Maps ↗)
+                      </a>
+                    )}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Rating Summary */}
+              <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-[#e1e3df] shadow-sm self-start md:self-auto">
+                <div className="flex text-amber-400">
+                  <Star size={18} fill="currentColor" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-black text-[#303330]">
+                    {reviews.length > 0 
+                      ? (reviews.reduce((acc, r) => acc + (r.starRating || 0), 0) / reviews.length).toFixed(1) 
+                      : '5.0'} / 5.0
+                  </p>
+                  <p className="text-[10px] text-[#8a7e75] font-bold">({reviews.length} đánh giá)</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Elegant Image Slideshow Carousel */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-[#8a7e75] uppercase tracking-wider">Hình ảnh cơ sở vật chất</span>
+                {isPartnerOwner && (
+                  <button
+                    onClick={() => {
+                      setEditLogoUrl(logoUrl || '')
+                      setEditFrontUrls(frontUrls || [])
+                      setEditRoomsUrls(roomsUrls || [])
+                      setEditImageUrls(imageUrls || [])
+                      setIsEditImagesOpen(true)
+                    }}
+                    className="px-4 py-2 rounded-full border border-[#a43e24]/30 text-xs font-black text-[#a43e24] hover:bg-[#a43e24]/10 transition-all flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Edit size={14} /> Chỉnh sửa hình ảnh
+                  </button>
+                )}
+              </div>
+
+              <div className="relative h-80 md:h-[480px] rounded-3xl overflow-hidden shadow-lg group bg-stone-100">
+                <img 
+                  src={allImages[currentImageIndex]} 
+                  alt={`${hotelName} slide`} 
+                  className="w-full h-full object-cover transition-all duration-500"
+                />
+                
+                {/* Prev Button */}
+                {allImages.length > 1 && (
+                  <button 
+                    onClick={handlePrevImage}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white text-[#303330] flex items-center justify-center shadow-md transition-all border border-[#e1e3df] hover:scale-105 active:scale-95"
+                  >
+                    <ChevronLeft size={22} />
+                  </button>
+                )}
+
+                {/* Next Button */}
+                {allImages.length > 1 && (
+                  <button 
+                    onClick={handleNextImage}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white text-[#303330] flex items-center justify-center shadow-md transition-all border border-[#e1e3df] hover:scale-105 active:scale-95"
+                  >
+                    <ChevronRight size={22} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Two Column Layout: Main Profile Info vs Booking Widget */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Left Column: About, Rooms, Map, Reviews */}
+              <div className="lg:col-span-8 space-y-10">
+                {/* About Section */}
+                <div className="p-8 bg-white rounded-3xl border border-[#e1e3df] shadow-sm text-left">
+                  <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <h2 className="text-xl font-black text-[#303330] flex items-center gap-2">
+                      <Sparkles size={20} className="text-[#fa7150]" /> Giới thiệu khách sạn
+                    </h2>
+                    {isPartnerOwner && (
+                      <button
+                        onClick={() => {
+                          setEditDescriptionText(hotelDescriptionText || '')
+                          setIsEditDescOpen(true)
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl border border-[#e1e3df] text-xs font-black text-[#a43e24] hover:bg-[#a43e24]/10 transition-all flex items-center gap-1.5"
+                      >
+                        <Edit size={14} /> Chỉnh sửa mô tả
+                      </button>
+                    )}
+                  </div>
+                  <div className="text-sm text-[#5d605c] leading-relaxed space-y-3 whitespace-pre-line">
+                    {hotelDescriptionText || 'Chào mừng bạn đến với khách sạn thú cưng của chúng tôi! Nơi mang đến cho bé cưng của bạn trải nghiệm nghỉ dưỡng 5 sao chất lượng hàng đầu. Với phòng ốc tiện nghi, chế độ dinh dưỡng khoa học và sự chăm sóc chu đáo từ đội ngũ nhân viên giàu kinh nghiệm.'}
                   </div>
                 </div>
-              )}
+
+                {/* Rooms List Section */}
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-black text-[#303330] text-left">Danh sách loại phòng hiện có</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {roomTypes.map((room) => (
+                      <div 
+                        key={room.id}
+                        className="bg-white rounded-3xl overflow-hidden border border-[#e1e3df] hover:border-[#a43e24] hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                      >
+                        <div className="h-48 relative overflow-hidden">
+                          <img className="w-full h-full object-cover" src={room.image} alt={room.name} />
+                          {room.isPopular && (
+                            <span className="absolute top-4 left-4 bg-[#a43e24] text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider">
+                              Phổ biến
+                            </span>
+                          )}
+                        </div>
+                        <div className="p-6 text-left flex flex-col justify-between flex-grow">
+                          <div className="space-y-2 mb-4">
+                            <div className="flex justify-between items-start gap-4">
+                              <h3 className="text-lg font-bold text-[#303330]">{room.name}</h3>
+                              <span className="text-[#a43e24] font-black text-base shrink-0">
+                                {room.pricePerNight.toLocaleString('vi-VN')} đ<span className="text-xs font-normal text-stone-500">/đêm</span>
+                              </span>
+                            </div>
+                            <span className="inline-block text-[9px] font-black text-[#2c4e24] bg-[#d0fac0] px-3 py-1 rounded-full uppercase tracking-wider">
+                              {room.petType}
+                            </span>
+                            <p className="text-xs text-[#5d605c] leading-relaxed line-clamp-3">{room.description}</p>
+                          </div>
+                          <button 
+                            onClick={() => {
+                              setSelectedRoomId(room.id)
+                              setShowBookingFlow(true)
+                              setStep(2) // Jump immediately to Step 2
+                            }}
+                            className="w-full py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-all bg-[#a43e24] text-white hover:bg-[#a43e24]/90 flex items-center justify-center gap-2"
+                          >
+                            Đặt ngay phòng này <ArrowRight size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+
+
+                {/* Reviews List Section */}
+                <div className="space-y-6 text-left">
+                  <h2 className="text-2xl font-black text-[#303330]">Nhận xét từ khách hàng ({reviews.length})</h2>
+                  
+                  {reviews.length === 0 ? (
+                    <div className="bg-[#faf9f6] border border-[#e1e3df] rounded-2xl p-8 text-center text-[#8a7e75] font-semibold text-sm">
+                      Chưa có nhận xét nào cho khách sạn này. Hãy là người đầu tiên trải nghiệm và chia sẻ ý kiến của bạn!
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {reviews.map((rev: any) => (
+                        <div key={rev.id} className="bg-white p-6 rounded-3xl border border-[#e1e3df] shadow-sm flex flex-col justify-between space-y-4">
+                          <div className="space-y-3">
+                            {/* User Header */}
+                            <div className="flex items-center gap-3">
+                              {rev.reviewerAvatar ? (
+                                <img 
+                                  src={rev.reviewerAvatar} 
+                                  alt={rev.reviewerName} 
+                                  className="w-10 h-10 rounded-full object-cover border border-[#e1e3df]"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-[#feeadb] text-[#a43e24] flex items-center justify-center font-bold text-sm">
+                                  {(rev.reviewerName || 'K').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <h4 className="text-xs font-bold text-[#303330]">{rev.reviewerName || 'Khách hàng ẩn danh'}</h4>
+                                <span className="text-[9px] text-[#8a7e75] font-semibold">
+                                  {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('vi-VN') : 'Gần đây'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Stars */}
+                            <div className="flex text-amber-400 gap-0.5">
+                              {Array.from({ length: 5 }).map((_, idx) => (
+                                <Star 
+                                  key={idx} 
+                                  size={14} 
+                                  fill={idx < (rev.starRating || 5) ? 'currentColor' : 'none'} 
+                                  className={idx < (rev.starRating || 5) ? 'text-amber-400' : 'text-stone-300'}
+                                />
+                              ))}
+                            </div>
+
+                            {/* Comment */}
+                            <p className="text-xs text-[#5d605c] leading-relaxed italic">
+                              "{rev.comment || 'Khách sạn sạch sẽ, nhân viên chăm sóc bé rất chu đáo. Rất yên tâm gửi bé ở đây.'}"
+                            </p>
+                          </div>
+
+                          {/* Review Photos */}
+                          {rev.photoUrls && rev.photoUrls.length > 0 && (
+                            <div className="flex gap-2 flex-wrap">
+                              {rev.photoUrls.map((url: string, index: number) => (
+                                <img 
+                                  key={index} 
+                                  src={url} 
+                                  alt={`Ảnh review ${index + 1}`} 
+                                  className="w-14 h-14 object-cover rounded-xl border border-stone-200"
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Right Column: Sticky Sidebar booking widget */}
+              <div className="lg:col-span-4">
+                <div className="bg-white rounded-3xl p-6 border border-[#e1e3df] shadow-md sticky top-6 space-y-6 text-left">
+                  <div>
+                    <p className="text-[#8a7e75] text-xs font-bold uppercase tracking-wider">Giá khởi điểm từ</p>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className="text-3xl font-black text-[#a43e24]">
+                        {(roomTypes[0]?.pricePerNight || 1200000).toLocaleString('vi-VN')} đ
+                      </span>
+                      <span className="text-xs text-[#8a7e75]">/đêm</span>
+                    </div>
+                  </div>
+
+                  {/* Feature Bullets */}
+                  <div className="space-y-3 pt-4 border-t border-[#e1e3df] text-xs text-[#5d605c]">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-[#44683b]" />
+                      <span>Thanh toán an toàn, bảo mật qua VietQR</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={16} className="text-[#44683b]" />
+                      <span>Xác nhận đặt phòng nhanh chóng</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <PawPrint size={16} className="text-[#44683b]" />
+                      <span>Hỗ trợ chó & mèo mọi kích cỡ</span>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      setShowBookingFlow(true)
+                      setStep(1) // Start from Step 1
+                    }}
+                    className="w-full py-4 rounded-full bg-[#a43e24] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#a43e24]/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#a43e24]/10"
+                  >
+                    Đặt phòng ngay <ArrowRight size={14} />
+                  </button>
+
+                  <p className="text-[10px] text-center text-[#8a7e75] font-semibold">
+                    Đảm bảo chất lượng chăm sóc bé yêu hàng đầu
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* ── BƯỚC 1: CHỌN PHÒNG (TRONG TRÌNH ĐẶT PHÒNG) ── */}
+        {showBookingFlow && step === 1 && (
+          <div>
+            <header className="mb-8 text-left flex justify-between items-end flex-wrap gap-4">
+              <div>
+                <span className="text-[#44683b] font-semibold tracking-wider uppercase text-xs">Bước 1: Chọn nơi lưu trú</span>
+                <h2 className="text-3xl font-black text-[#303330] mt-1">
+                  Chọn Loại Phòng
+                </h2>
+                <p className="text-sm text-[#5d605c] mt-1">Vui lòng chọn loại phòng phù hợp cho thú cưng của bạn.</p>
+              </div>
+              <button
+                onClick={() => setShowBookingFlow(false)}
+                className="px-5 py-2.5 rounded-full border border-[#e1e3df] text-xs font-bold text-[#a43e24] hover:bg-stone-50 transition-all flex items-center gap-1.5"
+              >
+                <ArrowLeft size={14} /> Quay lại Trang giới thiệu
+              </button>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {loading ? (
                 <div className="col-span-2 text-center py-12 text-stone-500 font-bold">Đang tải danh sách phòng...</div>
               ) : (
@@ -440,7 +966,7 @@ export const HotelDetailPage = () => {
                         <img className="w-full h-full object-cover" src={room.image} alt={room.name} />
                         {room.isPopular && (
                           <span className="absolute top-4 left-4 bg-[#a43e24] text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider">
-                            Phòng Deluxe
+                            Phổ biến
                           </span>
                         )}
                       </div>
@@ -465,7 +991,7 @@ export const HotelDetailPage = () => {
                           }}
                           className="w-full py-3.5 rounded-full font-bold text-xs uppercase tracking-wider transition-all bg-[#a43e24] text-white hover:opacity-90 flex items-center justify-center gap-2"
                         >
-                          Chọn Phòng <ArrowRight size={14} />
+                          Chọn Phòng này <ArrowRight size={14} />
                         </button>
                       </div>
                     </div>
@@ -473,11 +999,21 @@ export const HotelDetailPage = () => {
                 })
               )}
             </div>
+
+            {/* Điều hướng */}
+            <div className="mt-8 flex justify-end">
+              <button 
+                onClick={() => setStep(2)}
+                className="px-8 py-3.5 rounded-full bg-[#a43e24] text-white text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1.5"
+              >
+                Tiếp tục nhập thông tin <ArrowRight size={14} />
+              </button>
+            </div>
           </div>
         )}
 
         {/* ── BƯỚC 2: THÔNG TIN ── */}
-        {step === 2 && (
+        {showBookingFlow && step === 2 && (
           <div className="max-w-4xl mx-auto">
             <header className="mb-10 text-left">
               <span className="text-[#44683b] font-semibold tracking-wider uppercase text-xs">Bước 2: Thông tin đặt phòng</span>
@@ -541,15 +1077,34 @@ export const HotelDetailPage = () => {
                   </h3>
 
                   {pets.length > 0 && (
-                    <div>
-                      <label className="text-[10px] text-[#8a7e75] font-bold uppercase block mb-1">Chọn từ danh sách của bạn</label>
-                      <select 
-                        value={selectedPetId}
-                        onChange={(e) => setSelectedPetId(e.target.value)}
-                        className="w-full border border-[#e5d8d0] rounded-xl px-4 py-2.5 text-xs bg-white outline-none"
-                      >
-                        {pets.map(p => <option key={p.id} value={p.id}>{p.name} ({p.breed})</option>)}
-                      </select>
+                    <div className="flex items-center gap-4">
+                      {/* Avatar preview */}
+                      <div className="w-14 h-14 rounded-2xl border border-[#e5d8d0] overflow-hidden bg-[#faf9f6] flex-shrink-0 flex items-center justify-center relative shadow-sm">
+                        {(() => {
+                          const selected = pets.find(p => p.id === selectedPetId);
+                          if (selected?.avatarUrl) {
+                            return <img src={selected.avatarUrl} alt="Pet avatar" className="w-full h-full object-cover" />;
+                          }
+                          return (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-[#8a7e75] gap-0.5 bg-[#f5f3ef]/60">
+                              <PawPrint size={18} className="text-[#a43e24]/40" />
+                              <span className="text-[7px] font-black uppercase tracking-wider bg-[#e5d8d0]/40 px-1 rounded">
+                                {selected?.species === 'CAT' ? 'Mèo' : 'Chó'}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] text-[#8a7e75] font-bold uppercase block mb-1">Chọn từ danh sách của bạn</label>
+                        <select 
+                          value={selectedPetId}
+                          onChange={(e) => setSelectedPetId(e.target.value)}
+                          className="w-full border border-[#e5d8d0] rounded-xl px-4 py-2.5 text-xs bg-white outline-none font-bold text-[#303330]"
+                        >
+                          {pets.map(p => <option key={p.id} value={p.id}>{p.name} ({p.breed})</option>)}
+                        </select>
+                      </div>
                     </div>
                   )}
 
@@ -659,7 +1214,7 @@ export const HotelDetailPage = () => {
         )}
 
         {/* ── BƯỚC 3: DỊCH VỤ ── */}
-        {step === 3 && (
+        {showBookingFlow && step === 3 && (
           <div>
             <header className="mb-12 text-left">
               <span className="text-[#44683b] font-semibold tracking-wider uppercase text-xs">Bước 3: Gói chăm sóc cá nhân hóa</span>
@@ -673,28 +1228,82 @@ export const HotelDetailPage = () => {
               <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                 {services.map((service) => {
                   const isChecked = selectedServiceIds.includes(service.id)
+                  
+                  // Helper function inside map to resolve beautiful unsplash fallbacks
+                  const getServiceImage = (svc: ExtraService) => {
+                    if (svc.imageUrl && (svc.imageUrl.startsWith('http') || svc.imageUrl.startsWith('/')) && !svc.imageUrl.includes('url_anh_')) {
+                      return svc.imageUrl
+                    }
+                    const n = svc.name.toLowerCase()
+                    if (n.includes('tắm') || n.includes('spa') || n.includes('thủy liệu')) {
+                      return 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=600'
+                    }
+                    if (n.includes('cắt') || n.includes('tỉa') || n.includes('grooming') || n.includes('tạo kiểu')) {
+                      return 'https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?auto=format&fit=crop&q=80&w=600'
+                    }
+                    if (n.includes('đưa') || n.includes('đón') || n.includes('vận chuyển') || n.includes('xe')) {
+                      return 'https://images.unsplash.com/photo-1533268777956-37790c29994c?auto=format&fit=crop&q=80&w=600'
+                    }
+                    if (n.includes('ăn') || n.includes('pate') || n.includes('buffet') || n.includes('hạt')) {
+                      return 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=600'
+                    }
+                    if (n.includes('ve') || n.includes('rận') || n.includes('thuốc') || n.includes('y tế') || n.includes('frontline')) {
+                      return 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=600'
+                    }
+                    return 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600' // General cute dog
+                  }
+
+                  const svcImage = getServiceImage(service)
+
                   return (
                     <div 
                       key={service.id}
                       onClick={() => handleToggleService(service.id)}
-                      className={`bg-white rounded-3xl p-6 border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                      className={`bg-white rounded-3xl overflow-hidden border-2 transition-all cursor-pointer flex flex-col justify-between ${
                         isChecked ? 'border-[#a43e24] shadow-lg' : 'border-[#e1e3df] hover:border-[#a43e24]/30'
                       }`}
                     >
-                      <div className="text-left space-y-2">
-                        <div className="w-12 h-12 rounded-2xl bg-[#feeadb]/40 flex items-center justify-center text-[#a43e24] mb-4">
-                          {service.name.includes('Spa') ? <Heart size={20} /> :
-                           service.name.includes('Cắt') ? <Scissors size={20} /> :
-                           service.name.includes('Huấn') ? <ShieldCheck size={20} /> :
-                           <Sparkles size={20} />}
+                      <div>
+                        {/* Service Image Banner */}
+                        <div className="h-44 w-full overflow-hidden relative bg-[#faf9f6] border-b border-[#e1e3df]/60">
+                          {svcImage ? (
+                            <img 
+                              src={svcImage} 
+                              alt={service.name} 
+                              className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-[#8a7e75] gap-2 bg-[#fdfcfb]">
+                              <div className="w-14 h-14 rounded-2xl bg-[#feeadb]/40 flex items-center justify-center text-[#a43e24] shadow-inner">
+                                {service.name.includes('Spa') || service.name.toLowerCase().includes('tắm') ? <Heart size={26} /> :
+                                 service.name.toLowerCase().includes('cắt') || service.name.toLowerCase().includes('tỉa') || service.name.toLowerCase().includes('grooming') ? <Scissors size={26} /> :
+                                 service.name.toLowerCase().includes('đưa') || service.name.toLowerCase().includes('đón') || service.name.toLowerCase().includes('xe') ? <Car size={26} /> :
+                                 service.name.toLowerCase().includes('ăn') || service.name.toLowerCase().includes('pate') || service.name.toLowerCase().includes('buffet') ? <Utensils size={26} /> :
+                                 <Sparkles size={26} />}
+                              </div>
+                            </div>
+                          )}
+                          <div className="absolute top-4 left-4">
+                            <span className="w-10 h-10 rounded-xl bg-white/95 backdrop-blur-sm flex items-center justify-center text-[#a43e24] shadow-md">
+                              {service.name.includes('Spa') || service.name.toLowerCase().includes('tắm') ? <Heart size={20} /> :
+                               service.name.toLowerCase().includes('cắt') || service.name.toLowerCase().includes('tỉa') || service.name.toLowerCase().includes('grooming') ? <Scissors size={20} /> :
+                               service.name.toLowerCase().includes('đưa') || service.name.toLowerCase().includes('đón') || service.name.toLowerCase().includes('xe') ? <Car size={20} /> :
+                               service.name.toLowerCase().includes('ăn') || service.name.toLowerCase().includes('pate') || service.name.toLowerCase().includes('buffet') ? <Utensils size={20} /> :
+                               <Sparkles size={20} />}
+                            </span>
+                          </div>
                         </div>
-                        <h4 className="text-lg font-black text-[#303330]">{service.name}</h4>
-                        <p className="text-xs text-[#8a7e75] leading-relaxed">{service.desc}</p>
+
+                        <div className="p-6 text-left space-y-2">
+                          <h4 className="text-lg font-black text-[#303330] line-clamp-1">{service.name}</h4>
+                          <p className="text-xs text-[#8a7e75] leading-relaxed line-clamp-2 h-8">{service.desc}</p>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center mt-6 pt-4 border-t border-[#e1e3df]">
+
+                      <div className="px-6 pb-6 pt-4 flex justify-between items-center border-t border-[#e1e3df]/60">
                         <span className="text-xs font-black text-[#a43e24]">+{service.price.toLocaleString('vi-VN')} đ</span>
-                        <span className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
-                          isChecked ? 'bg-[#a43e24] text-white' : 'bg-[#faf9f6] text-[#8a7e75]'
+                        <span className={`text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-wider transition-colors ${
+                          isChecked ? 'bg-[#a43e24] text-white' : 'bg-[#faf9f6] text-[#8a7e75] hover:bg-[#a43e24]/10 hover:text-[#a43e24]'
                         }`}>
                           {isChecked ? 'Đã chọn' : 'Thêm dịch vụ'}
                         </span>
@@ -710,7 +1319,7 @@ export const HotelDetailPage = () => {
                   <h3 className="text-lg font-black text-[#303330]">Tóm tắt đơn hàng</h3>
                   <div className="space-y-3 text-xs border-b border-[#e1e3df] pb-4">
                     <div className="flex justify-between text-[#8a7e75]">
-                      <span>Phí lưu trú</span>
+                      <span>Tiền phòng</span>
                       <span className="font-bold text-[#303330]">{roomCost.toLocaleString('vi-VN')}đ</span>
                     </div>
                     {selectedServicesList.map(s => (
@@ -719,10 +1328,14 @@ export const HotelDetailPage = () => {
                         <span className="font-bold text-[#303330]">{s.price.toLocaleString('vi-VN')}đ</span>
                       </div>
                     ))}
+                    <div className="flex justify-between text-[#8a7e75]">
+                      <span>Thuế VAT (8%)</span>
+                      <span className="font-bold text-[#303330]">{vatAmount.toLocaleString('vi-VN')}đ</span>
+                    </div>
                   </div>
                   <div className="flex justify-between items-center pt-2">
                     <span className="font-bold text-[#303330] text-sm">Tổng cộng</span>
-                    <span className="text-xl font-black text-[#a43e24]">{(roomCost + servicesCost).toLocaleString('vi-VN')}đ</span>
+                    <span className="text-xl font-black text-[#a43e24]">{totalCost.toLocaleString('vi-VN')}đ</span>
                   </div>
 
                   <div className="space-y-3 pt-4">
@@ -746,7 +1359,7 @@ export const HotelDetailPage = () => {
         )}
 
         {/* ── BƯỚC 4: XÁC NHẬN DỊCH VỤ ── */}
-        {step === 4 && (
+        {showBookingFlow && step === 4 && (
           <div>
             <header className="mb-12 text-left">
               <span className="text-[#44683b] font-semibold tracking-wider uppercase text-xs">Bước 4: Xác nhận thông tin</span>
@@ -788,11 +1401,23 @@ export const HotelDetailPage = () => {
                     <h4 className="text-sm font-bold text-[#303330] flex items-center gap-2">
                       <PawPrint size={16} className="text-[#a43e24]" /> Thông tin thú cưng
                     </h4>
-                    <div className="space-y-1.5 text-xs">
-                      <div className="flex justify-between"><span className="text-[#8a7e75]">Tên:</span><strong>{petNameInput}</strong></div>
-                      <div className="flex justify-between"><span className="text-[#8a7e75]">Giống loài:</span><strong>{petBreedInput}</strong></div>
-                      <div className="flex justify-between"><span className="text-[#8a7e75]">Tuổi:</span><strong>{petAgeInput} tuổi</strong></div>
-                      <div className="flex justify-between"><span className="text-[#8a7e75]">Cân nặng:</span><strong>{petWeightInput} kg</strong></div>
+                    <div className="flex items-center gap-4">
+                      {/* Pet avatar */}
+                      <div className="w-14 h-14 rounded-2xl border border-[#e5d8d0] overflow-hidden shrink-0 bg-[#faf9f6] flex items-center justify-center shadow-sm">
+                        {(() => {
+                          const selected = pets.find(p => p.id === selectedPetId);
+                          if (selected?.avatarUrl) {
+                            return <img src={selected.avatarUrl} alt="Pet avatar" className="w-full h-full object-cover" />;
+                          }
+                          return <PawPrint size={20} className="text-[#a43e24]/40" />;
+                        })()}
+                      </div>
+                      <div className="flex-1 space-y-1 text-xs">
+                        <div className="flex justify-between"><span className="text-[#8a7e75]">Tên:</span><strong>{petNameInput}</strong></div>
+                        <div className="flex justify-between"><span className="text-[#8a7e75]">Giống loài:</span><strong>{petBreedInput}</strong></div>
+                        <div className="flex justify-between"><span className="text-[#8a7e75]">Tuổi:</span><strong>{petAgeInput} tuổi</strong></div>
+                        <div className="flex justify-between"><span className="text-[#8a7e75]">Cân nặng:</span><strong>{petWeightInput} kg</strong></div>
+                      </div>
                     </div>
                   </div>
 
@@ -831,23 +1456,23 @@ export const HotelDetailPage = () => {
                   <h3 className="text-lg font-black text-[#303330]">Tổng kết chi phí</h3>
                   <div className="space-y-3 text-xs border-b border-[#e1e3df] pb-4">
                     <div className="flex justify-between text-[#8a7e75]">
-                      <span>Phòng ({nights} đêm)</span>
+                      <span>Tiền phòng ({nights} đêm)</span>
                       <span className="font-bold text-[#303330]">{roomCost.toLocaleString('vi-VN')}đ</span>
                     </div>
                     {selectedServicesList.length > 0 && (
                       <div className="flex justify-between text-[#8a7e75]">
-                        <span>Dịch vụ phụ trợ</span>
+                        <span>Tiền dịch vụ</span>
                         <span className="font-bold text-[#303330]">{servicesCost.toLocaleString('vi-VN')}đ</span>
                       </div>
                     )}
                     <div className="flex justify-between text-[#8a7e75]">
-                      <span>Thuế & Phí dịch vụ (10%)</span>
-                      <span className="font-bold text-[#303330]">{taxAmount.toLocaleString('vi-VN')}đ</span>
+                      <span>Thuế VAT (8%)</span>
+                      <span className="font-bold text-[#303330]">{vatAmount.toLocaleString('vi-VN')}đ</span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center pt-2">
                     <span className="font-bold text-[#303330] text-sm">Tổng cộng</span>
-                    <span className="text-xl font-black text-[#a43e24]">{beforeDiscount.toLocaleString('vi-VN')}đ</span>
+                    <span className="text-xl font-black text-[#a43e24]">{totalCost.toLocaleString('vi-VN')}đ</span>
                   </div>
 
                   <div className="space-y-3 pt-4">
@@ -871,7 +1496,7 @@ export const HotelDetailPage = () => {
         )}
 
         {/* ── BƯỚC 5: THANH TOÁN ── */}
-        {step === 5 && (
+        {showBookingFlow && step === 5 && (
           <div>
             <header className="mb-12 text-left">
               <span className="text-[#44683b] font-semibold tracking-wider uppercase text-xs">Bước 5: Thanh Toán</span>
@@ -925,18 +1550,18 @@ export const HotelDetailPage = () => {
                       <strong className="text-[#303330]">{nights} đêm | 1 thú cưng</strong>
                     </div>
                     <div className="flex justify-between text-[#8a7e75]">
-                      <span>Chi phí lưu trú</span>
+                      <span>Tiền phòng</span>
                       <span className="font-bold text-[#303330]">{roomCost.toLocaleString('vi-VN')}đ</span>
                     </div>
                     {selectedServicesList.length > 0 && (
                       <div className="flex justify-between text-[#8a7e75]">
-                        <span>Dịch vụ phụ trợ</span>
+                        <span>Tiền dịch vụ</span>
                         <span className="font-bold text-[#303330]">{servicesCost.toLocaleString('vi-VN')}đ</span>
                       </div>
                     )}
                     <div className="flex justify-between text-[#8a7e75]">
-                      <span>Thuế & Phí dịch vụ (10%)</span>
-                      <span className="font-bold text-[#303330]">{taxAmount.toLocaleString('vi-VN')}đ</span>
+                      <span>Thuế VAT (8%)</span>
+                      <span className="font-bold text-[#303330]">{vatAmount.toLocaleString('vi-VN')}đ</span>
                     </div>
                   </div>
 
@@ -944,14 +1569,14 @@ export const HotelDetailPage = () => {
                   <div className="pt-2">
                     <label className="block text-[10px] font-bold text-[#8a7e75] mb-2 uppercase">Mã giảm giá</label>
                     <div className="flex gap-2">
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="Nhập mã (SANCTUARY20)"
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value)}
                         className="flex-grow rounded-xl border border-[#e1e3df] px-4 py-2 text-xs outline-none"
                       />
-                      <button 
+                      <button
                         onClick={handleApplyCoupon}
                         className="bg-[#2c4e24] text-white px-4 py-2 rounded-xl text-xs font-bold hover:opacity-90 transition-all shrink-0"
                       >
@@ -969,7 +1594,7 @@ export const HotelDetailPage = () => {
                     {discountPercent > 0 && (
                       <div className="flex justify-between text-[#44683b] font-bold">
                         <span>Giảm giá voucher ({discountPercent}%)</span>
-                        <span>-{discountAmount.toLocaleString('vi-VN')} đ</span>
+                        <span>-{voucherDiscountAmount.toLocaleString('vi-VN')} đ</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center pt-2">
@@ -999,6 +1624,222 @@ export const HotelDetailPage = () => {
           </div>
         )}
       </main>
+
+      {/* MODAL EDIT DESCRIPTION */}
+      {isEditDescOpen && (
+        <div className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-[#e1e3df] text-left space-y-6 animate-in fade-in zoom-in duration-200">
+            <div>
+              <h3 className="text-xl font-black text-[#303330]">Chỉnh sửa mô tả khách sạn</h3>
+              <p className="text-xs text-[#8a7e75] mt-1">Cập nhật thông tin giới thiệu chung về khách sạn của bạn.</p>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-[10px] text-[#8a7e75] font-bold uppercase">Nội dung giới thiệu</label>
+              <textarea
+                value={editDescriptionText}
+                onChange={(e) => setEditDescriptionText(e.target.value)}
+                placeholder="Nhập thông tin giới thiệu..."
+                rows={8}
+                className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-xs outline-none focus:border-[#a43e24] resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditDescOpen(false)}
+                className="px-5 py-2.5 rounded-full border border-[#e1e3df] text-xs font-bold text-[#8a7e75] hover:bg-stone-50 transition-all"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={updating}
+                onClick={() => handleUpdateHotelDetail(editDescriptionText, logoUrl || '', frontUrls, roomsUrls, imageUrls)}
+                className="px-6 py-2.5 rounded-full bg-[#a43e24] text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDIT IMAGES */}
+      {isEditImagesOpen && (
+        <div className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[#e1e3df] text-left space-y-6 animate-in fade-in zoom-in duration-200">
+            <div>
+              <h3 className="text-xl font-black text-[#303330]">Chỉnh sửa hình ảnh</h3>
+              <p className="text-xs text-[#8a7e75] mt-1">Cập nhật ảnh logo, ảnh mặt tiền và cơ sở vật chất của khách sạn.</p>
+            </div>
+
+            <div className="space-y-5">
+              {/* Logo Upload */}
+              <div className="space-y-2 text-left">
+                <label className="text-[10px] text-[#8a7e75] font-bold uppercase block">Logo Khách sạn</label>
+                <div className="flex items-center gap-4">
+                  <label className="relative w-20 h-20 rounded-full border-2 border-dashed border-stone-200 overflow-hidden cursor-pointer group bg-stone-50 flex flex-col items-center justify-center hover:border-[#a43e24]/50 transition-all shrink-0">
+                    {editLogoUrl ? (
+                      <>
+                        <img src={editLogoUrl} className="w-full h-full object-cover" alt="Preview Logo" />
+                        <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                          <Upload size={14} />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center">
+                        <Upload className="text-stone-400 mx-auto" size={16} />
+                        <span className="text-[8px] text-[#8a7e75] block mt-0.5">Tải logo</span>
+                      </div>
+                    )}
+                    {uploadingField === 'logo' && (
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <Loader2 className="animate-spin text-[#a43e24]" size={16} />
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'logo')} />
+                  </label>
+                  
+                  <div>
+                    <p className="text-xs font-bold text-[#303330]">Bấm vào vòng tròn ảnh để tải logo mới</p>
+                    <p className="text-[10px] text-[#8a7e75] mt-0.5 italic">Khuyên dùng ảnh hình tròn hoặc hình vuông tỉ lệ 1:1.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Front Image Upload (Array Grid) */}
+              <div className="space-y-2 text-left">
+                <div className="flex justify-between items-baseline">
+                  <label className="text-[10px] text-[#8a7e75] font-bold uppercase block">Ảnh Mặt Tiền (Slider chính)</label>
+                  <span className="text-[9px] text-[#8a7e75] italic">({editFrontUrls.length} ảnh)</span>
+                </div>
+                
+                {/* Image Grid */}
+                <div className="grid grid-cols-3 gap-3">
+                  {editFrontUrls.map((url, idx) => (
+                    <div key={idx} className="relative w-full aspect-video rounded-xl overflow-hidden border border-stone-200 bg-stone-100 group">
+                      <img src={url} className="w-full h-full object-cover" alt={`Front ${idx + 1}`} />
+                      <button
+                        type="button"
+                        onClick={() => setEditFrontUrls(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-md hover:bg-rose-700 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer animate-in fade-in duration-200"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {/* Plus Card for Uploading */}
+                  <label className="relative w-full aspect-video rounded-xl border-2 border-dashed border-stone-200 cursor-pointer hover:border-[#a43e24]/50 flex flex-col items-center justify-center bg-stone-50 hover:bg-stone-100/50 transition-all">
+                    <Plus className="text-stone-400" size={18} />
+                    <span className="text-[9px] text-[#8a7e75] font-bold mt-1">Thêm ảnh</span>
+                    {uploadingField === 'front' && (
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <Loader2 className="animate-spin text-[#a43e24]" size={14} />
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'front')} />
+                  </label>
+                </div>
+              </div>
+
+              {/* Rooms Image Upload (Array Grid) */}
+              <div className="space-y-2 text-left">
+                <div className="flex justify-between items-baseline">
+                  <label className="text-[10px] text-[#8a7e75] font-bold uppercase block">Ảnh Phòng/Cơ Sở Vật Chất chính</label>
+                  <span className="text-[9px] text-[#8a7e75] italic">({editRoomsUrls.length} ảnh)</span>
+                </div>
+                
+                {/* Image Grid */}
+                <div className="grid grid-cols-3 gap-3">
+                  {editRoomsUrls.map((url, idx) => (
+                    <div key={idx} className="relative w-full aspect-video rounded-xl overflow-hidden border border-stone-200 bg-stone-100 group">
+                      <img src={url} className="w-full h-full object-cover" alt={`Rooms ${idx + 1}`} />
+                      <button
+                        type="button"
+                        onClick={() => setEditRoomsUrls(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-md hover:bg-rose-700 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer animate-in fade-in duration-200"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {/* Plus Card for Uploading */}
+                  <label className="relative w-full aspect-video rounded-xl border-2 border-dashed border-stone-200 cursor-pointer hover:border-[#a43e24]/50 flex flex-col items-center justify-center bg-stone-50 hover:bg-stone-100/50 transition-all">
+                    <Plus className="text-stone-400" size={18} />
+                    <span className="text-[9px] text-[#8a7e75] font-bold mt-1">Thêm ảnh</span>
+                    {uploadingField === 'rooms' && (
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <Loader2 className="animate-spin text-[#a43e24]" size={14} />
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'rooms')} />
+                  </label>
+                </div>
+              </div>
+
+              {/* Album Image Upload */}
+              <div className="space-y-2 text-left">
+                <div className="flex justify-between items-baseline">
+                  <label className="text-[10px] text-[#8a7e75] font-bold uppercase block">Album Ảnh Chi Tiết Bổ Sung</label>
+                  <span className="text-[9px] text-[#8a7e75] italic">({editImageUrls.length} ảnh)</span>
+                </div>
+                
+                {/* Image Grid */}
+                <div className="grid grid-cols-3 gap-3">
+                  {editImageUrls.map((url, idx) => (
+                    <div key={idx} className="relative w-full aspect-video rounded-xl overflow-hidden border border-stone-200 bg-stone-100 group">
+                      <img src={url} className="w-full h-full object-cover" alt={`Album ${idx + 1}`} />
+                      <button
+                        type="button"
+                        onClick={() => setEditImageUrls(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-md hover:bg-rose-700 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer animate-in fade-in duration-200"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {/* Plus Card for Uploading */}
+                  <label className="relative w-full aspect-video rounded-xl border-2 border-dashed border-stone-200 cursor-pointer hover:border-[#a43e24]/50 flex flex-col items-center justify-center bg-stone-50 hover:bg-stone-100/50 transition-all">
+                    <Plus className="text-stone-400" size={18} />
+                    <span className="text-[9px] text-[#8a7e75] font-bold mt-1">Thêm ảnh</span>
+                    {uploadingField === 'album' && (
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <Loader2 className="animate-spin text-[#a43e24]" size={14} />
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'album')} />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditImagesOpen(false)}
+                className="px-5 py-2.5 rounded-full border border-[#e1e3df] text-xs font-bold text-[#8a7e75] hover:bg-stone-50 transition-all"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={updating}
+                onClick={() => {
+                  handleUpdateHotelDetail(hotelDescriptionText || '', editLogoUrl, editFrontUrls, editRoomsUrls, editImageUrls)
+                }}
+                className="px-6 py-2.5 rounded-full bg-[#a43e24] text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

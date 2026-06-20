@@ -70,6 +70,13 @@ public class PetController {
         pet.setIsVaccinated(updated.getIsVaccinated());
         pet.setFoodType(updated.getFoodType());
         pet.setSpecialNotes(updated.getSpecialNotes());
+        pet.setAvatarUrl(updated.getAvatarUrl());
+        pet.setVaccineBookUrls(updated.getVaccineBookUrls());
+        pet.setPersonalityTags(updated.getPersonalityTags());
+        pet.setIsIndoorOnly(updated.getIsIndoorOnly());
+        pet.setHasSpecialDiet(updated.getHasSpecialDiet());
+        pet.setMicrochipId(updated.getMicrochipId());
+        pet.setFeedingSchedule(updated.getFeedingSchedule());
         return ResponseEntity.ok(petRepository.save(pet));
     }
 
