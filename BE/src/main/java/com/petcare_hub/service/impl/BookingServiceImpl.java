@@ -15,20 +15,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.sendgrid.Method;
-import com.sendgrid.Request;
-import com.sendgrid.SendGrid;
-import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
-import com.sendgrid.helpers.mail.objects.Email;
+import com.petcare_hub.service.AsyncEmailService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
@@ -44,23 +38,17 @@ public class BookingServiceImpl implements BookingService {
     private final RoomTypeRepository   roomTypeRepository;
     private final PetRepository        petRepository;
     private final VoucherRepository    voucherRepository;
-    private final SendGrid             sendGrid;
-    private final JavaMailSender       mailSender;
+    private final AsyncEmailService    asyncEmailService;
     private final ReviewRepository     reviewRepository;
     private final PartnerWalletRepository partnerWalletRepository;
+    private final ServiceRepository    serviceRepository;
 
-    @Value("${sendgrid.from-email}")
-    private String fromEmail;
+    // Hoa hồng nền tảng: 8% trên tổng hóa đơn (totalAmount), đối tác nhận 92%
+    private static final double DEFAULT_COMMISSION_RATE = 0.08;
 
-    @Value("${sendgrid.from-name}")
-    private String fromName;
-
-    // Tỷ lệ hoa hồng mặc định 15%
-    private static final double DEFAULT_COMMISSION_RATE = 0.15;
-    // VAT 8%
-    private static final double VAT_RATE = 0.08;
-    // Phí tiện ích cố định
-    private static final BigDecimal CONVENIENCE_FEE = BigDecimal.valueOf(10000);
+    // VAT được inject từ app.vat-rate (8% đến hết 31/12/2026; sau đó về 10%)
+    @Value("${app.vat-rate:0.08}")
+    private double vatRate;
 
     // ── Tạo Booking ───────────────────────────────────────────
 
@@ -113,6 +101,28 @@ public class BookingServiceImpl implements BookingService {
                 HttpStatus.BAD_REQUEST);
         }
 
+        // Validate dịch vụ và snapshot giá từ DB (KHÔNG lấy giá từ client)
+        BigDecimal serviceTotal = BigDecimal.ZERO;
+        List<BookedService> bookedServices = new ArrayList<>();
+        if (request.getServiceIds() != null && !request.getServiceIds().isEmpty()) {
+            List<UUID> distinctServiceIds = request.getServiceIds().stream().distinct().toList();
+            for (UUID svcId : distinctServiceIds) {
+                com.petcare_hub.entity.Service svc = serviceRepository.findById(svcId)
+                        .orElseThrow(() -> new AppException(
+                            "Dịch vụ không tồn tại: " + svcId, HttpStatus.BAD_REQUEST));
+                if (!svc.getHotel().getId().equals(hotel.getId())) {
+                    throw new AppException(
+                        "Dịch vụ '" + svc.getName() + "' không thuộc khách sạn này",
+                        HttpStatus.BAD_REQUEST);
+                }
+                bookedServices.add(BookedService.builder()
+                        .service(svc)
+                        .priceSnapshot(svc.getPrice())
+                        .build());
+                serviceTotal = serviceTotal.add(svc.getPrice());
+            }
+        }
+
         // Tính số đêm
         long totalNights = ChronoUnit.DAYS.between(
                 request.getCheckInDate(), request.getCheckOutDate());
@@ -131,19 +141,17 @@ public class BookingServiceImpl implements BookingService {
             voucherDiscount = calculateDiscount(voucher, roomTotal);
         }
 
-        // Tính VAT
-        BigDecimal subTotal = roomTotal.subtract(voucherDiscount);
-        BigDecimal vatAmount = subTotal
-                .multiply(BigDecimal.valueOf(VAT_RATE))
+        // Tính VAT — áp lên cả phòng + dịch vụ (sau khi trừ voucher)
+        BigDecimal taxableBase = roomTotal.subtract(voucherDiscount).add(serviceTotal);
+        BigDecimal vatAmount = taxableBase
+                .multiply(BigDecimal.valueOf(vatRate))
                 .setScale(0, RoundingMode.HALF_UP);
 
-        // Tổng tiền cuối
-        BigDecimal totalAmount = subTotal
-                .add(vatAmount)
-                .add(CONVENIENCE_FEE);
+        // Tổng tiền cuối = taxableBase + VAT (không còn phí tiện ích cố định)
+        BigDecimal totalAmount = taxableBase.add(vatAmount);
 
-        // Tính hoa hồng — snapshot tại thời điểm đặt
-        BigDecimal commissionFee = roomTotal
+        // Hoa hồng = rate × totalAmount (tổng hóa đơn khách trả), snapshot tại thời điểm đặt
+        BigDecimal commissionFee = totalAmount
                 .multiply(BigDecimal.valueOf(DEFAULT_COMMISSION_RATE))
                 .setScale(0, RoundingMode.HALF_UP);
 
@@ -162,7 +170,8 @@ public class BookingServiceImpl implements BookingService {
                 .totalAmount(totalAmount)
                 .commissionRate(DEFAULT_COMMISSION_RATE)
                 .commissionFee(commissionFee)
-                .convenienceFee(CONVENIENCE_FEE)
+                .convenienceFee(BigDecimal.ZERO)
+                .vatRate(vatRate)
                 .vatAmount(vatAmount)
                 .voucherDiscountAmount(voucherDiscount)
                 .loyaltyPointsUsed(0)
@@ -171,43 +180,29 @@ public class BookingServiceImpl implements BookingService {
                 .paymentMethod(request.getPaymentMethod())
                 .build();
 
+        // Gắn dịch vụ vào booking — CascadeType.ALL lưu BookedService cùng lúc
+        for (BookedService item : bookedServices) {
+            item.setBooking(booking);
+            booking.getServices().add(item);
+        }
+
         Booking saved = bookingRepository.save(booking);
         log.info("Booking mới: {} bởi owner: {}", saved.getInvoiceNumber(), ownerId);
 
-        sendInvoiceEmail(saved);
+        // Email gửi async — không block HTTP response thread
+        asyncEmailService.sendInvoiceEmailAsync(
+            saved.getInvoiceNumber(),
+            saved.getOwner().getEmail(),
+            saved.getOwner().getFullName(),
+            saved.getHotel().getName(),
+            saved.getRoomType().getName(),
+            saved.getCheckInDate(),
+            saved.getCheckOutDate(),
+            saved.getTotalAmount(),
+            saved.getPaymentMethod()
+        );
 
         return toResponse(saved);
-    }
-
-    private void sendInvoiceEmail(Booking booking) {
-        try {
-            SimpleMailMessage mail = new SimpleMailMessage();
-            mail.setTo(booking.getOwner().getEmail());
-            mail.setSubject("PetCare Hub - Xac nhan dat phong #" + booking.getInvoiceNumber());
-            mail.setText(
-                "Xin chao " + booking.getOwner().getFullName() + ",\n\n" +
-                "Dat phong cua ban da duoc ghi nhan thanh cong!\n\n" +
-                "-------------------------------\n" +
-                "MA HOA DON: " + booking.getInvoiceNumber() + "\n" +
-                "Khach san:  " + booking.getHotel().getName() + "\n" +
-                "Loai phong: " + booking.getRoomType().getName() + "\n" +
-                "Check-in:   " + booking.getCheckInDate() + "\n" +
-                "Check-out:  " + booking.getCheckOutDate() + "\n" +
-                "Tong tien:  " + booking.getTotalAmount() + " VND\n" +
-                "Thanh toan: " + booking.getPaymentMethod() + "\n" +
-                "Trang thai: PENDING - Cho xac nhan thanh toan\n" +
-                "-------------------------------\n\n" +
-                "Vui long hoan tat thanh toan de xac nhan dat phong.\n" +
-                "Noi dung chuyen khoan: " + booking.getInvoiceNumber() + "\n\n" +
-                "Cam on ban da tin tuong PetCare Hub!\n" +
-                "Team PetCare Hub"
-            );
-            mail.setFrom("noreply@petcarehub.vn");
-            mailSender.send(mail);
-            log.info("Đã gửi email hóa đơn tới: {}", booking.getOwner().getEmail());
-        } catch (Exception e) {
-            log.error("Không thể gửi email hóa đơn: {}", e.getMessage());
-        }
     }
 
     // ── Xem chi tiết ──────────────────────────────────────────
@@ -298,8 +293,12 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.COMPLETED);
         log.info("Booking {} đã COMPLETED", bookingId);
 
-        // Chuyển 92% doanh thu từ pendingBalance sang balance khả dụng cho đối tác
-        BigDecimal partnerShare = booking.getTotalAmount().multiply(new BigDecimal("0.92"));
+        // partnerShare = totalAmount − commissionFee, đọc rate từ snapshot
+        BigDecimal totalAmount = booking.getTotalAmount();
+        BigDecimal commissionFee = totalAmount
+                .multiply(BigDecimal.valueOf(booking.getCommissionRate()))
+                .setScale(0, RoundingMode.HALF_UP);
+        BigDecimal partnerShare = totalAmount.subtract(commissionFee).setScale(0, RoundingMode.HALF_UP);
         User partner = booking.getHotel().getPartner();
         if (partner != null) {
             PartnerWallet wallet = partnerWalletRepository.findByPartnerId(partner.getId())
@@ -337,93 +336,18 @@ public class BookingServiceImpl implements BookingService {
         Booking saved = bookingRepository.save(booking);
         log.info("Booking {} đã CONFIRMED", bookingId);
 
-        // Gửi email thông báo thanh toán và đặt phòng thành công
-        sendConfirmEmail(saved);
-
-        return toResponse(saved);
-    }
-
-    private void sendConfirmEmail(Booking booking) {
-        Email from = new Email(fromEmail, fromName);
-        Email to = new Email(booking.getOwner().getEmail());
-        String subject = "✅ PetCare Hub — Đặt phòng đã được xác nhận!";
-        
-        String htmlContent = String.format(
-            "<div style=\"background-color: #f8f9fa; padding: 30px 10px; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100%%;\">" +
-            "    <div style=\"max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 35px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);\">" +
-            "        <div style=\"text-align: center; margin-bottom: 25px;\">" +
-            "            <h2 style=\"color: #44683b; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;\">" +
-            "                PetCare Hub 🐾" +
-            "            </h2>" +
-            "        </div>" +
-            "        " +
-            "        <div style=\"color: #333333; font-size: 15px; line-height: 1.6;\">" +
-            "            <p style=\"margin-top: 0;\">Xin chào <strong style=\"color: #a43e24;\">%s</strong>,</p>" +
-            "            <p style=\"color: #555555;\">Đặt phòng của bạn đã được xác nhận thanh công! Dưới đây là thông tin chi tiết:</p>" +
-            "            " +
-            "            <div style=\"background: #faf9f6; border-radius: 12px; padding: 20px; margin: 25px 0; border: 1px solid #e5d8d0;\">" +
-            "                <table style=\"width: 100%%; font-size: 14px; border-collapse: collapse;\">" +
-            "                    <tr>" +
-            "                        <td style=\"padding: 6px 0; color: #8a7e75; font-weight: bold;\">Mã đặt phòng:</td>" +
-            "                        <td style=\"padding: 6px 0; font-weight: bold; text-align: right; color: #303330;\">#%s</td>" +
-            "                    </tr>" +
-            "                    <tr>" +
-            "                        <td style=\"padding: 6px 0; color: #8a7e75; font-weight: bold;\">Khách sạn:</td>" +
-            "                        <td style=\"padding: 6px 0; font-weight: bold; text-align: right; color: #303330;\">%s</td>" +
-            "                    </tr>" +
-            "                    <tr>" +
-            "                        <td style=\"padding: 6px 0; color: #8a7e75; font-weight: bold;\">Loại phòng:</td>" +
-            "                        <td style=\"padding: 6px 0; font-weight: bold; text-align: right; color: #303330;\">%s</td>" +
-            "                    </tr>" +
-            "                    <tr>" +
-            "                        <td style=\"padding: 6px 0; color: #8a7e75; font-weight: bold;\">Check-in:</td>" +
-            "                        <td style=\"padding: 6px 0; font-weight: bold; text-align: right; color: #303330;\">%s</td>" +
-            "                    </tr>" +
-            "                    <tr>" +
-            "                        <td style=\"padding: 6px 0; color: #8a7e75; font-weight: bold;\">Check-out:</td>" +
-            "                        <td style=\"padding: 6px 0; font-weight: bold; text-align: right; color: #303330;\">%s</td>" +
-            "                    </tr>" +
-            "                    <tr>" +
-            "                        <td style=\"padding: 12px 0 0 0; color: #a43e24; font-weight: 800; font-size: 16px; border-top: 1px dashed #e5d8d0;\">Tổng thanh toán:</td>" +
-            "                        <td style=\"padding: 12px 0 0 0; font-weight: 800; font-size: 16px; text-align: right; color: #a43e24; border-top: 1px dashed #e5d8d0;\">%s VND</td>" +
-            "                    </tr>" +
-            "                </table>" +
-            "            </div>" +
-            "            " +
-            "            <p style=\"color: #666666; font-size: 14px;\">" +
-            "                Cảm ơn bạn đã tin tưởng lựa chọn PetCare Hub cho bé yêu của mình. Hẹn gặp lại bạn và bé tại khách sạn!" +
-            "            </p>" +
-            "        </div>" +
-            "        " +
-            "        <hr style=\"border: 0; border-top: 1px solid #eeeeee; margin: 30px 0 20px 0;\">" +
-            "        <div style=\"text-align: center; font-size: 12px; color: #aaaaaa;\">" +
-            "            <p style=\"margin: 0 0 5px 0;\">Email này được gửi tự động từ hệ thống PetCare Hub.</p>" +
-            "            <p style=\"margin: 0; font-weight: 600;\">© 2026 PetCare Hub. Bảo lưu mọi quyền.</p>" +
-            "        </div>" +
-            "    </div>" +
-            "</div>",
-            booking.getOwner().getFullName(),
-            booking.getInvoiceNumber(),
-            booking.getHotel().getName(),
-            booking.getRoomType().getName(),
-            booking.getCheckInDate().toString(),
-            booking.getCheckOutDate().toString(),
-            String.format("%,.0f", booking.getTotalAmount())
+        asyncEmailService.sendConfirmEmailAsync(
+            saved.getInvoiceNumber(),
+            saved.getOwner().getEmail(),
+            saved.getOwner().getFullName(),
+            saved.getHotel().getName(),
+            saved.getRoomType().getName(),
+            saved.getCheckInDate(),
+            saved.getCheckOutDate(),
+            saved.getTotalAmount()
         );
 
-        Content content = new Content("text/html", htmlContent);
-        Mail mail = new Mail(from, subject, to, content);
-
-        try {
-            Request request = new Request();
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-            sendGrid.api(request);
-            log.info("Đã gửi email xác nhận đặt phòng tới: {}", booking.getOwner().getEmail());
-        } catch (Exception e) {
-            log.error("Không thể gửi email xác nhận đặt phòng: {}", e.getMessage());
-        }
+        return toResponse(saved);
     }
 
     // ── Private helpers ────────────────────────────────────────

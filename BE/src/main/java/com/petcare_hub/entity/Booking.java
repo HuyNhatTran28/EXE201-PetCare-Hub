@@ -61,6 +61,11 @@ public class Booking extends BaseEntity {
     @Builder.Default
     private Set<Pet> pets = new HashSet<>();
 
+    @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY,
+               cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<BookedService> services = new HashSet<>();
+
     // ── Ngày check-in / check-out ──────────────────────────────
 
     @Column(name = "check_in_date", nullable = false)
@@ -78,6 +83,10 @@ public class Booking extends BaseEntity {
     // Snapshot tại thời điểm đặt — KHÔNG đọc lại sau này
     @Column(name = "commission_rate", nullable = false)
     private Double commissionRate;
+
+    // Snapshot mức VAT tại thời điểm đặt — hóa đơn cũ giữ đúng mức thuế khi config thay đổi
+    @Column(name = "vat_rate")
+    private Double vatRate;
 
     @Column(name = "commission_fee",
             columnDefinition = "numeric(15,2)")

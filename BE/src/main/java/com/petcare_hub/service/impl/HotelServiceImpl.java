@@ -286,12 +286,36 @@ public class HotelServiceImpl implements HotelService {
                     if (logo != null && !logo.isEmpty()) imageUrls.add(logo);
                 }
                 if (node.has("frontUrl")) {
-                    String front = node.get("frontUrl").asText();
-                    if (front != null && !front.isEmpty()) imageUrls.add(front);
+                    com.fasterxml.jackson.databind.JsonNode frontNode = node.get("frontUrl");
+                    if (frontNode.isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode n : frontNode) {
+                            String f = n.asText();
+                            if (f != null && !f.trim().isEmpty() && !imageUrls.contains(f)) {
+                                imageUrls.add(f);
+                            }
+                        }
+                    } else {
+                        String front = frontNode.asText();
+                        if (front != null && !front.isEmpty() && !imageUrls.contains(front)) {
+                            imageUrls.add(front);
+                        }
+                    }
                 }
                 if (node.has("roomsUrl")) {
-                    String rooms = node.get("roomsUrl").asText();
-                    if (rooms != null && !rooms.isEmpty()) imageUrls.add(rooms);
+                    com.fasterxml.jackson.databind.JsonNode roomsNode = node.get("roomsUrl");
+                    if (roomsNode.isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode n : roomsNode) {
+                            String r = n.asText();
+                            if (r != null && !r.trim().isEmpty() && !imageUrls.contains(r)) {
+                                imageUrls.add(r);
+                            }
+                        }
+                    } else {
+                        String rooms = roomsNode.asText();
+                        if (rooms != null && !rooms.isEmpty() && !imageUrls.contains(rooms)) {
+                            imageUrls.add(rooms);
+                        }
+                    }
                 }
                 if (node.has("imageUrls")) {
                     com.fasterxml.jackson.databind.JsonNode urlsNode = node.get("imageUrls");
@@ -337,9 +361,9 @@ public class HotelServiceImpl implements HotelService {
         if (url == null || url.trim().isEmpty()) {
             return new double[]{10.7769, 106.7009}; // default
         }
-        String expandedUrl = url;
-        if (url.contains("maps.app.goo.gl") || url.contains("goo.gl/maps")) {
-            expandedUrl = expandUrl(url);
+        String expandedUrl = url.trim();
+        if (expandedUrl.contains("maps.app.goo.gl") || expandedUrl.contains("goo.gl/maps")) {
+            expandedUrl = expandUrl(expandedUrl);
         }
         return parseCoordsFromUrl(expandedUrl);
     }

@@ -6,6 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link href="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.js"></script>
+    <style>
+      /* Ẩn logo/attribution của Goong Maps & Mapbox */
+      .mapboxgl-ctrl-logo,
+      .goongjs-ctrl-logo,
+      .mapboxgl-ctrl-attrib,
+      .goongjs-ctrl-attrib,
+      .mapboxgl-ctrl-bottom-right,
+      .mapboxgl-ctrl-bottom-left,
+      a[href*="mapbox"],
+      a[href*="goong"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+      }
+    </style>
     <title>petcare-hub-fe</title>
   </head>
   <body>

@@ -191,19 +191,19 @@ export const PartnerDashboard = () => {
 
   const validateImageFile = (file: File): { isValid: boolean; message: string } => {
     const extension = file.name.split('.').pop()?.toLowerCase();
-    const allowedExtensions = ['jpg', 'jpeg', 'png'];
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'];
     if (!extension || !allowedExtensions.includes(extension)) {
       return {
         isValid: false,
-        message: `Định dạng tệp "${file.name}" không hợp lệ. Chỉ chấp nhận các tệp ảnh .jpg, .jpeg, .png.`
+        message: `Định dạng tệp "${file.name}" không hợp lệ. Chỉ chấp nhận các tệp ảnh .jpg, .jpeg, .png, .webp, .avif, .gif.`
       };
     }
 
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
     if (!allowedMimeTypes.includes(file.type)) {
       return {
         isValid: false,
-        message: `Định dạng tệp "${file.name}" không hợp lệ. Vui lòng chọn ảnh JPEG hoặc PNG.`
+        message: `Định dạng tệp "${file.name}" không hợp lệ. Vui lòng chọn ảnh JPEG, PNG, WEBP, AVIF hoặc GIF.`
       };
     }
 
@@ -1743,7 +1743,7 @@ export const PartnerDashboard = () => {
                           <label className="cursor-pointer h-40 bg-[#faf9f6]/60 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-3xl flex flex-col items-center justify-center gap-2 text-[#8a7e75] transition-colors relative overflow-hidden">
                             <input 
                               type="file" 
-                              accept=".png,.jpg,.jpeg" 
+                              accept="image/*" 
                               className="hidden" 
                               disabled={!!uploadingField}
                               onChange={handleCheckInPhotoUpload}
@@ -3156,7 +3156,7 @@ export const PartnerDashboard = () => {
                         {/* Logo upload */}
                         <div className="flex-1 text-center">
                           <label className="cursor-pointer bg-[#faf9f6] hover:bg-[#fa7150]/5 border border-[#e5d8d0] hover:border-[#fa7150] rounded-xl p-3 flex flex-col items-center justify-center transition-colors relative min-h-[70px] overflow-hidden">
-                            <input type="file" accept=".png,.jpg,.jpeg" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'logo')} />
+                            <input type="file" accept="image/*" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'logo')} />
                             {uploadingField === 'logo' && (
                               <div className="absolute inset-0 bg-[#faf9f6]/95 flex flex-col items-center justify-center z-20">
                                 <span className="w-4 h-4 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
@@ -3175,7 +3175,7 @@ export const PartnerDashboard = () => {
                         {/* Front upload */}
                         <div className="flex-1 text-center">
                           <label className="cursor-pointer bg-[#faf9f6] hover:bg-[#fa7150]/5 border border-[#e5d8d0] hover:border-[#fa7150] rounded-xl p-3 flex flex-col items-center justify-center transition-colors relative min-h-[70px] overflow-hidden">
-                            <input type="file" accept=".png,.jpg,.jpeg" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'front')} />
+                            <input type="file" accept="image/*" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'front')} />
                             {uploadingField === 'front' && (
                               <div className="absolute inset-0 bg-[#faf9f6]/95 flex flex-col items-center justify-center z-20">
                                 <span className="w-4 h-4 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
@@ -3194,7 +3194,7 @@ export const PartnerDashboard = () => {
                         {/* Rooms upload */}
                         <div className="flex-1 text-center">
                           <label className="cursor-pointer bg-[#faf9f6] hover:bg-[#fa7150]/5 border border-[#e5d8d0] hover:border-[#fa7150] rounded-xl p-3 flex flex-col items-center justify-center transition-colors relative min-h-[70px] overflow-hidden">
-                            <input type="file" accept=".png,.jpg,.jpeg" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'rooms')} />
+                            <input type="file" accept="image/*" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'rooms')} />
                             {uploadingField === 'rooms' && (
                               <div className="absolute inset-0 bg-[#faf9f6]/95 flex flex-col items-center justify-center z-20">
                                 <span className="w-4 h-4 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
@@ -3233,7 +3233,7 @@ export const PartnerDashboard = () => {
                           <label className="cursor-pointer bg-[#faf9f6]/40 hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-xl flex flex-col items-center justify-center aspect-video transition-all">
                             <input 
                               type="file" 
-                              accept=".png,.jpg,.jpeg" 
+                              accept="image/*" 
                               disabled={!!uploadingField} 
                               className="hidden" 
                               onChange={e => handleFileUpload(e, 'hotelGallery')} 
@@ -3290,7 +3290,7 @@ export const PartnerDashboard = () => {
                       <div>
                         <span className="block text-[#8a7e75] mb-2 uppercase text-[10px]">Ảnh CCCD Mặt trước</span>
                         <label className="cursor-pointer bg-white hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-2xl p-4 flex flex-col items-center justify-center transition-colors min-h-[100px] relative overflow-hidden">
-                          <input type="file" accept=".png,.jpg,.jpeg" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'cccdFront')} />
+                          <input type="file" accept="image/*" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'cccdFront')} />
                           {uploadingField === 'cccdFront' && (
                             <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-1.5 z-20">
                               <span className="w-5 h-5 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
@@ -3311,7 +3311,7 @@ export const PartnerDashboard = () => {
                       <div>
                         <span className="block text-[#8a7e75] mb-2 uppercase text-[10px]">Ảnh CCCD Mặt sau</span>
                         <label className="cursor-pointer bg-white hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-2xl p-4 flex flex-col items-center justify-center transition-colors min-h-[100px] relative overflow-hidden">
-                          <input type="file" accept=".png,.jpg,.jpeg" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'cccdBack')} />
+                          <input type="file" accept="image/*" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'cccdBack')} />
                           {uploadingField === 'cccdBack' && (
                             <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-1.5 z-20">
                               <span className="w-5 h-5 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
@@ -3355,7 +3355,7 @@ export const PartnerDashboard = () => {
                               <Camera size={20} className="text-[#fa7150]" />
                               <div className="flex gap-2 w-full mt-1.5">
                                 <label className="flex-1 py-1.5 bg-[#faf9f6] hover:bg-[#fa7150]/5 border border-[#e5d8d0] hover:border-[#fa7150] rounded-xl text-[9px] font-black uppercase text-center cursor-pointer transition-all flex items-center justify-center gap-1">
-                                  <input type="file" accept=".png,.jpg,.jpeg" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'selfie')} />
+                                  <input type="file" accept="image/*" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'selfie')} />
                                   Tải file
                                 </label>
                                 <button
@@ -3417,7 +3417,7 @@ export const PartnerDashboard = () => {
                       <div>
                         <span className="block text-[#8a7e75] mb-2 uppercase text-[10px]">Giấy phép Đăng ký kinh doanh / MST</span>
                         <label className="cursor-pointer bg-white hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-2xl p-4 flex flex-col items-center justify-center transition-colors min-h-[100px] relative overflow-hidden">
-                          <input type="file" accept=".png,.jpg,.jpeg,.pdf" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'businessLicense')} />
+                          <input type="file" accept="image/*,application/pdf" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'businessLicense')} />
                           {uploadingField === 'businessLicense' && (
                             <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-1.5 z-20">
                               <span className="w-5 h-5 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
@@ -3441,7 +3441,7 @@ export const PartnerDashboard = () => {
                       <div>
                         <span className="block text-[#8a7e75] mb-2 uppercase text-[10px]">Chứng chỉ hành nghề thú y (Nếu có)</span>
                         <label className="cursor-pointer bg-white hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-2xl p-4 flex flex-col items-center justify-center transition-colors min-h-[100px] relative overflow-hidden">
-                          <input type="file" accept=".png,.jpg,.jpeg,.pdf" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'vetCert')} />
+                          <input type="file" accept="image/*,application/pdf" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'vetCert')} />
                           {uploadingField === 'vetCert' && (
                             <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-1.5 z-20">
                               <span className="w-5 h-5 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>

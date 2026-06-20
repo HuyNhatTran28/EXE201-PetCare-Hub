@@ -45,26 +45,22 @@ public class KycServiceImpl implements KycService {
     public Map<String, Object> processKyc(MultipartFile frontImage, MultipartFile backImage, MultipartFile selfieImage) throws Exception {
         log.info("Bắt đầu xử lý eKYC qua VNPT. Token-ID: {}", tokenId);
 
-        // Kiểm tra nếu client-id chưa được cấu hình hoặc là placeholder mặc định
-        boolean isMockMode = tokenId == null 
+        // Kiểm tra nếu client-id hoặc token chưa được cấu hình hoặc là placeholder mặc định
+        boolean isUnconfigured = tokenId == null 
                 || tokenId.trim().isEmpty() 
-                || tokenId.equals("MÃ_CLIENT_ID_CỦA_BẠN");
+                || tokenId.equals("MÃ_CLIENT_ID_CỦA_BẠN")
+                || tokenId.equals("your-ekyc-token-id")
+                || tokenKey == null
+                || tokenKey.equals("your-ekyc-token-key")
+                || accessToken == null
+                || accessToken.equals("your-ekyc-access-token");
 
-        // Xác định xem có bắt buộc giả lập lỗi hay không (khi tên file chứa "fail" hoặc "fake")
-        boolean shouldMockFail = false;
-        if (frontImage.getOriginalFilename() != null && (frontImage.getOriginalFilename().toLowerCase().contains("fail") || frontImage.getOriginalFilename().toLowerCase().contains("fake"))) {
-            shouldMockFail = true;
-        }
-        if (backImage.getOriginalFilename() != null && (backImage.getOriginalFilename().toLowerCase().contains("fail") || backImage.getOriginalFilename().toLowerCase().contains("fake"))) {
-            shouldMockFail = true;
-        }
-        if (selfieImage.getOriginalFilename() != null && (selfieImage.getOriginalFilename().toLowerCase().contains("fail") || selfieImage.getOriginalFilename().toLowerCase().contains("fake"))) {
-            shouldMockFail = true;
-        }
-
-        if (isMockMode) {
-            log.info("Phát hiện VNPT eKYC Token-ID là mặc định/placeholder. Kích hoạt chế độ MOCK eKYC (shouldFail: {}).", shouldMockFail);
-            return getMockKycResponse(shouldMockFail);
+        if (isUnconfigured) {
+            log.warn("VNPT eKYC chưa được cấu hình đầy đủ hoặc sử dụng giá trị mặc định. Báo lỗi vì yêu cầu chạy eKYC thật.");
+            Map<String, Object> errorMap = new java.util.HashMap<>();
+            errorMap.put("success", false);
+            errorMap.put("message", "Xác thực eKYC thất bại: VNPT eKYC chưa được cấu hình đầy đủ. Vui lòng cấu hình token-id, token-key và access-token hợp lệ trong application-local.properties.");
+            return errorMap;
         }
 
         try {
@@ -235,33 +231,20 @@ public class KycServiceImpl implements KycService {
         } catch (Exception e) {
             log.error("Lỗi khi kết nối hoặc xử lý với API VNPT eKYC thật: ", e);
 
-            // Nếu là lỗi 401 (token hết hạn) hoặc bất kỳ lỗi kết nối nào,
-            // tự động fallback sang Mock mode để demo không bị gián đoạn
-            boolean isAuthError = false;
+            Map<String, Object> errorMap = new HashMap<>();
+            errorMap.put("success", false);
+            String errorDetails = e.getMessage();
             if (e instanceof org.springframework.web.client.HttpStatusCodeException) {
-                org.springframework.web.client.HttpStatusCodeException hse =
-                    (org.springframework.web.client.HttpStatusCodeException) e;
+                org.springframework.web.client.HttpStatusCodeException hse = (org.springframework.web.client.HttpStatusCodeException) e;
                 int statusCode = hse.getStatusCode().value();
                 if (statusCode == 401 || statusCode == 403) {
-                    isAuthError = true;
-                    log.warn("eKYC token hết hạn (HTTP {}). Tự động chuyển sang chế độ MOCK để demo.", statusCode);
-                }
-            }
-
-            if (isMockMode || isAuthError) {
-                log.info("Kích hoạt chế độ Mock Fallback (isMockMode={}, isAuthError={}).", isMockMode, isAuthError);
-                return getMockKycResponse(shouldMockFail);
-            } else {
-                Map<String, Object> errorMap = new HashMap<>();
-                errorMap.put("success", false);
-                String errorDetails = e.getMessage();
-                if (e instanceof org.springframework.web.client.HttpStatusCodeException) {
-                    org.springframework.web.client.HttpStatusCodeException hse = (org.springframework.web.client.HttpStatusCodeException) e;
+                    errorDetails = "Token eKYC hết hạn hoặc không hợp lệ (HTTP " + statusCode + "). Token VNPT chỉ có hiệu lực tối đa 8 tiếng, vui lòng cập nhật access-token mới trong application-local.properties.";
+                } else {
                     errorDetails = "HTTP " + hse.getStatusCode() + " - " + hse.getResponseBodyAsString();
                 }
-                errorMap.put("message", "Lỗi kết nối API VNPT eKYC: " + errorDetails);
-                return errorMap;
             }
+            errorMap.put("message", "Lỗi kết nối API VNPT eKYC: " + errorDetails);
+            return errorMap;
         }
     }
 
@@ -308,27 +291,19 @@ public class KycServiceImpl implements KycService {
 
     private HttpHeaders getVnptHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
+        String cleanToken = accessToken;
+        if (cleanToken != null) {
+            cleanToken = cleanToken.trim();
+            if (cleanToken.toLowerCase().startsWith("bearer ")) {
+                cleanToken = cleanToken.substring(7).trim();
+            }
+        }
+        headers.setBearerAuth(cleanToken);
         headers.add("Token-id", tokenId);
         headers.add("Token-key", tokenKey);
         headers.add("mac-address", macAddress);
         return headers;
     }
 
-    private Map<String, Object> getMockKycResponse(boolean shouldFail) {
-        Map<String, Object> responseMap = new HashMap<>();
-        if (shouldFail) {
-            responseMap.put("success", false);
-            responseMap.put("message", "Xác thực thất bại: Khuôn mặt chụp thực tế không trùng khớp với ảnh trên giấy tờ CCCD! Hãy thử lại.");
-            responseMap.put("matchingScore", 0.0);
-        } else {
-            responseMap.put("success", true);
-            responseMap.put("message", "Xác thực danh tính thành công! (Chế độ dự phòng — vui lòng điền thông tin CCCD thủ công)");
-            responseMap.put("matchingScore", 0.85);
-            // Trả về rỗng — người dùng phải điền tay
-            responseMap.put("cccdNumber", "");
-            responseMap.put("fullName", "");
-        }
-        return responseMap;
-    }
+
 }

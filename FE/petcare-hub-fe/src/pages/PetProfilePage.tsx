@@ -270,12 +270,21 @@ export const PetProfilePage = () => {
                   style={sunlightShadow}
                 >
                   <div className="relative mb-6">
-                    <div className={`aspect-square rounded-xl overflow-hidden relative border-4 ${borderAccentColor}`}>
-                      <img 
-                        alt={pet.name} 
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" 
-                        src={petImage}
-                      />
+                    <div className={`aspect-square rounded-xl overflow-hidden relative border-4 ${borderAccentColor} bg-[#faf9f6]`}>
+                      {pet.avatarUrl ? (
+                        <img 
+                          alt={pet.name} 
+                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" 
+                          src={pet.avatarUrl}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-[#8a7e75] gap-1.5 bg-[#f5f3ef]/60">
+                          <PawPrint size={36} className="text-[#a43e24]/40" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider bg-[#e5d8d0]/40 px-2 py-0.5 rounded">
+                            {pet.species === 'CAT' ? 'Mèo cưng' : 'Cún cưng'}
+                          </span>
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-[#a43e24]/5 opacity-0 hover:opacity-100 transition-opacity"></div>
                     </div>
                     {isSelected && (
@@ -335,12 +344,21 @@ export const PetProfilePage = () => {
               <div className="bg-white p-10 rounded-2xl overflow-hidden relative text-center border border-[#eeeeea]" style={sunlightShadow}>
                 <div className="absolute top-0 right-0 w-40 h-40 bg-[#d0fac0]/20 rounded-full -mr-20 -mt-20"></div>
                 <div className="relative z-10">
-                  <div className="w-48 h-48 rounded-full mx-auto border-8 border-[#c2ebb2] overflow-hidden mb-6 shadow-inner">
-                    <img 
-                      alt={activePet.name} 
-                      className="w-full h-full object-cover" 
-                      src={activePet.avatarUrl || 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=400'}
-                    />
+                  <div className="w-48 h-48 rounded-full mx-auto border-8 border-[#c2ebb2] overflow-hidden mb-6 shadow-inner bg-[#faf9f6] flex items-center justify-center">
+                    {activePet.avatarUrl ? (
+                      <img 
+                        alt={activePet.name} 
+                        className="w-full h-full object-cover" 
+                        src={activePet.avatarUrl}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-[#8a7e75] gap-2 bg-[#f5f3ef]/60">
+                        <PawPrint size={52} className="text-[#a43e24]/40" />
+                        <span className="text-xs font-bold uppercase tracking-widest bg-[#e5d8d0]/50 px-3 py-1 rounded-full">
+                          {activePet.species === 'CAT' ? 'Mèo' : 'Chó'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <h2 className="text-4xl font-black text-[#303330] font-headline">{activePet.name}</h2>
                   <p className="text-[#44683b] font-semibold mt-1">
@@ -636,13 +654,18 @@ export const PetProfilePage = () => {
 
               {/* Avatar Upload */}
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-[#ffac98] bg-[#faf9f6]">
-                  <img
-                    src={(editPet ? editPet.avatarUrl : form.avatarUrl)
-                      || 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=200'}
-                    alt="avatar"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-[#ffac98] bg-[#faf9f6] flex items-center justify-center">
+                  {(editPet ? editPet.avatarUrl : form.avatarUrl) ? (
+                    <img
+                      src={editPet ? editPet.avatarUrl! : form.avatarUrl}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#f5f3ef] text-[#8a7e75]">
+                      <PawPrint size={24} className="text-[#a43e24]/40" />
+                    </div>
+                  )}
                 </div>
                 <label className={`flex-1 py-2.5 px-4 border-2 border-dashed rounded-2xl cursor-pointer text-xs font-bold transition-all ${
                   uploadingAvatar ? 'border-[#ffac98] text-[#fa7150]' : 'border-[#e5d8d0] text-[#8a7e75] hover:border-[#a43e24]'

@@ -377,7 +377,7 @@ public class DataSeeder implements CommandLineRunner {
                 .totalAmount(BigDecimal.valueOf(amount))
                 .commissionRate(0.10)
                 .commissionFee(BigDecimal.valueOf(amount * 0.10))
-                .convenienceFee(BigDecimal.valueOf(10000))
+                .convenienceFee(BigDecimal.ZERO)
                 .vatAmount(BigDecimal.valueOf(amount * 0.08))
                 .status(status)
                 .paymentMethod(payment)

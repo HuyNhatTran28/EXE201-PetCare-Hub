@@ -20,10 +20,12 @@ import org.springframework.web.bind.annotation.*;
 import vn.payos.PayOS;
 import vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest;
 import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
+import vn.payos.model.v2.paymentRequests.PaymentLinkStatus;
 import vn.payos.model.webhooks.Webhook;
 import vn.payos.model.webhooks.WebhookData;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -139,7 +141,7 @@ public class PaymentController {
             var info = payOS.paymentRequests().get(orderCode);
             log.info("Trạng thái từ payOS cho orderCode {}: {}", orderCode, info.getStatus());
 
-            if ("PAID".equals(info.getStatus())) {
+            if (PaymentLinkStatus.PAID == info.getStatus()) {
                 if (payment.getPaymentStatus() == PaymentStatus.PENDING) {
                     payment.setPaymentStatus(PaymentStatus.SUCCESS);
                     payment.setPaidAt(LocalDateTime.now());
@@ -150,7 +152,10 @@ public class PaymentController {
                         bookingRepository.save(booking);
 
                         BigDecimal totalAmount = booking.getTotalAmount();
-                        BigDecimal partnerShare = totalAmount.multiply(new BigDecimal("0.92"));
+                        BigDecimal commissionFee = totalAmount
+                                .multiply(BigDecimal.valueOf(booking.getCommissionRate()))
+                                .setScale(0, RoundingMode.HALF_UP);
+                        BigDecimal partnerShare = totalAmount.subtract(commissionFee).setScale(0, RoundingMode.HALF_UP);
 
                         com.petcare_hub.entity.User partner = booking.getHotel().getPartner();
                         if (partner != null) {
@@ -168,7 +173,7 @@ public class PaymentController {
                         }
                     }
                 }
-            } else if ("CANCELLED".equals(info.getStatus()) || "EXPIRED".equals(info.getStatus())) {
+            } else if (PaymentLinkStatus.CANCELLED == info.getStatus() || PaymentLinkStatus.EXPIRED == info.getStatus()) {
                 payment.setPaymentStatus(PaymentStatus.FAILED);
                 paymentRepository.save(payment);
                 if (booking.getStatus() == BookingStatus.PENDING) {
@@ -201,7 +206,8 @@ public class PaymentController {
             @SuppressWarnings("unchecked")
             Map<String, Object> dataMap = (Map<String, Object>) payload.get("data");
             if (dataMap == null) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Data field is required"));
+                log.warn("Webhook PayOS thiếu field 'data', bỏ qua");
+                return ResponseEntity.ok(Map.of("success", false, "message", "Data field is required"));
             }
 
             Long orderCode = Long.valueOf(dataMap.get("orderCode").toString());
@@ -267,7 +273,10 @@ public class PaymentController {
                         bookingRepository.save(bookedItem);
 
                         BigDecimal totalAmount = bookedItem.getTotalAmount();
-                        BigDecimal partnerShare = totalAmount.multiply(new BigDecimal("0.92"));
+                        BigDecimal commissionFee = totalAmount
+                                .multiply(BigDecimal.valueOf(bookedItem.getCommissionRate()))
+                                .setScale(0, RoundingMode.HALF_UP);
+                        BigDecimal partnerShare = totalAmount.subtract(commissionFee).setScale(0, RoundingMode.HALF_UP);
 
                         com.petcare_hub.entity.User partner = bookedItem.getHotel().getPartner();
                         if (partner != null) {
@@ -289,9 +298,8 @@ public class PaymentController {
 
             return ResponseEntity.ok(Map.of("success", true));
         } catch (Exception e) {
-            log.error("Lỗi xử lý webhook payOS: ", e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("success", false, "message", e.getMessage()));
+            log.error("Lỗi xử lý webhook payOS (vẫn ack 200 để PayOS không retry): ", e);
+            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
         }
     }
 }
