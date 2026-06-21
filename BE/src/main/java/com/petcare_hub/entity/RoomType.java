@@ -38,6 +38,10 @@ public class RoomType extends BaseEntity {
             columnDefinition = "numeric(15,2)")
     private BigDecimal pricePerNight;
 
+    // Giá gửi ngày (Daycare) — dùng BigDecimal
+    @Column(name = "day_rate", columnDefinition = "numeric(15,2)")
+    private BigDecimal dayRate;
+
     // Số thú cưng tối đa trong 1 phòng
     @Column(name = "max_pets")
     private Integer maxPets;

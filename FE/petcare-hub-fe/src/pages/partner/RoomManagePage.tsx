@@ -18,6 +18,7 @@ interface RoomType {
   id: string
   name: string
   pricePerNight: number
+  dayRate?: number | null
   maxPets: number
   totalRooms: number
   allowedPetTypes: string[]
@@ -98,6 +99,7 @@ export const RoomManagePage = () => {
     name: '',
     description: '',
     pricePerNight: '',
+    dayRate: '',
     maxPets: '',
     totalRooms: '',
     allowedPetTypes: [] as string[],
@@ -123,6 +125,10 @@ export const RoomManagePage = () => {
       alert('Giá thuê không được âm!')
       return
     }
+    if (editRoom.dayRate !== undefined && editRoom.dayRate !== null && Number(editRoom.dayRate) < 0) {
+      alert('Giá gửi ngày không được âm!')
+      return
+    }
     if (Number(editRoom.totalRooms) <= 0) {
       alert('Tổng số phòng phải lớn hơn 0!')
       return
@@ -137,6 +143,7 @@ export const RoomManagePage = () => {
         name: editRoom.name,
         description: editRoom.description,
         pricePerNight: Number(editRoom.pricePerNight),
+        dayRate: (editRoom.dayRate !== undefined && editRoom.dayRate !== null && String(editRoom.dayRate) !== '') ? Number(editRoom.dayRate) : null,
         maxPets: Number(editRoom.maxPets),
         totalRooms: Number(editRoom.totalRooms),
         allowedPetTypes: editRoom.allowedPetTypes || [],
@@ -159,6 +166,10 @@ export const RoomManagePage = () => {
       alert('Giá thuê không được âm!')
       return
     }
+    if (form.dayRate && Number(form.dayRate) < 0) {
+      alert('Giá gửi ngày không được âm!')
+      return
+    }
     if (Number(form.totalRooms) <= 0) {
       alert('Tổng số phòng phải lớn hơn 0!')
       return
@@ -169,6 +180,7 @@ export const RoomManagePage = () => {
         name: form.name,
         description: form.description,
         pricePerNight: Number(form.pricePerNight),
+        dayRate: form.dayRate ? Number(form.dayRate) : null,
         maxPets: Number(form.maxPets) || 2,
         totalRooms: Number(form.totalRooms),
         allowedPetTypes: form.allowedPetTypes,
@@ -178,7 +190,7 @@ export const RoomManagePage = () => {
       const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
       setRooms(res.data || [])
       setShowModal(false)
-      setForm({ name: '', description: '', pricePerNight: '', maxPets: '', totalRooms: '', allowedPetTypes: [], images: [] })
+      setForm({ name: '', description: '', pricePerNight: '', dayRate: '', maxPets: '', totalRooms: '', allowedPetTypes: [], images: [] })
     } catch (err) {
       console.error('Failed to create room type', err)
     } finally {
@@ -306,13 +318,27 @@ export const RoomManagePage = () => {
                   <p className="text-xs text-[#5a5550] leading-relaxed mb-6 h-10 line-clamp-2">{room.description}</p>
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60">
-                      <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1 flex items-center gap-1"><DollarSign size={12} /> Giá Thuê / Đêm</span>
-                      <span className="text-lg font-black text-[#303330]">{room.pricePerNight.toLocaleString('vi-VN')} đ</span>
+                    <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 flex flex-col justify-between">
+                      <div>
+                        <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1 flex items-center gap-1"><DollarSign size={12} /> Giá Qua Đêm</span>
+                        <span className="text-lg font-black text-[#303330]">{room.pricePerNight.toLocaleString('vi-VN')} đ</span>
+                      </div>
+                      {room.dayRate !== undefined && room.dayRate !== null && (
+                        <div className="border-t border-[#e5d8d0]/40 mt-2 pt-2">
+                          <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1">Giá Gửi Ngày</span>
+                          <span className="text-sm font-black text-[#303330]">{room.dayRate.toLocaleString('vi-VN')} đ</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60">
-                      <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1 flex items-center gap-1"><Maximize2 size={12} /> Sức Chứa Tối Đa</span>
-                      <span className="text-lg font-black text-[#303330]">{room.maxPets} thú cưng</span>
+                    <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 flex flex-col justify-between">
+                      <div>
+                        <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1 flex items-center gap-1"><Maximize2 size={12} /> Sức Chứa Tối Đa</span>
+                        <span className="text-lg font-black text-[#303330]">{room.maxPets} thú cưng</span>
+                      </div>
+                      <div className="border-t border-[#e5d8d0]/40 mt-2 pt-2">
+                        <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1">Tổng Số Phòng</span>
+                        <span className="text-sm font-black text-[#303330]">{room.totalRooms} phòng</span>
+                      </div>
                     </div>
                   </div>
 
@@ -374,7 +400,7 @@ export const RoomManagePage = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá/đêm (đ) *</label>
                   <input
@@ -393,6 +419,26 @@ export const RoomManagePage = () => {
                   />
                 </div>
                 <div>
+                  <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá gửi ngày (đ)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.dayRate}
+                    onKeyDown={e => {
+                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === '.') e.preventDefault()
+                    }}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setForm({...form, dayRate: val})
+                    }}
+                    placeholder="Để trống nếu không nhận gửi ngày"
+                    className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Tổng phòng *</label>
                   <input
                     type="number"
@@ -410,7 +456,7 @@ export const RoomManagePage = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Max thú cưng</label>
+                  <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Max thú cưng / phòng</label>
                   <input
                     type="number"
                     min="1"
@@ -561,7 +607,7 @@ export const RoomManagePage = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá/đêm</label>
                   <input
@@ -579,6 +625,26 @@ export const RoomManagePage = () => {
                   />
                 </div>
                 <div>
+                  <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá gửi ngày (đ)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editRoom.dayRate || ''}
+                    onKeyDown={e => {
+                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === '.') e.preventDefault()
+                    }}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setEditRoom({...editRoom, dayRate: val ? Number(val) : null})
+                    }}
+                    placeholder="Không nhận gửi ngày"
+                    className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Tổng phòng</label>
                   <input
                     type="number"
@@ -595,7 +661,7 @@ export const RoomManagePage = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Max thú cưng</label>
+                  <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Max thú cưng / phòng</label>
                   <input
                     type="number"
                     min="1"

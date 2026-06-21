@@ -180,55 +180,61 @@ export const HomePage = () => {
             
             {/* Card 1: Chuyên gia tận tâm */}
             <div className="lg:col-span-4 bg-[#fbf7f4] p-8 rounded-3xl border border-[#f0e4de] flex flex-col justify-between hover:shadow-xl hover:shadow-[#fa7150]/5 transition-all group">
-              <div className="mb-8">
+              <div>
                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-[#f0e4de] text-[#fa7150] mb-6 shadow-sm group-hover:scale-110 transition-transform">
                   <Heart size={22} fill="currentColor" />
                 </div>
                 <h3 className="text-xl font-bold text-[#303330] mb-3">Chuyên gia tận tâm</h3>
-                <p className="text-sm text-[#5a5550] leading-relaxed">
+                <p className="text-sm text-[#5a5550] leading-relaxed mb-6">
                   Đội ngũ bảo mẫu chuyên nghiệp hành vi và bác sĩ thú y trực 24/7, đảm bảo an toàn tuyệt đối cho bé yêu của bạn.
                 </p>
               </div>
-              <div className="rounded-2xl overflow-hidden h-40 w-full mt-4">
+              <div className="rounded-2xl overflow-hidden h-44 w-full">
                 <img 
-                  src="https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=400" 
+                  src="https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&q=80&w=400" 
                   alt="Chăm sóc thú cưng" 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
             </div>
 
-            {/* Card 2: Camera trực tiếp */}
+            {/* Card 2: Camera trực tuyến */}
             <div className="lg:col-span-4 bg-[#fbf7f4] p-8 rounded-3xl border border-[#f0e4de] flex flex-col justify-between hover:shadow-xl hover:shadow-[#fa7150]/5 transition-all group">
-              <div className="mb-8">
+              <div>
                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-[#f0e4de] text-[#fa7150] mb-6 shadow-sm group-hover:scale-110 transition-transform">
                   <Camera size={22} />
                 </div>
                 <h3 className="text-xl font-bold text-[#303330] mb-3">Camera trực tuyến</h3>
-                <p className="text-sm text-[#5a5550] leading-relaxed">
-                  Theo dõi bé cưng mọi lúc mọi nơi nhờ hệ thống camera HD chất lượng cao được lắp đặt tại mỗi phòng.
+                <p className="text-sm text-[#5a5550] leading-relaxed mb-6">
+                  Theo dõi bé cưng mọi lúc mọi nơi nhờ hệ thống camera HD chất lượng cao được lắp đặt tại mỗi phòng nghỉ.
                 </p>
               </div>
-              <div className="mt-auto">
-                <Link to="/my-bookings" className="inline-flex items-center gap-1.5 text-sm font-bold text-[#fa7150] hover:text-[#fa7150]/80 group/btn">
-                  Xem chi tiết <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                </Link>
+              <div className="rounded-2xl overflow-hidden h-44 w-full">
+                <img 
+                  src="https://images.unsplash.com/photo-1535268647977-a403b69fc756?auto=format&fit=crop&q=80&w=400" 
+                  alt="Camera giám sát thú cưng" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
               </div>
             </div>
 
             {/* Card 3: Bữa ăn hảo hạng */}
             <div className="lg:col-span-4 bg-[#fbf7f4] p-8 rounded-3xl border border-[#f0e4de] flex flex-col justify-between hover:shadow-xl hover:shadow-[#fa7150]/5 transition-all group">
-              <div className="mb-8">
+              <div>
                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-[#f0e4de] text-[#fa7150] mb-6 shadow-sm group-hover:scale-110 transition-transform">
                   <Coffee size={22} />
                 </div>
                 <h3 className="text-xl font-bold text-[#303330] mb-3">Bữa ăn hảo hạng</h3>
-                <p className="text-sm text-[#5a5550] leading-relaxed">
-                  Chế độ dinh dưỡng khoa học với nguyên liệu tươi ngon chọn lọc chuẩn bị hằng ngày bởi các đầu bếp thú cưng.
+                <p className="text-sm text-[#5a5550] leading-relaxed mb-6">
+                  Chế độ dinh dưỡng khoa học với nguyên liệu tươi ngon chọn lọc chuẩn bị hằng ngày bởi các đầu bếp chuyên nghiệp.
                 </p>
               </div>
-              <div className="mt-auto h-2 bg-[#f0e4de] rounded-full overflow-hidden">
-                <div className="h-full bg-[#fa7150] rounded-full w-4/5" />
+              <div className="rounded-2xl overflow-hidden h-44 w-full">
+                <img 
+                  src="https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=400" 
+                  alt="Thức ăn hảo hạng cho thú cưng" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
               </div>
             </div>
 
@@ -286,7 +292,7 @@ export const HomePage = () => {
             <div className="bg-white rounded-3xl overflow-hidden border border-[#f0e4de] hover:shadow-2xl hover:scale-[1.01] transition-all group flex flex-col">
               <div className="relative aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1513360309081-36f5e878fc9e?auto=format&fit=crop&q=80&w=400" 
+                  src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=800" 
                   alt="Hạng phòng Garden Deluxe" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
@@ -310,7 +316,7 @@ export const HomePage = () => {
             <div className="bg-white rounded-3xl overflow-hidden border border-[#f0e4de] hover:shadow-2xl hover:scale-[1.01] transition-all group flex flex-col">
               <div className="relative aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1541599540903-216a46ca1ad0?auto=format&fit=crop&q=80&w=400" 
+                  src="https://images.unsplash.com/photo-1544568100-847a948585b9?auto=format&fit=crop&q=80&w=800" 
                   alt="Phòng Zenith Loft" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
@@ -334,7 +340,7 @@ export const HomePage = () => {
             <div className="bg-white rounded-3xl overflow-hidden border border-[#f0e4de] hover:shadow-2xl hover:scale-[1.01] transition-all group flex flex-col">
               <div className="relative aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&q=80&w=400" 
+                  src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=800" 
                   alt="Dinh thự Presidential" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
@@ -375,45 +381,78 @@ export const HomePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             {/* Service 1 */}
-            <div className="bg-white p-8 rounded-3xl border border-[#f0e4de] hover:shadow-xl transition-all text-center flex flex-col items-center justify-between">
-              <div className="w-12 h-12 bg-[#fff0e6] rounded-2xl flex items-center justify-center text-[#fa7150] mb-6">
-                <Scissors size={22} />
+            <div className="bg-white rounded-3xl overflow-hidden border border-[#f0e4de] hover:shadow-2xl hover:scale-[1.01] transition-all group flex flex-col">
+              <div className="relative aspect-[16/10] overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=400" 
+                  alt="Grooming Chuyên Nghiệp" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl flex items-center justify-center text-[#fa7150] shadow-sm">
+                  <Scissors size={18} />
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-[#303330] mb-3">Grooming Chuyên Nghiệp</h3>
-              <p className="text-xs text-[#5a5550] leading-relaxed mb-6 max-w-xs">
-                Tẩy tế bào chết, tắm sạch, sấy mát và tạo kiểu lông thời thượng theo chuẩn giống loài bởi các thợ tay nghề cao.
-              </p>
-              <Link to="/hotels" className="text-xs font-bold text-[#fa7150] hover:underline">
-                Đặt lịch ngay →
-              </Link>
+              <div className="p-6 flex-grow flex flex-col justify-between text-left">
+                <div>
+                  <h3 className="text-lg font-bold text-[#303330] mb-2 group-hover:text-[#fa7150] transition-colors">Grooming Chuyên Nghiệp</h3>
+                  <p className="text-xs text-[#5a5550] leading-relaxed mb-4">
+                    Tẩy tế bào chết, tắm sạch, sấy mát và tạo kiểu lông thời thượng theo chuẩn giống loài bởi các thợ cắt tỉa lành nghề.
+                  </p>
+                </div>
+                <Link to="/hotels" className="inline-flex items-center gap-1 text-xs font-black text-[#fa7150] hover:underline mt-auto">
+                  Đặt lịch ngay →
+                </Link>
+              </div>
             </div>
 
             {/* Service 2 */}
-            <div className="bg-white p-8 rounded-3xl border border-[#f0e4de] hover:shadow-xl transition-all text-center flex flex-col items-center justify-between">
-              <div className="w-12 h-12 bg-[#fff0e6] rounded-2xl flex items-center justify-center text-[#fa7150] mb-6">
-                <Sparkles size={22} />
+            <div className="bg-white rounded-3xl overflow-hidden border border-[#f0e4de] hover:shadow-2xl hover:scale-[1.01] transition-all group flex flex-col">
+              <div className="relative aspect-[16/10] overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1544189190-2503d59957d0?auto=format&fit=crop&q=80&w=400" 
+                  alt="Spa Thư Giãn" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl flex items-center justify-center text-[#fa7150] shadow-sm">
+                  <Sparkles size={18} />
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-[#303330] mb-3">Spa Thư Giãn</h3>
-              <p className="text-xs text-[#5a5550] leading-relaxed mb-6 max-w-xs">
-                Liệu pháp tắm thủy liệu, xông tinh dầu hoa cúc hữu cơ và massage giảm nhức các cơ khớp dành cho mọi lứa tuổi.
-              </p>
-              <Link to="/hotels" className="text-xs font-bold text-[#fa7150] hover:underline">
-                Đặt lịch ngay →
-              </Link>
+              <div className="p-6 flex-grow flex flex-col justify-between text-left">
+                <div>
+                  <h3 className="text-lg font-bold text-[#303330] mb-2 group-hover:text-[#fa7150] transition-colors">Spa Thư Giãn</h3>
+                  <p className="text-xs text-[#5a5550] leading-relaxed mb-4">
+                    Liệu pháp tắm thủy liệu, xông tinh dầu thảo dược và massage thư giãn hỗ trợ phục hồi cơ khớp cho thú cưng.
+                  </p>
+                </div>
+                <Link to="/hotels" className="inline-flex items-center gap-1 text-xs font-black text-[#fa7150] hover:underline mt-auto">
+                  Đặt lịch ngay →
+                </Link>
+              </div>
             </div>
 
             {/* Service 3 */}
-            <div className="bg-white p-8 rounded-3xl border border-[#f0e4de] hover:shadow-xl transition-all text-center flex flex-col items-center justify-between">
-              <div className="w-12 h-12 bg-[#fff0e6] rounded-2xl flex items-center justify-center text-[#fa7150] mb-6">
-                <Heart size={22} />
+            <div className="bg-white rounded-3xl overflow-hidden border border-[#f0e4de] hover:shadow-2xl hover:scale-[1.01] transition-all group flex flex-col">
+              <div className="relative aspect-[16/10] overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=400" 
+                  alt="Hoạt Động Mỗi Ngày" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl flex items-center justify-center text-[#fa7150] shadow-sm">
+                  <Heart size={18} />
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-[#303330] mb-3">Hoạt Động Mỗi Ngày</h3>
-              <p className="text-xs text-[#5a5550] leading-relaxed mb-6 max-w-xs">
-                Các bài tập huấn luyện cơ bản, ném đĩa đuổi bóng và tương tác bạn bè nhằm tăng cường cơ xương khớp dẻo dai.
-              </p>
-              <Link to="/hotels" className="text-xs font-bold text-[#fa7150] hover:underline">
-                Đặt lịch ngay →
-              </Link>
+              <div className="p-6 flex-grow flex flex-col justify-between text-left">
+                <div>
+                  <h3 className="text-lg font-bold text-[#303330] mb-2 group-hover:text-[#fa7150] transition-colors">Hoạt Động Mỗi Ngày</h3>
+                  <p className="text-xs text-[#5a5550] leading-relaxed mb-4">
+                    Các bài tập vận động cơ bản, ném đĩa đuổi bóng và giao lưu bạn bè ngoài trời để rèn luyện thể chất dẻo dai.
+                  </p>
+                </div>
+                <Link to="/hotels" className="inline-flex items-center gap-1 text-xs font-black text-[#fa7150] hover:underline mt-auto">
+                  Đặt lịch ngay →
+                </Link>
+              </div>
             </div>
 
           </div>

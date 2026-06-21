@@ -58,21 +58,30 @@ public class RoomTypeController {
     public ResponseEntity<Integer> checkAvailability(
             @PathVariable UUID id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
+            @RequestParam(required = false, defaultValue = "OVERNIGHT") com.petcare_hub.enums.BookingType bookingType) {
 
         if (checkIn.isBefore(LocalDate.now())) {
             throw new AppException(
                     "Ngày check-in không được ở quá khứ",
                     HttpStatus.BAD_REQUEST);
         }
-        if (!checkOut.isAfter(checkIn)) {
-            throw new AppException(
-                    "Ngày check-out phải sau ngày check-in",
-                    HttpStatus.BAD_REQUEST);
+        if (bookingType == com.petcare_hub.enums.BookingType.OVERNIGHT) {
+            if (!checkOut.isAfter(checkIn)) {
+                throw new AppException(
+                        "Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 đêm",
+                        HttpStatus.BAD_REQUEST);
+            }
+        } else { // DAYCARE
+            if (checkOut.isBefore(checkIn)) {
+                throw new AppException(
+                        "Ngày check-out không được trước ngày check-in",
+                        HttpStatus.BAD_REQUEST);
+            }
         }
 
         return ResponseEntity.ok(
-                roomTypeService.getAvailableRooms(id, checkIn, checkOut));
+                roomTypeService.getAvailableRooms(id, checkIn, checkOut, bookingType));
     }
 
     // PUT /api/room-types/{id} — Partner cập nhật loại phòng

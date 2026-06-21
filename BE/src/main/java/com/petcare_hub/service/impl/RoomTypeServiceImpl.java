@@ -23,6 +23,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
 
     private final RoomTypeRepository roomTypeRepository;
     private final HotelRepository hotelRepository;
+    private final com.petcare_hub.repository.BookingRepository bookingRepository;
 
     @Override
     @Transactional
@@ -45,6 +46,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .pricePerNight(request.getPricePerNight())
+                .dayRate(request.getDayRate())
                 .maxPets(request.getMaxPets())
                 .totalRooms(request.getTotalRooms())
                 .allowedPetTypes(request.getAllowedPetTypes())
@@ -83,6 +85,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         roomType.setName(request.getName());
         roomType.setDescription(request.getDescription());
         roomType.setPricePerNight(request.getPricePerNight());
+        roomType.setDayRate(request.getDayRate());
         roomType.setMaxPets(request.getMaxPets());
         roomType.setTotalRooms(request.getTotalRooms());
         roomType.setAllowedPetTypes(request.getAllowedPetTypes());
@@ -94,11 +97,17 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     @Override
     @Transactional(readOnly = true)
     public Integer getAvailableRooms(
-            UUID roomTypeId, LocalDate checkIn, LocalDate checkOut) {
+            UUID roomTypeId, LocalDate checkIn, LocalDate checkOut, com.petcare_hub.enums.BookingType bookingType) {
 
-        Long available = roomTypeRepository
-                .countAvailableRooms(roomTypeId, checkIn, checkOut);
-        return available != null ? available.intValue() : 0;
+        RoomType roomType = roomTypeRepository.findById(roomTypeId)
+                .orElseThrow(() -> new AppException(
+                        "Không tìm thấy loại phòng", HttpStatus.NOT_FOUND));
+
+        LocalDate reqStart = checkIn;
+        LocalDate reqEnd = (bookingType == com.petcare_hub.enums.BookingType.DAYCARE) ? checkOut : checkOut.minusDays(1);
+
+        long overlapping = bookingRepository.countOverlappingBookings(roomTypeId, reqStart, reqEnd);
+        return Math.max(0, roomType.getTotalRooms() - (int) overlapping);
     }
 
     @Override
@@ -139,6 +148,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
                 .name(rt.getName())
                 .description(rt.getDescription())
                 .pricePerNight(rt.getPricePerNight())
+                .dayRate(rt.getDayRate())
                 .maxPets(rt.getMaxPets())
                 .totalRooms(rt.getTotalRooms())
                 .availableRooms(availableRooms)
