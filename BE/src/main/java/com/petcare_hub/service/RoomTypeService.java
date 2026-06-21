@@ -16,7 +16,7 @@ public interface RoomTypeService {
     RoomTypeResponse updateRoomType(UUID roomTypeId, UUID partnerId, RoomTypeRequest request);
 
     // Kiểm tra phòng còn trống theo ngày
-    Integer getAvailableRooms(UUID roomTypeId, LocalDate checkIn, LocalDate checkOut);
+    Integer getAvailableRooms(UUID roomTypeId, LocalDate checkIn, LocalDate checkOut, com.petcare_hub.enums.BookingType bookingType);
 
     void deleteRoomType(UUID roomTypeId, UUID partnerId);
 

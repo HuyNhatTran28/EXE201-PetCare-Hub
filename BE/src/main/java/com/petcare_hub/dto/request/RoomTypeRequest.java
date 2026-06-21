@@ -20,6 +20,8 @@ public class RoomTypeRequest {
     @Positive(message = "Giá phải lớn hơn 0")
     private BigDecimal pricePerNight;
 
+    private BigDecimal dayRate;
+
     @Positive(message = "Số thú cưng tối đa phải lớn hơn 0")
     private Integer maxPets;
 

@@ -5,6 +5,8 @@ import com.petcare_hub.dto.response.BookingResponse;
 import com.petcare_hub.entity.*;
 import com.petcare_hub.enums.BookingStatus;
 import com.petcare_hub.enums.DiscountType;
+import com.petcare_hub.enums.BookingType;
+import java.time.LocalTime;
 import com.petcare_hub.exception.AppException;
 import com.petcare_hub.repository.*;
 import com.petcare_hub.service.BookingService;
@@ -56,16 +58,35 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponse createBooking(UUID ownerId, BookingRequest request) {
 
-        // Validate ngày
-        if (request.getCheckOutDate().isBefore(request.getCheckInDate())) {
-            throw new AppException(
-                "Ngày check-out không được trước ngày check-in",
-                HttpStatus.BAD_REQUEST);
-        }
+        // Validate ngày & loại booking
         if (request.getCheckInDate().isBefore(LocalDate.now())) {
             throw new AppException(
                 "Ngày check-in không được ở quá khứ",
                 HttpStatus.BAD_REQUEST);
+        }
+
+        if (request.getBookingType() == BookingType.OVERNIGHT) {
+            if (!request.getCheckOutDate().isAfter(request.getCheckInDate())) {
+                throw new AppException(
+                    "Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 đêm",
+                    HttpStatus.BAD_REQUEST);
+            }
+        } else { // DAYCARE
+            if (request.getCheckOutDate().isBefore(request.getCheckInDate())) {
+                throw new AppException(
+                    "Ngày check-out không được trước ngày check-in",
+                    HttpStatus.BAD_REQUEST);
+            }
+            if (request.getDropOffTime() == null || request.getPickUpTime() == null) {
+                throw new AppException(
+                    "Giờ gửi và giờ đón không được để trống",
+                    HttpStatus.BAD_REQUEST);
+            }
+            if (!request.getDropOffTime().isBefore(request.getPickUpTime())) {
+                throw new AppException(
+                    "Giờ nhận phải trước giờ trả",
+                    HttpStatus.BAD_REQUEST);
+            }
         }
 
         // Lấy các entity cần thiết
@@ -81,11 +102,22 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new AppException(
                     "Không tìm thấy loại phòng", HttpStatus.NOT_FOUND));
 
+        if (request.getBookingType() == BookingType.DAYCARE && roomType.getDayRate() == null) {
+            throw new AppException(
+                "Loại phòng này không hỗ trợ dịch vụ gửi ngày",
+                HttpStatus.BAD_REQUEST);
+        }
+
+        // Tính toán khoảng ngày thực tế để check room trống
+        LocalDate reqStart = request.getCheckInDate();
+        LocalDate reqEnd = request.getBookingType() == BookingType.DAYCARE ? 
+                request.getCheckOutDate() : request.getCheckOutDate().minusDays(1);
+
         // Kiểm tra phòng còn trống không
         long overlapping = bookingRepository.countOverlappingBookings(
                 roomType.getId(),
-                request.getCheckInDate(),
-                request.getCheckOutDate()
+                reqStart,
+                reqEnd
         );
         if (overlapping >= roomType.getTotalRooms()) {
             throw new AppException(
@@ -123,14 +155,21 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        // Tính số đêm
-        long totalNights = ChronoUnit.DAYS.between(
-                request.getCheckInDate(), request.getCheckOutDate());
-        long chargeNights = totalNights == 0 ? 1 : totalNights;
-
         // Tính tiền phòng
-        BigDecimal roomTotal = roomType.getPricePerNight()
-                .multiply(BigDecimal.valueOf(chargeNights));
+        BigDecimal roomTotal = BigDecimal.ZERO;
+        if (request.getBookingType() == BookingType.DAYCARE) {
+            long totalDays = ChronoUnit.DAYS.between(
+                    request.getCheckInDate(), request.getCheckOutDate()) + 1;
+            roomTotal = roomType.getDayRate()
+                    .multiply(BigDecimal.valueOf(totalDays))
+                    .setScale(0, RoundingMode.HALF_UP);
+        } else {
+            long totalNights = ChronoUnit.DAYS.between(
+                    request.getCheckInDate(), request.getCheckOutDate());
+            roomTotal = roomType.getPricePerNight()
+                    .multiply(BigDecimal.valueOf(totalNights))
+                    .setScale(0, RoundingMode.HALF_UP);
+        }
 
         // Tính giảm giá voucher
         BigDecimal voucherDiscount = BigDecimal.ZERO;
@@ -167,6 +206,9 @@ public class BookingServiceImpl implements BookingService {
                 .pets(new HashSet<>(pets))
                 .checkInDate(request.getCheckInDate())
                 .checkOutDate(request.getCheckOutDate())
+                .bookingType(request.getBookingType())
+                .dropOffTime(request.getBookingType() == BookingType.DAYCARE ? request.getDropOffTime() : null)
+                .pickUpTime(request.getBookingType() == BookingType.DAYCARE ? request.getPickUpTime() : null)
                 .totalAmount(totalAmount)
                 .commissionRate(DEFAULT_COMMISSION_RATE)
                 .commissionFee(commissionFee)
@@ -422,6 +464,10 @@ public class BookingServiceImpl implements BookingService {
                 .checkInDate(b.getCheckInDate())
                 .checkOutDate(b.getCheckOutDate())
                 .totalNights((int) nights)
+                .bookingType(b.getBookingType())
+                .dropOffTime(b.getDropOffTime())
+                .pickUpTime(b.getPickUpTime())
+                .totalDays((int) (nights + 1))
                 .totalAmount(b.getTotalAmount())
                 .commissionFee(b.getCommissionFee())
                 .convenienceFee(b.getConvenienceFee())

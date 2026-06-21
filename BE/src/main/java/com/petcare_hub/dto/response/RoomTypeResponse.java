@@ -17,6 +17,7 @@ public class RoomTypeResponse {
     private String name;
     private String description;
     private BigDecimal pricePerNight;
+    private BigDecimal dayRate;
     private Integer maxPets;
     private Integer totalRooms;
     private Integer availableRooms; // tính động
