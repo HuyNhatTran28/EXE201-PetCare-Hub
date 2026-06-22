@@ -46,6 +46,7 @@ public class SecurityConfig {
                         // Public — không cần token
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/api/chat",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",

@@ -1080,7 +1080,7 @@ export const RouteSearchPage = () => {
 
             <button
               onClick={geolocateUser}
-              className="absolute bottom-8 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all z-20 cursor-pointer"
+              className="absolute bottom-28 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all z-20 cursor-pointer"
               style={{
                 background:
                   'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
