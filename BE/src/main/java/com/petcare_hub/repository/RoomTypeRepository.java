@@ -19,6 +19,10 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, UUID> {
     // Lấy tất cả loại phòng của 1 KS (kể cả inactive)
     List<RoomType> findByHotelId(UUID hotelId);
 
+    // Lấy tất cả phòng active kèm hotel (JOIN FETCH để tránh LazyInit khi đọc hotel.id ngoài transaction)
+    @Query("SELECT r FROM RoomType r JOIN FETCH r.hotel WHERE r.isActive = true")
+    List<RoomType> findAllActiveWithHotel();
+
     // Kiểm tra số phòng còn trống theo ngày
     @Query("""
         SELECT rt.totalRooms - COUNT(b)

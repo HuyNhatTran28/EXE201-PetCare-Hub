@@ -4,6 +4,7 @@ import com.petcare_hub.base.BaseEntity;
 import com.petcare_hub.enums.BookingStatus;
 import com.petcare_hub.enums.PaymentMethod;
 import com.petcare_hub.enums.BookingType;
+import org.hibernate.annotations.ColumnDefault;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -123,7 +124,8 @@ public class Booking extends BaseEntity {
     private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "booking_type", nullable = false, columnDefinition = "varchar(50) default 'OVERNIGHT'")
+    @Column(name = "booking_type", nullable = false, length = 50)
+    @ColumnDefault("'OVERNIGHT'")
     @Builder.Default
     private BookingType bookingType = BookingType.OVERNIGHT;
 

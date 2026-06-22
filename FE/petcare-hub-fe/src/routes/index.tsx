@@ -15,6 +15,7 @@ import { PetProfilePage } from '@/pages/PetProfilePage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PaymentResultPage } from '@/pages/PaymentResultPage'
+import { ChatPage } from '@/pages/ChatPage'
 
 // Partner Pages
 import { PartnerLayout } from '@/pages/partner/PartnerLayout'
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
   { path: '/hotels/:id', element: <HotelDetailPage /> },
   { path: '/route-search', element: <RouteSearchPage /> },
   { path: '/map', element: <RouteSearchPage /> },
+  { path: '/chat', element: <ChatPage /> },
 
   // Cần đăng nhập
   {
