@@ -22,4 +22,6 @@ public interface RoomTypeService {
     void deleteRoomType(UUID roomTypeId, UUID partnerId);
 
     RoomTypeResponse toggleRoomType(UUID roomTypeId, UUID partnerId);
+
+    List<RoomTypeResponse> getHighestPricedRoomTypes();
 }

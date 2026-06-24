@@ -129,4 +129,14 @@ public class AuthController {
                 "message", "Đặt lại mật khẩu thành công."
         ));
     }
+
+    @Operation(summary = "Đổi mật khẩu lần đầu (nhân viên mới — không cần OTP)")
+    @PostMapping("/force-change-password")
+    public ResponseEntity<Map<String, String>> forceChangePassword(
+            @Valid @RequestBody ForceChangePasswordRequest request,
+            Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        authService.forceChangePassword(userId, request);
+        return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công"));
+    }
 }

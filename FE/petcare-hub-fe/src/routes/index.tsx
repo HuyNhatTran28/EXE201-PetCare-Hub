@@ -16,6 +16,7 @@ import { ProfilePage } from '@/pages/ProfilePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PaymentResultPage } from '@/pages/PaymentResultPage'
 import { ChatPage } from '@/pages/ChatPage'
+import { ForceChangePasswordPage } from '@/pages/ForceChangePasswordPage'
 
 // Partner Pages
 import { PartnerLayout } from '@/pages/partner/PartnerLayout'
@@ -24,6 +25,8 @@ import { RoomManagePage } from '@/pages/partner/RoomManagePage'
 import { ServiceManagePage } from '@/pages/partner/ServiceManagePage'
 import { BookingManagePage } from '@/pages/partner/BookingManagePage'
 import { HotelCreatePage } from '@/pages/partner/HotelCreatePage'
+import { StaffManagePage } from '@/pages/partner/StaffManagePage'
+import { StaffChatPage } from '@/pages/partner/StaffChatPage'
 
 // Admin Pages
 import { AdminLayout } from '@/pages/admin/AdminLayout'
@@ -49,13 +52,14 @@ export const router = createBrowserRouter([
   { path: '/map', element: <RouteSearchPage /> },
   { path: '/chat', element: <ChatPage /> },
 
-  // Cần đăng nhập
+  // Cần đăng nhập (mọi role)
   {
     element: <PrivateRoute />,
     children: [
       { path: '/profile', element: <ProfilePage /> },
       { path: '/my-bookings', element: <MyBookingsPage /> },
       { path: '/payment-result', element: <PaymentResultPage /> },
+      { path: '/force-change-password', element: <ForceChangePasswordPage /> },
     ],
   },
 
@@ -80,6 +84,20 @@ export const router = createBrowserRouter([
           { path: '/partner/hotels/:hotelId/services', element: <ServiceManagePage /> },
           { path: '/partner/bookings', element: <BookingManagePage /> },
           { path: '/partner/hotels/new', element: <HotelCreatePage /> },
+          { path: '/partner/staff', element: <StaffManagePage /> },
+        ]
+      }
+    ],
+  },
+
+  // PARTNER + STAFF shared (chat page)
+  {
+    element: <PrivateRoute allowedRoles={[Role.PARTNER, Role.STAFF]} />,
+    children: [
+      {
+        element: <PartnerLayout />,
+        children: [
+          { path: '/partner/messages', element: <StaffChatPage /> },
         ]
       }
     ],

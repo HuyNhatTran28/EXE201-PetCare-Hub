@@ -1,17 +1,23 @@
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom'
 import {
-  PawPrint, Building, Calendar, Sparkles, BarChart2, Settings, LogOut, ChevronRight, DollarSign
+  PawPrint, Building, Calendar, Sparkles, BarChart2, Settings, LogOut, ChevronRight, DollarSign, Users, MessageCircle
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
-const NAV_ITEMS = [
+const PARTNER_NAV_ITEMS = [
   { icon: <Building size={18} />, label: 'Quản Lý Khách Sạn', path: '/partner/dashboard?tab=hotels', matchTab: 'hotels' },
   { icon: <Calendar size={18} />, label: 'Đặt Chỗ & Lịch Trình', path: '/partner/dashboard?tab=bookings', matchTab: 'bookings' },
   { icon: <Sparkles size={18} />, label: 'Quy trình Không giấy tờ', path: '/partner/dashboard?tab=paperless', matchTab: 'paperless' },
   { icon: <BarChart2 size={18} />, label: 'Phân Tích & CRM', path: '/partner/dashboard?tab=analytics', matchTab: 'analytics' },
   { icon: <DollarSign size={18} />, label: 'Quản Lý Tài Chính', path: '/partner/dashboard?tab=finance', matchTab: 'finance' },
+  { icon: <Users size={18} />, label: 'Quản Lý Nhân Viên', path: '/partner/staff', matchPath: '/partner/staff' },
+  { icon: <MessageCircle size={18} />, label: 'Tin Nhắn', path: '/partner/messages', matchPath: '/partner/messages' },
   { icon: <Settings size={18} />, label: 'Cài Đặt Hệ Thống', path: '/partner/dashboard?tab=settings', matchTab: 'settings' },
   { icon: <Calendar size={18} />, label: 'Danh sách Bookings', path: '/partner/bookings' },
+]
+
+const STAFF_NAV_ITEMS = [
+  { icon: <MessageCircle size={18} />, label: 'Tin Nhắn', path: '/partner/messages', matchPath: '/partner/messages' },
 ]
 
 export const PartnerLayout = () => {
@@ -21,9 +27,15 @@ export const PartnerLayout = () => {
   const searchParams = new URLSearchParams(location.search)
   const currentTab = searchParams.get('tab') || 'hotels'
 
+  const isStaff = user?.role === 'STAFF'
+  const NAV_ITEMS = isStaff ? STAFF_NAV_ITEMS : PARTNER_NAV_ITEMS
+
   const orangeGradient = { background: 'linear-gradient(135deg, #fa7150 0%, #a43e24 100%)' }
 
   const isActive = (item: typeof NAV_ITEMS[0]) => {
+    if ('matchPath' in item && item.matchPath) {
+      return location.pathname === item.matchPath
+    }
     if (item.path.startsWith('/partner/dashboard')) {
       return location.pathname === '/partner/dashboard' && currentTab === item.matchTab
     }
