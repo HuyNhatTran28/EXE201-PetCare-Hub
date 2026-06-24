@@ -53,12 +53,12 @@ export const Header = () => {
           <Link to="/route-search" className={getLinkClass('/route-search')}>
             Tìm theo tuyến đường
           </Link>
-          {user?.role === 'OWNER' && (
+          {(!user || user?.role === 'OWNER') && (
             <Link to="/pets" className={getLinkClass('/pets')}>
               Nhật ký Thú cưng
             </Link>
           )}
-          {user && (
+          {(!user || user?.role === 'OWNER') && (
             <Link to="/my-bookings" className={getLinkClass('/my-bookings')}>
               Nhật ký lưu trú
             </Link>

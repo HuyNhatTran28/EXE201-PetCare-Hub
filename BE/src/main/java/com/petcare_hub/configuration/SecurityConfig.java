@@ -47,11 +47,15 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/chat",
+                                "/ws/**",          // WebSocket handshake — xác thực qua STOMP CONNECT
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/error"
                         ).permitAll()
+
+                        // Chat real-time — cần đăng nhập
+                        .requestMatchers("/api/conversations/**").authenticated()
 
                         // Private GET — hotels/my và xem tất cả
                         .requestMatchers(HttpMethod.GET, "/api/hotels/my").authenticated()

@@ -140,6 +140,15 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         return toResponse(roomTypeRepository.save(roomType), null);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoomTypeResponse> getHighestPricedRoomTypes() {
+        List<RoomType> activeRoomTypes = roomTypeRepository.findActiveDogAndCatRoomTypes();
+        return activeRoomTypes.stream()
+                .map(rt -> toResponse(rt, null))
+                .toList();
+    }
+
     private RoomTypeResponse toResponse(RoomType rt, Integer availableRooms) {
         return RoomTypeResponse.builder()
                 .id(rt.getId())

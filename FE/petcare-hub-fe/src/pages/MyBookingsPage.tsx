@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { Header } from '@/components/Header'
 import {
   CheckCircle, XCircle,
-  ArrowRight, PawPrint, MapPin, Clock, Star
+  ArrowRight, PawPrint, MapPin, Clock, Star, MessageCircle
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
+import { BookingChatModal } from '@/components/BookingChatModal'
 
 interface Booking {
   id: string
@@ -43,6 +44,8 @@ export const MyBookingsPage = () => {
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [payingBooking, setPayingBooking] = useState<Booking | null>(null)
   const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null)
+  const [chatState, setChatState] = useState<{ conversationId: string; hotelName: string } | null>(null)
+  const [openingChatFor, setOpeningChatFor] = useState<string | null>(null)
 
   useEffect(() => {
     const fetch = async () => {
@@ -77,6 +80,20 @@ export const MyBookingsPage = () => {
       alert(err.response?.data?.message || 'Không thể hủy booking này')
     } finally {
       setCancelling(null)
+    }
+  }
+
+  const handleOpenChat = async (booking: Booking) => {
+    setOpeningChatFor(booking.id)
+    try {
+      const res = await axiosInstance.post<{ data: { id: string } }>(
+        `/api/conversations/booking/${booking.id}`
+      )
+      setChatState({ conversationId: res.data.data.id, hotelName: booking.hotelName })
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Không thể mở chat. Vui lòng thử lại.')
+    } finally {
+      setOpeningChatFor(null)
     }
   }
 
@@ -237,13 +254,23 @@ export const MyBookingsPage = () => {
                   {/* Actions */}
                   <div className="flex gap-2 pt-4 border-t border-[#e5d8d0]">
                     {booking.status === 'CHECKED_IN' && (
-                      <button
-                        onClick={() => navigate(`/diary/${booking.id}`)}
-                        className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white"
-                        style={{ backgroundColor: '#a43e24' }}
-                      >
-                        Xem nhật ký lưu trú
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleOpenChat(booking)}
+                          disabled={openingChatFor === booking.id}
+                          className="py-2.5 px-4 rounded-xl text-xs font-bold border border-[#e5d8d0] text-[#a43e24] hover:bg-[#feeadb] transition-all flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <MessageCircle size={12} />
+                          {openingChatFor === booking.id ? '...' : 'Nhắn khách sạn'}
+                        </button>
+                        <button
+                          onClick={() => navigate(`/diary/${booking.id}`)}
+                          className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white"
+                          style={{ backgroundColor: '#a43e24' }}
+                        >
+                          Xem nhật ký lưu trú
+                        </button>
+                      </>
                     )}
                     {booking.status === 'PENDING' && (
                       <>
@@ -264,29 +291,49 @@ export const MyBookingsPage = () => {
                       </>
                     )}
                     {booking.status === 'CONFIRMED' && (
-                      <button
-                        onClick={() => handleCancel(booking.id)}
-                        disabled={cancelling === booking.id}
-                        className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-rose-200 text-rose-500 hover:bg-rose-50 transition-all"
-                      >
-                        {cancelling === booking.id ? 'Đang hủy...' : 'Hủy booking'}
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleOpenChat(booking)}
+                          disabled={openingChatFor === booking.id}
+                          className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-[#e5d8d0] text-[#a43e24] hover:bg-[#feeadb] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                          <MessageCircle size={12} />
+                          {openingChatFor === booking.id ? '...' : 'Nhắn khách sạn'}
+                        </button>
+                        <button
+                          onClick={() => handleCancel(booking.id)}
+                          disabled={cancelling === booking.id}
+                          className="py-2.5 px-4 rounded-xl text-xs font-bold border border-rose-200 text-rose-500 hover:bg-rose-50 transition-all"
+                        >
+                          {cancelling === booking.id ? 'Đang hủy...' : 'Hủy'}
+                        </button>
+                      </>
                     )}
                     {booking.status === 'COMPLETED' && (
                       <div className="flex items-center gap-3 w-full justify-between">
                         <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
                           <CheckCircle size={14} /> Đã hoàn thành
                         </div>
-                        {booking.isReviewed ? (
-                          <span className="text-xs text-[#8a7e75] italic font-bold">Đã đánh giá</span>
-                        ) : (
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={() => setSelectedReviewBooking(booking)}
-                            className="bg-[#2c4e24] text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1"
+                            onClick={() => handleOpenChat(booking)}
+                            disabled={openingChatFor === booking.id}
+                            className="border border-[#e5d8d0] text-[#a43e24] px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-[#feeadb] transition-all flex items-center gap-1 disabled:opacity-50"
                           >
-                            <Star size={12} fill="currentColor" /> Viết đánh giá
+                            <MessageCircle size={12} />
+                            {openingChatFor === booking.id ? '...' : 'Nhắn'}
                           </button>
-                        )}
+                          {booking.isReviewed ? (
+                            <span className="text-xs text-[#8a7e75] italic font-bold">Đã đánh giá</span>
+                          ) : (
+                            <button
+                              onClick={() => setSelectedReviewBooking(booking)}
+                              className="bg-[#2c4e24] text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1"
+                            >
+                              <Star size={12} fill="currentColor" /> Viết đánh giá
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                     {booking.status === 'CANCELLED' && (
@@ -326,6 +373,14 @@ export const MyBookingsPage = () => {
             ))
             setSelectedReviewBooking(null)
           }}
+        />
+      )}
+
+      {chatState && (
+        <BookingChatModal
+          conversationId={chatState.conversationId}
+          hotelName={chatState.hotelName}
+          onClose={() => setChatState(null)}
         />
       )}
     </div>

@@ -62,7 +62,7 @@ interface PetType {
 const DEFAULT_ROOMS: RoomType[] = [
   {
     id: 'b8e72c84-9dbb-4ae1-8d2a-71b56ce8145a',
-    name: 'Deluxe Garden View',
+    name: 'Phòng Deluxe Hướng Vườn',
     pricePerNight: 1200000,
     petType: 'Chó & Mèo - Mọi kích cỡ',
     description: 'Căn phòng rộng 20m² với tầm nhìn trực diện ra khu vườn trung tâm. Trang bị nệm memory foam và hệ thống lọc khí chuyên dụng.',
@@ -71,7 +71,7 @@ const DEFAULT_ROOMS: RoomType[] = [
   },
   {
     id: 'a12e3456-789b-12d3-a456-426614174000',
-    name: 'Royal Cat Suite',
+    name: 'Phòng Suite Hoàng Gia Cho Mèo',
     pricePerNight: 2500000,
     petType: 'Chỉ dành cho Mèo',
     description: 'Trải nghiệm hoàng gia với hệ thống leo trèo đa tầng, thác nước mini và chế độ chăm sóc đặc biệt 1-kèm-1.',
@@ -106,6 +106,7 @@ export const HotelDetailPage = () => {
   const [roomsUrls, setRoomsUrls] = useState<string[]>([])
   const [imageUrls, setImageUrls] = useState<string[]>([])
   const [hotelDescriptionText, setHotelDescriptionText] = useState<string | null>(null)
+  const [originalExtraJson, setOriginalExtraJson] = useState<any>(null)
   
   // Additional payload states to support updates
   const [partnerId, setPartnerId] = useState<string | null>(null)
@@ -116,11 +117,14 @@ export const HotelDetailPage = () => {
   // Carousel slider state
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
-  const allImages = [
-    ...(frontUrls || []),
-    ...(roomsUrls || []),
-    ...(imageUrls || [])
-  ].filter(Boolean) as string[]
+  const allImages = Array.from(
+    new Set([
+      logoUrl,
+      ...(frontUrls || []),
+      ...(roomsUrls || []),
+      ...(imageUrls || [])
+    ].filter(Boolean))
+  ) as string[]
 
   const handleNextImage = () => {
     if (allImages.length === 0) return
@@ -132,6 +136,15 @@ export const HotelDetailPage = () => {
     setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length)
   }
 
+  // Tự động chuyển ảnh cơ sở vật chất sau mỗi 5 giây
+  useEffect(() => {
+    if (allImages.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [allImages.length])
+
   // Edit modals state
   const [isEditDescOpen, setIsEditDescOpen] = useState(false)
   const [isEditImagesOpen, setIsEditImagesOpen] = useState(false)
@@ -142,6 +155,7 @@ export const HotelDetailPage = () => {
   const [editRoomsUrls, setEditRoomsUrls] = useState<string[]>([])
   const [editImageUrls, setEditImageUrls] = useState<string[]>([])
   const [editDescriptionText, setEditDescriptionText] = useState('')
+  const [editAmenities, setEditAmenities] = useState<string[]>([])
   const [updating, setUpdating] = useState(false)
   const [uploadingField, setUploadingField] = useState<string | null>(null)
 
@@ -247,6 +261,7 @@ export const HotelDetailPage = () => {
           if (desc && desc.trim().startsWith('{')) {
             try {
               const extra = JSON.parse(desc)
+              setOriginalExtraJson(extra)
               setLogoUrl(extra.logoUrl || null)
               const parsedFront = Array.isArray(extra.frontUrl) ? extra.frontUrl : (extra.frontUrl ? [extra.frontUrl] : [])
               const parsedRooms = Array.isArray(extra.roomsUrl) ? extra.roomsUrl : (extra.roomsUrl ? [extra.roomsUrl] : [])
@@ -271,14 +286,36 @@ export const HotelDetailPage = () => {
         }
 
 
+        const translatePetTypes = (types: string[] | undefined | null) => {
+          if (!types || types.length === 0) return 'Chó & Mèo'
+          const mapping: { [key: string]: string } = {
+            'DOG': 'Chó',
+            'CAT': 'Mèo',
+            'SMALL': 'Thú nhỏ',
+            'DOG_SMALL': 'Chó nhỏ',
+            'CAT_SMALL': 'Mèo nhỏ',
+            'ALL': 'Tất cả thú cưng'
+          }
+          return types.map(t => mapping[t.toUpperCase().trim()] || t).join(', ')
+        }
+
+        const translateRoomName = (name: string) => {
+          const mapping: { [key: string]: string } = {
+            'Standard Cozy Room': 'Phòng Tiêu Chuẩn Ấm Cúng',
+            'Deluxe Garden View': 'Phòng Deluxe Hướng Vườn',
+            'Royal Cat Suite': 'Phòng Suite Hoàng Gia Cho Mèo'
+          }
+          return mapping[name] || name
+        }
+
         const roomsRes = await axiosInstance.get(`/api/room-types/hotel/${id}`)
         if (roomsRes.data && roomsRes.data.length > 0) {
           const list = roomsRes.data.map((r: any) => ({
             id: r.id,
-            name: r.name,
+            name: translateRoomName(r.name),
             pricePerNight: r.pricePerNight,
             dayRate: r.dayRate,
-            petType: r.allowedPetTypes?.join(', ') || 'Chó & Mèo',
+            petType: translatePetTypes(r.allowedPetTypes),
             description: r.description || 'Không gian ấm cúng, đầy đủ tiện ích cơ bản cho bé cưng.',
             image: r.images && r.images.length > 0 ? r.images[0] : 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800'
           }))
@@ -471,10 +508,11 @@ export const HotelDetailPage = () => {
 
   const isPartnerOwner = user && (user.role === 'ADMIN' || (user.role === 'PARTNER' && partnerId === user.id))
 
-  const handleUpdateHotelDetail = async (updatedDescText: string, updatedLogo: string, updatedFront: string[], updatedRooms: string[], updatedAlbum: string[]) => {
+  const handleUpdateHotelDetail = async (updatedDescText: string, updatedLogo: string, updatedFront: string[], updatedRooms: string[], updatedAlbum: string[], updatedAmenities: string[]) => {
     setUpdating(true)
     try {
       const updatedExtra = {
+        ...originalExtraJson,
         logoUrl: updatedLogo,
         frontUrl: updatedFront,
         roomsUrl: updatedRooms,
@@ -489,7 +527,7 @@ export const HotelDetailPage = () => {
         locationLong: locationLong,
         googleMapsUrl: googleMapsUrl,
         description: JSON.stringify(updatedExtra),
-        amenities: amenities,
+        amenities: updatedAmenities,
         checkInTime: checkInTime,
         checkOutTime: checkOutTime
       }
@@ -501,6 +539,7 @@ export const HotelDetailPage = () => {
         setRoomsUrls(updatedRooms)
         setImageUrls(updatedAlbum)
         setHotelDescriptionText(updatedDescText || null)
+        setAmenities(updatedAmenities)
         
         setIsEditDescOpen(false)
         setIsEditImagesOpen(false)
@@ -803,17 +842,28 @@ export const HotelDetailPage = () => {
               </div>
 
               <div className="relative h-80 md:h-[480px] rounded-3xl overflow-hidden shadow-lg group bg-stone-100">
-                <img 
-                  src={allImages[currentImageIndex]} 
-                  alt={`${hotelName} slide`} 
-                  className="w-full h-full object-cover transition-all duration-500"
-                />
+                {allImages.length > 0 ? (
+                  allImages.map((imgUrl, idx) => (
+                    <img 
+                      key={imgUrl + idx}
+                      src={imgUrl} 
+                      alt={`${hotelName} slide ${idx + 1}`} 
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+                        idx === currentImageIndex ? 'opacity-100 z-10 scale-[1.005]' : 'opacity-0 z-0 scale-100'
+                      }`}
+                    />
+                  ))
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-[#8a7e75] gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider">Chưa có ảnh cơ sở vật chất</span>
+                  </div>
+                )}
                 
                 {/* Prev Button */}
                 {allImages.length > 1 && (
                   <button 
                     onClick={handlePrevImage}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white text-[#303330] flex items-center justify-center shadow-md transition-all border border-[#e1e3df] hover:scale-105 active:scale-95"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white text-[#303330] flex items-center justify-center shadow-md transition-all border border-[#e1e3df] hover:scale-105 active:scale-95 z-20"
                   >
                     <ChevronLeft size={22} />
                   </button>
@@ -823,10 +873,27 @@ export const HotelDetailPage = () => {
                 {allImages.length > 1 && (
                   <button 
                     onClick={handleNextImage}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white text-[#303330] flex items-center justify-center shadow-md transition-all border border-[#e1e3df] hover:scale-105 active:scale-95"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white text-[#303330] flex items-center justify-center shadow-md transition-all border border-[#e1e3df] hover:scale-105 active:scale-95 z-20"
                   >
                     <ChevronRight size={22} />
                   </button>
+                )}
+
+                {/* Indicators */}
+                {allImages.length > 1 && (
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20 bg-black/25 px-4 py-2.5 rounded-full backdrop-blur-md">
+                    {allImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentImageIndex(idx)}
+                        className={`w-2 h-2 rounded-full transition-all cursor-pointer border-none outline-none ${
+                          idx === currentImageIndex 
+                            ? 'bg-white w-5 shadow-sm' 
+                            : 'bg-white/40 hover:bg-white/80'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -846,6 +913,7 @@ export const HotelDetailPage = () => {
                       <button
                         onClick={() => {
                           setEditDescriptionText(hotelDescriptionText || '')
+                          setEditAmenities(amenities)
                           setIsEditDescOpen(true)
                         }}
                         className="px-3.5 py-1.5 rounded-xl border border-[#e1e3df] text-xs font-black text-[#a43e24] hover:bg-[#a43e24]/10 transition-all flex items-center gap-1.5"
@@ -894,9 +962,13 @@ export const HotelDetailPage = () => {
                           </div>
                           <button 
                             onClick={() => {
-                              setSelectedRoomId(room.id)
-                              setShowBookingFlow(true)
-                              setStep(2) // Jump immediately to Step 2
+                              if (!user) {
+                                navigate('/login', { state: { from: `/hotels/${id}` } })
+                              } else {
+                                setSelectedRoomId(room.id)
+                                setShowBookingFlow(true)
+                                setStep(2) // Jump immediately to Step 2
+                              }
                             }}
                             className="w-full py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-all bg-[#a43e24] text-white hover:bg-[#a43e24]/90 flex items-center justify-center gap-2"
                           >
@@ -1014,8 +1086,12 @@ export const HotelDetailPage = () => {
 
                   <button 
                     onClick={() => {
-                      setShowBookingFlow(true)
-                      setStep(1) // Start from Step 1
+                      if (!user) {
+                        navigate('/login', { state: { from: `/hotels/${id}` } })
+                      } else {
+                        setShowBookingFlow(true)
+                        setStep(1) // Start from Step 1
+                      }
                     }}
                     className="w-full py-4 rounded-full bg-[#a43e24] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#a43e24]/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#a43e24]/10"
                   >
@@ -1850,6 +1926,36 @@ export const HotelDetailPage = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <label className="text-[10px] text-[#8a7e75] font-bold uppercase block">Tiện ích / Tiện nghi bổ sung</label>
+              <div className="grid grid-cols-3 gap-3 p-4 bg-stone-50 rounded-2xl border border-[#e1e3df] text-xs">
+                {[
+                  { id: 'Private Garden', label: 'Sân vườn riêng' },
+                  { id: 'Điều hòa (AC)', label: 'Điều hòa nhiệt độ' },
+                  { id: 'Camera 24/7', label: 'Camera 24/7' }
+                ].map(item => {
+                  const isChecked = editAmenities.includes(item.id)
+                  return (
+                    <label key={item.id} className="flex items-center gap-2 cursor-pointer font-bold text-[#5d605c] hover:text-[#303330] transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isChecked) {
+                            setEditAmenities(editAmenities.filter(a => a !== item.id))
+                          } else {
+                            setEditAmenities([...editAmenities, item.id])
+                          }
+                        }}
+                        className="rounded text-[#a43e24] focus:ring-0"
+                      />
+                      <span>{item.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
             <div className="flex gap-3 justify-end pt-2">
               <button
                 type="button"
@@ -1861,7 +1967,7 @@ export const HotelDetailPage = () => {
               <button
                 type="button"
                 disabled={updating}
-                onClick={() => handleUpdateHotelDetail(editDescriptionText, logoUrl || '', frontUrls, roomsUrls, imageUrls)}
+                onClick={() => handleUpdateHotelDetail(editDescriptionText, logoUrl || '', frontUrls, roomsUrls, imageUrls, editAmenities)}
                 className="px-6 py-2.5 rounded-full bg-[#a43e24] text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
               >
                 {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
@@ -2035,7 +2141,7 @@ export const HotelDetailPage = () => {
                 type="button"
                 disabled={updating}
                 onClick={() => {
-                  handleUpdateHotelDetail(hotelDescriptionText || '', editLogoUrl, editFrontUrls, editRoomsUrls, editImageUrls)
+                  handleUpdateHotelDetail(hotelDescriptionText || '', editLogoUrl, editFrontUrls, editRoomsUrls, editImageUrls, amenities)
                 }}
                 className="px-6 py-2.5 rounded-full bg-[#a43e24] text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
               >

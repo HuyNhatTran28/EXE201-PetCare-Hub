@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -78,4 +79,6 @@ public interface HotelRepository extends
                                      @Param("radiusInMeters") Double radiusInMeters);
 
     long countByStatus(HotelStatus status);
+
+    Optional<Hotel> findByIdAndPartnerId(UUID hotelId, UUID partnerId);
 }

@@ -25,6 +25,7 @@ export interface AuthResponse {
         phone: string | null
         avatarUrl: string | null
         role: 'OWNER' | 'PARTNER' | 'STAFF' | 'ADMIN'
+        mustChangePassword?: boolean
     }
 }
 

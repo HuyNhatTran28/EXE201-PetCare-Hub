@@ -120,4 +120,10 @@ public class RoomTypeController {
         UUID partnerId = (UUID) auth.getPrincipal();
         return ResponseEntity.ok(roomTypeService.toggleRoomType(id, partnerId));
     }
+
+    @Operation(summary = "Lấy các loại phòng hoạt động có giá cao nhất")
+    @GetMapping("/highest-price")
+    public ResponseEntity<List<RoomTypeResponse>> getHighestPricedRoomTypes() {
+        return ResponseEntity.ok(roomTypeService.getHighestPricedRoomTypes());
+    }
 }

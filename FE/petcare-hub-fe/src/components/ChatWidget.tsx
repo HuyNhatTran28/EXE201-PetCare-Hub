@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react'
+import { MessageCircle, X, Send, Bot, User, Loader2, Trash2 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 
 interface SuggestedRoom {
@@ -16,6 +16,9 @@ interface Message {
   suggestedRooms?: SuggestedRoom[]
 }
 
+const STORAGE_HISTORY = 'petcare_chat_history'
+const STORAGE_OPEN    = 'petcare_chat_open'
+
 const FALLBACK_IMG =
   'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400'
 
@@ -24,25 +27,63 @@ const GREETING: Message = {
   content: 'Chào bạn! Mình là trợ lý PetCare Hub. Bạn cần tư vấn gửi bé cưng nào ạ? 🐶',
 }
 
+function readSession<T>(key: string, fallback: T): T {
+  try {
+    const raw = sessionStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function writeSession(key: string, value: unknown) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value))
+  } catch { /* quota lỗi thì bỏ qua */ }
+}
+
 export const ChatWidget = () => {
-  const [open, setOpen]         = useState(false)
-  const [messages, setMessages] = useState<Message[]>([GREETING])
-  const [input, setInput]       = useState('')
-  const [loading, setLoading]   = useState(false)
+  // Khởi tạo từ sessionStorage — lazy initializer chạy đúng 1 lần
+  const [open, setOpen] = useState<boolean>(() =>
+    readSession<boolean>(STORAGE_OPEN, false)
+  )
+  const [messages, setMessages] = useState<Message[]>(() =>
+    readSession<Message[]>(STORAGE_HISTORY, [GREETING])
+  )
+  const [input, setInput]     = useState('')
+  const [loading, setLoading] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
 
+  // Lưu messages vào sessionStorage mỗi khi thay đổi
+  useEffect(() => {
+    writeSession(STORAGE_HISTORY, messages)
+  }, [messages])
+
+  // Lưu trạng thái mở/đóng
+  useEffect(() => {
+    writeSession(STORAGE_OPEN, open)
+  }, [open])
+
+  // Cuộn xuống tin mới nhất
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
+  // Focus input khi mở
   useEffect(() => {
     if (open) {
       const t = setTimeout(() => inputRef.current?.focus(), 150)
       return () => clearTimeout(t)
     }
   }, [open])
+
+  const clearHistory = () => {
+    sessionStorage.removeItem(STORAGE_HISTORY)
+    sessionStorage.removeItem(STORAGE_OPEN)
+    setMessages([GREETING])
+  }
 
   const sendMessage = async () => {
     const text = input.trim()
@@ -62,7 +103,6 @@ export const ChatWidget = () => {
         suggestedRooms: res.data.suggestedRooms ?? [],
       }])
     } catch (err: unknown) {
-      // 429 / daily-limit vẫn có body {reply:"..."} — hiện như tin bot bình thường
       const errAny = err as { response?: { data?: { reply?: string } } }
       const reply  = errAny?.response?.data?.reply ?? 'Mất kết nối, thử lại nhé 🐾'
       setMessages([...next, { role: 'model', content: reply }])
@@ -113,9 +153,21 @@ export const ChatWidget = () => {
             <p className="text-sm font-bold leading-tight">Trợ lý PetCare 🐾</p>
             <p className="text-[10px] text-white/65 mt-0.5">Tư vấn chọn phòng · Không tự đặt</p>
           </div>
+
+          {/* Xóa hội thoại */}
+          <button
+            onClick={clearHistory}
+            title="Xóa hội thoại"
+            className="hover:bg-white/20 rounded-full p-1.5 transition-colors"
+            aria-label="Xóa hội thoại"
+          >
+            <Trash2 size={15} />
+          </button>
+
+          {/* Đóng */}
           <button
             onClick={() => setOpen(false)}
-            className="hover:bg-white/20 rounded-full p-1 transition-colors"
+            className="hover:bg-white/20 rounded-full p-1.5 transition-colors"
             aria-label="Đóng"
           >
             <X size={18} />
@@ -137,7 +189,6 @@ export const ChatWidget = () => {
 
               {/* Bong bóng + thẻ phòng */}
               <div className={`flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[78%]`}>
-                {/* Text bubble */}
                 <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
                   msg.role === 'user'
                     ? 'bg-[#a43e24] text-white rounded-tr-sm'
@@ -146,7 +197,7 @@ export const ChatWidget = () => {
                   {msg.content}
                 </div>
 
-                {/* Thẻ phòng gợi ý (chỉ cho tin bot) */}
+                {/* Thẻ phòng gợi ý */}
                 {msg.role === 'model' &&
                   msg.suggestedRooms &&
                   msg.suggestedRooms.length > 0 && (
@@ -159,7 +210,6 @@ export const ChatWidget = () => {
                                    overflow-hidden shadow-sm flex flex-col shrink-0
                                    hover:shadow-md hover:border-[#a43e24]/40 transition-all"
                       >
-                        {/* Ảnh phòng */}
                         <img
                           src={room.imageUrl || FALLBACK_IMG}
                           alt={room.name}
@@ -168,8 +218,6 @@ export const ChatWidget = () => {
                             ;(e.target as HTMLImageElement).src = FALLBACK_IMG
                           }}
                         />
-
-                        {/* Tên + giá */}
                         <div className="p-2 flex flex-col gap-0.5 flex-1">
                           <p className="text-[11px] font-bold text-[#303330] line-clamp-2 leading-tight">
                             {room.name}
@@ -183,8 +231,6 @@ export const ChatWidget = () => {
                             </p>
                           )}
                         </div>
-
-                        {/* CTA */}
                         <div className="border-t border-[#f0e4de] px-2 py-1.5 text-center
                                         text-[10px] font-bold text-[#a43e24]
                                         hover:bg-[#fff5f0] transition-colors">
