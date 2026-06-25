@@ -394,7 +394,33 @@ const ReviewModal = ({ booking, onClose, onReviewed }: {
 }) => {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
+  const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await axiosInstance.post('/api/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      if (res.data && res.data.url) {
+        setPhotoUrls(prev => [...prev, res.data.url])
+      }
+    } catch (err: any) {
+      alert('Không thể tải ảnh lên. Vui lòng thử lại.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemoveImage = (index: number) => {
+    setPhotoUrls(prev => prev.filter((_, i) => i !== index))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -408,7 +434,7 @@ const ReviewModal = ({ booking, onClose, onReviewed }: {
         bookingId: booking.id,
         starRating: rating,
         comment: comment,
-        photoUrls: []
+        photoUrls: photoUrls
       })
       alert('Cảm ơn bạn đã gửi đánh giá!')
       onReviewed(booking.id)
@@ -456,6 +482,40 @@ const ReviewModal = ({ booking, onClose, onReviewed }: {
               className="w-full border border-[#e5d8d0] rounded-xl px-4 py-2.5 text-xs outline-none resize-none focus:border-[#fa7150]"
               required
             />
+          </div>
+
+          {/* Ảnh đính kèm */}
+          <div>
+            <label className="block text-[10px] font-bold text-[#8a7e75] uppercase mb-1.5">Hình ảnh thực tế</label>
+            <div className="flex flex-wrap gap-2.5 items-center">
+              {photoUrls.map((url, idx) => (
+                <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-stone-200 shadow-sm bg-stone-50 group">
+                  <img src={url} alt="Review attachment" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(idx)}
+                    className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              ))}
+
+              <label className={`w-16 h-16 rounded-xl border-2 border-dashed border-stone-200 hover:border-[#fa7150] transition-all flex flex-col items-center justify-center cursor-pointer bg-[#faf9f6] text-stone-400 hover:text-[#fa7150] ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUploadImage}
+                  className="hidden"
+                  disabled={uploading}
+                />
+                {uploading ? (
+                  <span className="w-4 h-4 rounded-full border-2 border-[#a43e24]/20 border-t-[#a43e24] animate-spin" />
+                ) : (
+                  <span className="text-[10px] font-bold">+ Ảnh</span>
+                )}
+              </label>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-2">

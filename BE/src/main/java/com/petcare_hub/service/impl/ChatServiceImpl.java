@@ -8,18 +8,27 @@ import com.petcare_hub.dto.request.ChatMessage;
 import com.petcare_hub.dto.request.ChatRequest;
 import com.petcare_hub.dto.response.ChatResponse;
 import com.petcare_hub.dto.response.SuggestedRoom;
+import com.petcare_hub.entity.Feedback;
 import com.petcare_hub.entity.RoomType;
 import com.petcare_hub.entity.Service;
+import com.petcare_hub.repository.FeedbackRepository;
 import com.petcare_hub.repository.RoomTypeRepository;
 import com.petcare_hub.repository.ServiceRepository;
+import com.petcare_hub.repository.UserRepository;
 import com.petcare_hub.service.ChatService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDate;
+import java.util.UUID;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +45,8 @@ public class ChatServiceImpl implements ChatService {
     private final RoomTypeRepository roomTypeRepository;
     private final ServiceRepository  serviceRepository;
     private final ObjectMapper       objectMapper;
+    private final FeedbackRepository feedbackRepository;
+    private final UserRepository     userRepository;
 
     @Value("${groq.api.key:}")
     private String groqApiKey;
@@ -55,14 +66,17 @@ public class ChatServiceImpl implements ChatService {
     private static final Pattern ROOMS_TAG_PATTERN =
         Pattern.compile("\\[\\[ROOMS:\\s*([^\\]]+)\\]\\]");
 
+    private static final Pattern FEEDBACK_TAG_PATTERN =
+        Pattern.compile("\\[\\[FEEDBACK:\\s*([^\\|]+)\\|\\s*([^\\]]+)\\]\\]");
+
     private static final String FALLBACK_REPLY =
-        "Xin lỗi, trợ lý đang bận. Bạn vui lòng thử lại sau nhé! 🐾";
+        "Xin lỗi, trợ lý đang bận. Bạn vui lòng thử lại sau nhé!";
     private static final String RETRY_FALLBACK =
-        "Trợ lý hơi bận, bạn nhắn lại giúp mình nhé 🐾";
+        "Trợ lý hơi bận, bạn nhắn lại giúp mình nhé";
     private static final String DAILY_LIMIT_REPLY =
-        "Trợ lý đang nghỉ, bạn quay lại sau nhé 🐾";
+        "Trợ lý đang nghỉ, bạn quay lại sau nhé";
     private static final String INPUT_TOO_LONG_REPLY =
-        "Tin nhắn hơi dài, bạn rút gọn giúp mình nhé 🐾";
+        "Tin nhắn hơi dài, bạn rút gọn giúp mình nhé";
 
     // Lớp 3: đếm request tới Groq theo ngày
     private final AtomicInteger dailyCount    = new AtomicInteger(0);
@@ -114,9 +128,13 @@ public class ChatServiceImpl implements ChatService {
             String responseBody = callGroqWithRetry(requestBody);
             String rawReply     = parseGroqReply(responseBody);
 
+            // Parse and save feedback if present
+            saveFeedbackIfAny(rawReply);
+
             // Parse [[ROOMS: R1, R2]] và xóa khỏi text trả về user
             List<SuggestedRoom> suggestedRooms = extractSuggestedRooms(rawReply, codeToRoom);
-            String cleanReply = ROOMS_TAG_PATTERN.matcher(rawReply).replaceAll("").trim();
+            String cleanReply = ROOMS_TAG_PATTERN.matcher(rawReply).replaceAll("");
+            cleanReply = FEEDBACK_TAG_PATTERN.matcher(cleanReply).replaceAll("").trim();
 
             return ChatResponse.builder()
                 .reply(cleanReply)
@@ -248,12 +266,15 @@ public class ChatServiceImpl implements ChatService {
         sb.append("• Ví dụ: phòng 200.000đ/đêm × 3 đêm + Spa 150.000đ = 594.000đ sau VAT\n\n");
 
         sb.append("=== QUY TẮC BẮT BUỘC ===\n");
-        sb.append("1. CHỈ tư vấn, KHÔNG tự đặt phòng hoặc xác nhận đặt phòng.\n");
-        sb.append("2. Luôn kết thúc câu trả lời bằng: \"Đây là giá ước tính — giá chính thức sẽ hiện rõ khi bạn chọn phòng trên trang đặt.\"\n");
-        sb.append("3. Trả lời thân thiện, dùng emoji thú cưng phù hợp.\n");
-        sb.append("4. Nếu không có phòng phù hợp cho loại thú cưng được hỏi, nói rõ và xin lỗi.\n");
-        sb.append("5. Trả lời bằng tiếng Việt.\n");
-        sb.append("6. Sau câu kết thúc, nếu đã gợi ý phòng cụ thể thì thêm ĐÚNG 1 dòng cuối: [[ROOMS: R1, R2]] (chỉ dùng mã có trong danh sách trên, cách nhau dấu phẩy). Nếu chưa gợi ý phòng cụ thể, BỎ dòng này hoàn toàn.\n");
+        sb.append("1. CHỈ tư vấn và trả lời các thắc mắc liên quan đến dịch vụ khách sạn thú cưng, chăm sóc chó mèo, đặt phòng, dịch vụ phụ trợ hoặc các góp ý, báo lỗi để cải thiện nền tảng PetCare Hub.\n");
+        sb.append("2. Nếu người dùng hỏi các chủ đề KHÔNG liên quan đến thú cưng/khách sạn thú cưng/PetCare Hub (ví dụ: lập trình, nấu ăn, setup bể cá/tép cảnh, kiến thức khoa học/đời sống chung), bạn BẮT BUỘC phải từ chối lịch sự: \"Xin lỗi, mình chỉ hỗ trợ giải đáp các thắc mắc liên quan đến dịch vụ khách sạn và chăm sóc thú cưng của PetCare Hub thui ạ! Bạn có cần mình tư vấn phòng hay dịch vụ gì cho bé cưng không?\". Khi từ chối, tuyệt đối KHÔNG thêm câu ước tính giá ở cuối.\n");
+        sb.append("3. CHỈ tư vấn dịch vụ, KHÔNG tự đặt phòng hoặc xác nhận đặt phòng thay cho khách.\n");
+        sb.append("4. Đối với các phản hồi tư vấn hợp lệ, luôn kết thúc bằng câu: \"Đây là giá ước tính — giá chính thức sẽ hiện rõ khi bạn chọn phòng trên trang đặt.\"\n");
+        sb.append("5. Trả lời thân thiện, lịch sự và tuyệt đối KHÔNG sử dụng bất kỳ biểu tượng cảm xúc (emoji/icon) nào (như 🐾, 🐶, 🐱, v.v.) trong phản hồi.\n");
+        sb.append("6. Nếu không có phòng phù hợp cho loại thú cưng được hỏi, nói rõ và xin lỗi.\n");
+        sb.append("7. Trả lời bằng tiếng Việt.\n");
+        sb.append("8. Sau câu kết thúc của cuộc tư vấn hợp lệ, nếu đã gợi ý phòng cụ thể thì thêm ĐÚNG 1 dòng cuối: [[ROOMS: R1, R2]] (chỉ dùng mã có trong danh sách trên, cách nhau dấu phẩy). Nếu chưa gợi ý phòng cụ thể hoặc khi từ chối câu hỏi không liên quan, BỎ dòng này hoàn toàn.\n");
+        sb.append("9. NẾU người dùng đang gửi một góp ý cải thiện, phản ánh lỗi (bug) hoặc đề xuất tính năng mới (ví dụ: 'tôi muốn góp ý...', 'cần cải thiện...', 'nút X bị lỗi...', 'thêm tính năng Y...'), bạn hãy ghi nhận lịch sự và cảm ơn họ. Ở dòng cuối cùng của câu trả lời, bạn BẮT BUỘC phải chèn thêm thẻ định dạng: [[FEEDBACK: LOẠI_FEEDBACK | Nội dung tóm tắt góp ý bằng tiếng Việt]] (trong đó LOẠI_FEEDBACK có thể là BUG, FEATURE_REQUEST hoặc GENERAL; ví dụ: [[FEEDBACK: FEATURE_REQUEST | Người dùng đề xuất thêm phương thức trả góp]]). Nếu không phải góp ý/báo lỗi, tuyệt đối KHÔNG thêm thẻ này.\n");
 
         return sb.toString();
     }
@@ -306,5 +327,50 @@ public class ChatServiceImpl implements ChatService {
             return FALLBACK_REPLY;
         }
         return content.asText().trim();
+    }
+
+    private void saveFeedbackIfAny(String replyText) {
+        try {
+            Matcher m = FEEDBACK_TAG_PATTERN.matcher(replyText);
+            if (m.find()) {
+                String category = m.group(1).trim().toUpperCase();
+                String content = m.group(2).trim();
+
+                String ip = "unknown";
+                String email = null;
+
+                ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                if (attributes != null) {
+                    HttpServletRequest request = attributes.getRequest();
+                    String forwarded = request.getHeader("X-Forwarded-For");
+                    if (forwarded != null && !forwarded.isBlank()) {
+                        ip = forwarded.split(",")[0].trim();
+                    } else {
+                        ip = request.getRemoteAddr();
+                    }
+                }
+
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                if (auth != null && auth.getPrincipal() instanceof UUID) {
+                    UUID userId = (UUID) auth.getPrincipal();
+                    var userOpt = userRepository.findById(userId);
+                    if (userOpt.isPresent()) {
+                        email = userOpt.get().getEmail();
+                    }
+                }
+
+                Feedback fb = Feedback.builder()
+                        .category(category)
+                        .content(content)
+                        .senderIp(ip)
+                        .senderEmail(email)
+                        .build();
+
+                feedbackRepository.save(fb);
+                log.info("[AI-Feedback] Saved user feedback: category={}, ip={}, email={}", category, ip, email);
+            }
+        } catch (Exception e) {
+            log.error("Failed to parse or save feedback: {}", e.getMessage(), e);
+        }
     }
 }

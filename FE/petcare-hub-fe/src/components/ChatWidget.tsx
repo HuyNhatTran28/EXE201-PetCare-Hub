@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Bot, User, Loader2, Trash2 } from 'lucide-react'
+import { MessageCircle, X, Send, Bot, User, Loader2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
+import { useAuthStore } from '@/store/authStore'
 
 interface SuggestedRoom {
   name: string
@@ -22,11 +23,6 @@ const STORAGE_OPEN    = 'petcare_chat_open'
 const FALLBACK_IMG =
   'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400'
 
-const GREETING: Message = {
-  role: 'model',
-  content: 'Chào bạn! Mình là trợ lý PetCare Hub. Bạn cần tư vấn gửi bé cưng nào ạ? 🐶',
-}
-
 function readSession<T>(key: string, fallback: T): T {
   try {
     const raw = sessionStorage.getItem(key)
@@ -42,14 +38,100 @@ function writeSession(key: string, value: unknown) {
   } catch { /* quota lỗi thì bỏ qua */ }
 }
 
+const getDynamicGreeting = (): string => {
+  const currentUser = useAuthStore.getState().user
+  const hour = new Date().getHours()
+  let timeGreeting = 'buổi tối'
+  if (hour >= 5 && hour < 12) {
+    timeGreeting = 'buổi sáng'
+  } else if (hour >= 12 && hour < 18) {
+    timeGreeting = 'buổi chiều'
+  }
+  const namePart = currentUser?.fullName ? ` ${currentUser.fullName}` : ''
+  return `Chúc${namePart} ${timeGreeting} vui vẻ. Mình là trợ lý PetCare Hub. Bạn cần tư vấn gửi bé cưng nào ạ?`
+}
+
+// ── Sub-component: carousel phòng gợi ý với nút bấm ──
+const RoomCarousel = ({ rooms }: { rooms: SuggestedRoom[] }) => {
+  const [idx, setIdx] = useState(0)
+  const room = rooms[idx]
+  if (!room) return null
+
+  return (
+    <div className="w-full bg-white rounded-2xl border border-[#f0e4de] overflow-hidden shadow-sm">
+      {/* Ảnh + nút prev/next */}
+      <div className="relative">
+        <img
+          src={room.imageUrl || FALLBACK_IMG}
+          alt={room.name}
+          className="w-full h-[140px] object-cover"
+          onError={e => { (e.target as HTMLImageElement).src = FALLBACK_IMG }}
+        />
+        {rooms.length > 1 && (
+          <>
+            <button
+              onClick={() => setIdx(i => (i - 1 + rooms.length) % rooms.length)}
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/85 shadow flex items-center justify-center hover:bg-white transition-all"
+            >
+              <ChevronLeft size={15} className="text-[#303330]" />
+            </button>
+            <button
+              onClick={() => setIdx(i => (i + 1) % rooms.length)}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/85 shadow flex items-center justify-center hover:bg-white transition-all"
+            >
+              <ChevronRight size={15} className="text-[#303330]" />
+            </button>
+          </>
+        )}
+        {/* Chỉ số phòng */}
+        {rooms.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            {rooms.map((_, i) => (
+              <span
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${
+                  i === idx ? 'bg-white scale-125' : 'bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Thông tin phòng */}
+      <div className="p-3 flex flex-col gap-0.5">
+        <p className="text-[13px] font-bold text-[#303330] leading-snug">{room.name}</p>
+        <p className="text-[13px] font-bold text-[#a43e24]">
+          {room.pricePerNight.toLocaleString('vi-VN')}đ/đêm
+        </p>
+        {room.dayRate != null && room.dayRate > 0 && (
+          <p className="text-[10px] text-[#8a7e75]">
+            Gửi ngày: {room.dayRate.toLocaleString('vi-VN')}đ
+          </p>
+        )}
+      </div>
+
+      {/* Nút xem phòng */}
+      <a
+        href={`/hotels/${room.hotelId}`}
+        className="block border-t border-[#f0e4de] px-2 py-2.5 text-center text-[12px] font-bold text-[#a43e24] hover:bg-[#fff5f0] transition-colors"
+      >
+        Xem phòng →
+      </a>
+    </div>
+  )
+}
+
 export const ChatWidget = () => {
   // Khởi tạo từ sessionStorage — lazy initializer chạy đúng 1 lần
   const [open, setOpen] = useState<boolean>(() =>
     readSession<boolean>(STORAGE_OPEN, false)
   )
-  const [messages, setMessages] = useState<Message[]>(() =>
-    readSession<Message[]>(STORAGE_HISTORY, [GREETING])
-  )
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const history = readSession<Message[]>(STORAGE_HISTORY, [])
+    if (history.length > 0) return history
+    return [{ role: 'model', content: getDynamicGreeting() }]
+  })
   const [input, setInput]     = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -82,7 +164,7 @@ export const ChatWidget = () => {
   const clearHistory = () => {
     sessionStorage.removeItem(STORAGE_HISTORY)
     sessionStorage.removeItem(STORAGE_OPEN)
-    setMessages([GREETING])
+    setMessages([{ role: 'model', content: getDynamicGreeting() }])
   }
 
   const sendMessage = async () => {
@@ -104,7 +186,7 @@ export const ChatWidget = () => {
       }])
     } catch (err: unknown) {
       const errAny = err as { response?: { data?: { reply?: string } } }
-      const reply  = errAny?.response?.data?.reply ?? 'Mất kết nối, thử lại nhé 🐾'
+      const reply  = errAny?.response?.data?.reply ?? 'Mất kết nối, thử lại nhé'
       setMessages([...next, { role: 'model', content: reply }])
     } finally {
       setLoading(false)
@@ -150,7 +232,7 @@ export const ChatWidget = () => {
             <Bot size={16} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold leading-tight">Trợ lý PetCare 🐾</p>
+            <p className="text-sm font-bold leading-tight">Trợ lý PetCare</p>
             <p className="text-[10px] text-white/65 mt-0.5">Tư vấn chọn phòng · Không tự đặt</p>
           </div>
 
@@ -177,19 +259,14 @@ export const ChatWidget = () => {
         {/* Vùng tin nhắn */}
         <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3 bg-[#faf9f6]">
           {messages.map((msg, i) => (
-            <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              {/* Avatar */}
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                msg.role === 'model'
-                  ? 'bg-[#feeadb] text-[#a43e24]'
-                  : 'bg-[#a43e24] text-white'
-              }`}>
-                {msg.role === 'model' ? <Bot size={13} /> : <User size={13} />}
-              </div>
-
+            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {/* Bong bóng + thẻ phòng */}
-              <div className={`flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[78%]`}>
+              <div className={`flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[78%] ${
+                msg.role === 'model' && msg.suggestedRooms && msg.suggestedRooms.length > 0 ? 'w-full' : ''
+              }`}>
                 <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
+                  msg.role === 'model' && msg.suggestedRooms && msg.suggestedRooms.length > 0 ? 'w-full' : ''
+                } ${
                   msg.role === 'user'
                     ? 'bg-[#a43e24] text-white rounded-tr-sm'
                     : 'bg-white text-[#303330] rounded-tl-sm border border-[#f0e4de]'
@@ -197,48 +274,11 @@ export const ChatWidget = () => {
                   {msg.content}
                 </div>
 
-                {/* Thẻ phòng gợi ý */}
+                {/* Thẻ phòng gợi ý — nút bấm chuyển phòng */}
                 {msg.role === 'model' &&
                   msg.suggestedRooms &&
                   msg.suggestedRooms.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto pb-1 w-full scroll-smooth">
-                    {msg.suggestedRooms.map((room, j) => (
-                      <a
-                        key={j}
-                        href={`/hotels/${room.hotelId}`}
-                        className="min-w-[138px] max-w-[138px] bg-white rounded-2xl border border-[#f0e4de]
-                                   overflow-hidden shadow-sm flex flex-col shrink-0
-                                   hover:shadow-md hover:border-[#a43e24]/40 transition-all"
-                      >
-                        <img
-                          src={room.imageUrl || FALLBACK_IMG}
-                          alt={room.name}
-                          className="w-full h-[72px] object-cover"
-                          onError={e => {
-                            ;(e.target as HTMLImageElement).src = FALLBACK_IMG
-                          }}
-                        />
-                        <div className="p-2 flex flex-col gap-0.5 flex-1">
-                          <p className="text-[11px] font-bold text-[#303330] line-clamp-2 leading-tight">
-                            {room.name}
-                          </p>
-                          <p className="text-[11px] font-semibold text-[#a43e24]">
-                            {room.pricePerNight.toLocaleString('vi-VN')}đ/đêm
-                          </p>
-                          {room.dayRate != null && room.dayRate > 0 && (
-                            <p className="text-[9px] text-[#8a7e75]">
-                              Gửi ngày: {room.dayRate.toLocaleString('vi-VN')}đ
-                            </p>
-                          )}
-                        </div>
-                        <div className="border-t border-[#f0e4de] px-2 py-1.5 text-center
-                                        text-[10px] font-bold text-[#a43e24]
-                                        hover:bg-[#fff5f0] transition-colors">
-                          Xem phòng →
-                        </div>
-                      </a>
-                    ))}
-                  </div>
+                  <RoomCarousel rooms={msg.suggestedRooms} />
                 )}
               </div>
             </div>
@@ -246,10 +286,7 @@ export const ChatWidget = () => {
 
           {/* Typing indicator */}
           {loading && (
-            <div className="flex gap-2">
-              <div className="w-7 h-7 rounded-full bg-[#feeadb] text-[#a43e24] flex items-center justify-center shrink-0">
-                <Bot size={13} />
-              </div>
+            <div className="flex justify-start">
               <div className="bg-white border border-[#f0e4de] px-3 py-2.5 rounded-2xl rounded-tl-sm flex items-center gap-1">
                 {[0, 150, 300].map((delay, i) => (
                   <span
@@ -272,7 +309,7 @@ export const ChatWidget = () => {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Nhập câu hỏi... (Enter để gửi)"
+            placeholder="Enter để gửi..."
             rows={1}
             disabled={loading}
             className="flex-1 border border-[#e1e3df] rounded-2xl px-3 py-2 text-sm outline-none

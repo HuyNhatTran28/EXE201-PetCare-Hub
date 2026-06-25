@@ -30,6 +30,7 @@ public class DataSeeder implements CommandLineRunner {
     private final ReviewRepository reviewRepository;
     private final PasswordEncoder passwordEncoder;
     private final PartnerWalletRepository partnerWalletRepository;
+    private final DiaryRepository diaryRepository;
 
     @Override
     @Transactional
@@ -111,6 +112,7 @@ public class DataSeeder implements CommandLineRunner {
                 "Hạt & Thịt bò", "3 bữa/ngày", Arrays.asList("Hiền lành", "Tông màu trắng"));
 
         // 4. Clean up old partner hotels to re-seed clean, fresh data
+        diaryRepository.deleteAll();
         List<Hotel> oldHotels = hotelRepository.findByPartnerId(partner.getId(), org.springframework.data.domain.Pageable.unpaged()).getContent();
         for (Hotel oldHotel : oldHotels) {
             log.info("Cleaning up old hotel data for: " + oldHotel.getName());
@@ -218,7 +220,7 @@ public class DataSeeder implements CommandLineRunner {
         RoomType rt2Deluxe = createRoomType(hotel2, "Deluxe Suite", "Phòng Deluxe cao cấp.", 300000, 3, 5, Arrays.asList("DOG_SMALL", "DOG_LARGE"), true, Arrays.asList("https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=400"));
 
         // 7. Create Staff Members
-        createStaff(hotel1, "nam.nh@petcare.com", "Nguyễn Hoàng Nam", "Lễ tân", ShiftStatus.ACTIVE);
+        Staff staff1 = createStaff(hotel1, "nam.nh@petcare.com", "Nguyễn Hoàng Nam", "Lễ tân", ShiftStatus.ACTIVE);
         createStaff(hotel1, "thu.pm@petcare.com", "Phạm Minh Thư", "Bác sĩ thú y", ShiftStatus.ACTIVE);
         createStaff(hotel1, "bao.lq@petcare.com", "Lê Quốc Bảo", "Chăm sóc viên", ShiftStatus.OFF_DUTY);
 
@@ -240,7 +242,11 @@ public class DataSeeder implements CommandLineRunner {
         Booking b1 = createBooking(client1, hotel1, rt1Deluxe, bo, today.minusDays(1), today.plusDays(1), 600000, BookingStatus.CHECKED_IN, PaymentMethod.VNPAY, "INV-2026-0001");
         b1.setCheckinPhotoUrl("https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=300");
         b1.setOwnerSignatureUrl("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAABk...");
-        bookingRepository.save(b1);
+        b1 = bookingRepository.save(b1);
+
+        // Seed diaries for b1 (Bơ)
+        createDiary(b1, staff1, LocalDateTime.now().minusHours(4), "Bữa sáng vui vẻ của Bơ", "Bé Bơ đã ăn hết phần ăn sáng ngon lành (Hạt Royal Canin). Bé rất vui vẻ và chạy nhảy thân thiện với các bảo mẫu xung quanh.", List.of("https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=300"), Eating.EXCELLENT, Mood.PLAYFUL, Activity.NORMAL);
+        createDiary(b1, staff1, LocalDateTime.now().minusHours(1), "Vui chơi ngoài trời", "Bé Bơ đã chơi đuổi bắt bóng cùng các bạn cún khác ở bãi cỏ nhân tạo. Bé cực kỳ năng động và không hề có dấu hiệu nhút nhát.", List.of("https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=300"), Eating.EXCELLENT, Mood.PLAYFUL, Activity.ACTIVE);
 
         // Booking 2: Confirmed booking checking in today/tomorrow (Today -> 3 days later)
         createBooking(client2, hotel1, rt1Standard, miumiu, today, today.plusDays(3), 450000, BookingStatus.CONFIRMED, PaymentMethod.CASH, "INV-2026-0002");
@@ -269,7 +275,10 @@ public class DataSeeder implements CommandLineRunner {
         Booking bDemo1 = createBooking(clientDemo, hotel1, rt1Deluxe, botbot, today.minusDays(3), today.minusDays(1), 600000, BookingStatus.COMPLETED, PaymentMethod.VNPAY, "INV-2026-0010");
         createReview(bDemo1, clientDemo, hotel1, 5, "Khách sạn quá đẹp, nhân viên phục vụ chu đáo. Sẽ quay lại!");
         
-        createBooking(clientDemo, hotel1, rt1Standard, dau, today, today.plusDays(2), 300000, BookingStatus.CHECKED_IN, PaymentMethod.VNPAY, "INV-2026-0011");
+        Booking b11 = createBooking(clientDemo, hotel1, rt1Standard, dau, today, today.plusDays(2), 300000, BookingStatus.CHECKED_IN, PaymentMethod.VNPAY, "INV-2026-0011");
+        // Seed diaries for b11 (Đậu)
+        createDiary(b11, staff1, LocalDateTime.now().minusHours(2), "Giờ ăn trưa của Đậu", "Bé Đậu ăn pate Whiskas rất ngon lành. Sau khi ăn xong bé nằm cuộn tròn ngủ một giấc ngắn rất ngoan.", List.of("https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=300"), Eating.EXCELLENT, Mood.PLAYFUL, Activity.LOW);
+
         createBooking(clientDemo, hotel2, rt2Standard, botbot, today.plusDays(3), today.plusDays(6), 450000, BookingStatus.CONFIRMED, PaymentMethod.CASH, "INV-2026-0012");
 
         log.info("=== SEEDING COMPLETED SUCCESSFULLY ===");
@@ -330,7 +339,7 @@ public class DataSeeder implements CommandLineRunner {
         return roomTypeRepository.save(rt);
     }
 
-    private void createStaff(Hotel hotel, String email, String fullName, String position, ShiftStatus shift) {
+    private Staff createStaff(Hotel hotel, String email, String fullName, String position, ShiftStatus shift) {
         User sUser = userRepository.findByEmail(email).orElse(null);
         if (sUser == null) {
             sUser = User.builder()
@@ -349,7 +358,7 @@ public class DataSeeder implements CommandLineRunner {
         st.setWorkplace(hotel);
         st.setJobPosition(position);
         st.setShiftStatus(shift);
-        staffRepository.save(st);
+        return staffRepository.save(st);
     }
 
     private void createEquipment(Hotel hotel, String name, int quantity, EquipmentStatus status, LocalDate lastMaint) {
@@ -403,5 +412,19 @@ public class DataSeeder implements CommandLineRunner {
         } catch (Exception e) {
             return "{}";
         }
+    }
+
+    private Diary createDiary(Booking booking, Staff staff, LocalDateTime time, String title, String content, List<String> media, Eating eating, Mood mood, Activity activity) {
+        Diary d = new Diary();
+        d.setBooking(booking);
+        d.setWrittenByStaff(staff);
+        d.setEntryTime(time);
+        d.setEntryTitle(title);
+        d.setEntryContent(content);
+        d.setAttachedMediaUrls(media);
+        d.setEating(eating);
+        d.setMood(mood);
+        d.setActivity(activity);
+        return diaryRepository.save(d);
     }
 }

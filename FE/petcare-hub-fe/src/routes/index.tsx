@@ -12,6 +12,7 @@ import { RouteSearchPage } from '@/pages/RouteSearchPage'
 import { BookingPage } from '@/pages/BookingPage'
 import { MyBookingsPage } from '@/pages/MyBookingsPage'
 import { PetProfilePage } from '@/pages/PetProfilePage'
+import { PetDiaryPage } from '@/pages/PetDiaryPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PaymentResultPage } from '@/pages/PaymentResultPage'
@@ -38,6 +39,7 @@ import { AnalyticsPage } from '@/pages/admin/AnalyticsPage'
 import { AuditLogPage } from '@/pages/admin/AuditLogPage'
 import { SettingsPage } from '@/pages/admin/SettingsPage'
 import { WithdrawalApprovePage } from '@/pages/admin/WithdrawalApprovePage'
+import { FeedbackManagePage } from '@/pages/admin/FeedbackManagePage'
 
 export const router = createBrowserRouter([
 
@@ -68,6 +70,7 @@ export const router = createBrowserRouter([
     element: <PrivateRoute allowedRoles={[Role.OWNER]} />,
     children: [
       { path: '/pets', element: <PetProfilePage /> },
+      { path: '/pet-diaries', element: <PetDiaryPage /> },
       { path: '/booking/:roomTypeId', element: <BookingPage /> },
     ],
   },
@@ -118,6 +121,7 @@ export const router = createBrowserRouter([
           { path: '/admin/audit', element: <AuditLogPage /> },
           { path: '/admin/settings', element: <SettingsPage /> },
           { path: '/admin/withdrawals', element: <WithdrawalApprovePage /> },
+          { path: '/admin/feedbacks', element: <FeedbackManagePage /> },
         ]
       }
     ]
