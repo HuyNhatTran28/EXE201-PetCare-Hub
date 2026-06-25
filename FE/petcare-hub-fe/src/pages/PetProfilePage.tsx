@@ -13,8 +13,7 @@ import {
   AlertCircle,
   Plus,
   Compass,
-  ChevronRight,
-  MessageSquare
+  ChevronRight
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 
@@ -599,13 +598,7 @@ export const PetProfilePage = () => {
 
       </main>
 
-      {/* Floating Chat Support */}
-      <button 
-        style={primaryGlow} 
-        className="fixed bottom-8 right-8 w-16 h-16 rounded-full flex items-center justify-center text-[#fff7f6] z-50 hover:scale-110 transition-transform shadow-lg cursor-pointer"
-      >
-        <MessageSquare size={28} />
-      </button>
+
 
       {/* Footer */}
       <footer className="bg-[#f4f4f0] border-t border-[#b1b2af]/20 py-12 px-8 text-sm text-[#5d605c] mt-24 text-left">
