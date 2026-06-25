@@ -13,8 +13,7 @@ import {
   AlertCircle,
   Plus,
   Compass,
-  ChevronRight,
-  MessageSquare
+  ChevronRight
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 
@@ -41,6 +40,8 @@ interface PetType {
   species?: string
   isVaccinated?: boolean
   vaccineBookUrls?: string[]
+  isIndoorOnly?: boolean
+  hasSpecialDiet?: boolean
 }
 
 export const PetProfilePage = () => {
@@ -65,21 +66,54 @@ export const PetProfilePage = () => {
     specialNotes: '',
     avatarUrl: '',
     isVaccinated: false,
-    vaccineBookUrls: [] as string[]
+    vaccineBookUrls: [] as string[],
+    microchipId: '',
+    feedingSchedule: '',
+    isIndoorOnly: false,
+    hasSpecialDiet: false,
+    personalityTags: [] as string[]
   })
 
-  const mapPets = (list: any[]) => list.map((p: any) => ({
-    ...p,
-    status: p.status || 'Tại nhà',
-    personalityTags: p.personalityTags || ['Thân thiện', 'Chỉ trong nhà', 'Năng động'],
-    specialNotes: p.specialNotes || 'Chế độ ăn nhạy cảm, cần hâm ấm nhẹ thức ăn trước khi cho ăn.',
-    feedingSchedule: p.feedingSchedule || 'Hai bữa chính lúc 8:00 và 18:00. Đồ ăn nhẹ vào buổi trưa.',
-    foodType: p.foodType || 'Thức ăn ướt không ngũ cốc (vị Cá hồi) trộn với topping đông khô.',
-    vaccines: p.vaccines || [
-      { name: 'Tiêm nhắc lại Dại', doctor: 'BS. Aris Thorne', status: 'COMPLETED', date: '14/08/2025', nextDate: '14/08/2026' },
-      { name: 'Bạch cầu mèo (FeLV)', doctor: 'BS. Nguyễn Minh', status: 'WARNING', date: '01/05/2026', nextDate: '15/06/2026' }
-    ]
-  }))
+  // Popup/Modal States
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [alertModal, setAlertModal] = useState<{
+    show: boolean
+    title: string
+    message: string
+    type: 'success' | 'error' | 'warning'
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    type: 'error'
+  })
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' = 'error') => {
+    setAlertModal({ show: true, title, message, type })
+  }
+
+  const mapPets = (list: any[]) => list.map((p: any) => {
+    const tags = p.personalityTags || []
+    const displayTags = [...tags]
+    if (p.isIndoorOnly && !displayTags.includes('Chỉ nuôi trong nhà')) {
+      displayTags.push('Chỉ nuôi trong nhà')
+    }
+    if (p.hasSpecialDiet && !displayTags.includes('Ăn kiêng đặc biệt')) {
+      displayTags.push('Ăn kiêng đặc biệt')
+    }
+    return {
+      ...p,
+      status: p.status || 'Tại nhà',
+      personalityTags: displayTags.length > 0 ? displayTags : ['Thân thiện', 'Năng động'],
+      specialNotes: p.specialNotes || 'Chưa có ghi chú nào.',
+      feedingSchedule: p.feedingSchedule || 'Hai bữa chính lúc 8:00 và 18:00.',
+      foodType: p.foodType || 'Thức ăn hạt tiêu chuẩn.',
+      vaccines: p.vaccines || [
+        { name: 'Tiêm nhắc lại Dại', doctor: 'BS. Aris Thorne', status: 'COMPLETED', date: '14/08/2025', nextDate: '14/08/2026' },
+        { name: 'Bạch cầu mèo (FeLV)', doctor: 'BS. Nguyễn Minh', status: 'WARNING', date: '01/05/2026', nextDate: '15/06/2026' }
+      ]
+    }
+  })
 
   const fetchPets = async () => {
     try {
@@ -115,7 +149,7 @@ export const PetProfilePage = () => {
         setForm(prev => ({ ...prev, avatarUrl: url }))
       }
     } catch (err) {
-      alert('Upload ảnh thất bại')
+      showAlert('Lỗi tải ảnh', 'Tải ảnh đại diện thất bại. Vui lòng thử lại.')
     } finally {
       setUploadingAvatar(false)
     }
@@ -137,18 +171,25 @@ export const PetProfilePage = () => {
         setForm(prev => ({ ...prev, vaccineBookUrls: [...(prev.vaccineBookUrls || []), url] }))
       }
     } catch (err) {
-      alert('Upload ảnh sổ tiêm phòng thất bại')
+      showAlert('Lỗi tải ảnh', 'Tải ảnh sổ tiêm phòng thất bại. Vui lòng thử lại.')
     } finally {
       setUploadingVaccine(false)
     }
   }
 
   const handleCreate = async () => {
-    if (!form.name || !form.species) return
+    if (!form.name.trim()) {
+      showAlert('Thiếu thông tin', 'Vui lòng nhập tên thú cưng.', 'warning')
+      return
+    }
+    if (!form.species) {
+      showAlert('Thiếu thông tin', 'Vui lòng chọn loài thú cưng (Chó hoặc Mèo).', 'warning')
+      return
+    }
     setSubmitting(true)
     try {
       await axiosInstance.post('/api/pets', {
-        name: form.name,
+        name: form.name.trim(),
         species: form.species,
         breed: form.breed,
         ageYears: Number(form.ageYears) || 0,
@@ -157,7 +198,12 @@ export const PetProfilePage = () => {
         specialNotes: form.specialNotes,
         avatarUrl: form.avatarUrl,
         isVaccinated: form.isVaccinated,
-        vaccineBookUrls: form.vaccineBookUrls
+        vaccineBookUrls: form.vaccineBookUrls,
+        microchipId: form.microchipId || null,
+        feedingSchedule: form.feedingSchedule || null,
+        isIndoorOnly: form.isIndoorOnly,
+        hasSpecialDiet: form.hasSpecialDiet,
+        personalityTags: form.personalityTags
       })
       const response = await axiosInstance.get('/api/pets/my')
       const fetchedPets = mapPets(response.data)
@@ -166,11 +212,28 @@ export const PetProfilePage = () => {
         setSelectedPetId(fetchedPets[fetchedPets.length - 1].id)
       }
       setShowModal(false)
-      setForm({ name: '', species: '', breed: '', ageYears: '', weightKg: '', foodType: '', specialNotes: '', avatarUrl: '', isVaccinated: false, vaccineBookUrls: [] })
+      setForm({
+        name: '',
+        species: '',
+        breed: '',
+        ageYears: '',
+        weightKg: '',
+        foodType: '',
+        specialNotes: '',
+        avatarUrl: '',
+        isVaccinated: false,
+        vaccineBookUrls: [],
+        microchipId: '',
+        feedingSchedule: '',
+        isIndoorOnly: false,
+        hasSpecialDiet: false,
+        personalityTags: []
+      })
+      showAlert('Thành công', 'Đã thêm thú cưng mới thành công!', 'success')
     } catch (err: any) {
       console.error('Failed to create pet:', err);
       const errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể tạo thú cưng';
-      alert(typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg);
+      showAlert('Không thể tạo thú cưng', typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg, 'error')
     } finally {
       setSubmitting(false)
     }
@@ -178,10 +241,18 @@ export const PetProfilePage = () => {
 
   const handleUpdate = async () => {
     if (!editPet) return
+    if (!editPet.name.trim()) {
+      showAlert('Thiếu thông tin', 'Vui lòng nhập tên thú cưng.', 'warning')
+      return
+    }
+    if (!editPet.species) {
+      showAlert('Thiếu thông tin', 'Vui lòng chọn loài thú cưng (Chó hoặc Mèo).', 'warning')
+      return
+    }
     setSubmitting(true)
     try {
       await axiosInstance.put(`/api/pets/${editPet.id}`, {
-        name: editPet.name,
+        name: editPet.name.trim(),
         species: editPet.species || '',
         breed: editPet.breed,
         ageYears: editPet.ageYears,
@@ -190,29 +261,54 @@ export const PetProfilePage = () => {
         specialNotes: editPet.specialNotes,
         avatarUrl: editPet.avatarUrl,
         isVaccinated: editPet.isVaccinated || false,
-        vaccineBookUrls: editPet.vaccineBookUrls || []
+        vaccineBookUrls: editPet.vaccineBookUrls || [],
+        microchipId: editPet.microchipId || null,
+        feedingSchedule: editPet.feedingSchedule || null,
+        isIndoorOnly: editPet.isIndoorOnly || false,
+        hasSpecialDiet: editPet.hasSpecialDiet || false,
+        personalityTags: editPet.personalityTags || []
       })
       const response = await axiosInstance.get('/api/pets/my')
       const fetchedPets = mapPets(response.data)
       setPets(fetchedPets)
       setEditPet(null)
+      showAlert('Thành công', 'Đã cập nhật hồ sơ thú cưng thành công!', 'success')
     } catch (err: any) {
       console.error('Failed to update pet:', err);
       const errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể cập nhật';
-      alert(typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg);
+      showAlert('Không thể cập nhật', typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg, 'error')
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleDelete = async (petId: string) => {
-    if (!confirm('Bạn có chắc muốn xóa thú cưng này?')) return
+  const handleDelete = (petId: string) => {
+    setDeleteConfirmId(petId)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return
+    const petId = deleteConfirmId
+    setDeleteConfirmId(null)
     try {
       await axiosInstance.delete(`/api/pets/${petId}`)
-      setPets(pets.filter(p => p.id !== petId))
-      if (selectedPetId === petId) setSelectedPetId('')
-    } catch (err) {
-      alert('Không thể xóa thú cưng này')
+      const remainingPets = pets.filter(p => p.id !== petId)
+      setPets(remainingPets)
+      if (selectedPetId === petId) {
+        setSelectedPetId(remainingPets.length > 0 ? remainingPets[0].id : '')
+      }
+      showAlert('Thành công', 'Đã xóa hồ sơ thú cưng thành công!', 'success')
+    } catch (err: any) {
+      console.error('Failed to delete pet:', err)
+      let errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể xóa thú cưng này';
+      if (err.message === 'Network Error' || !err.response) {
+        errMsg = 'Lỗi kết nối: Không thể kết nối tới máy chủ. Vui lòng đảm bảo server Backend đã khởi động và hoạt động bình thường.';
+      }
+      showAlert(
+        'Không thể xóa thú cưng',
+        typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg,
+        'error'
+      )
     }
   }
 
@@ -256,7 +352,6 @@ export const PetProfilePage = () => {
           ) : (
             pets.map((pet) => {
               const isSelected = selectedPetId === pet.id
-              const petImage = pet.avatarUrl || 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=400'
               const borderAccentColor = pet.breed.toLowerCase().includes('mèo') ? 'border-[#c2ebb2]' : 'border-[#ffac98]'
               return (
                 <div 
@@ -364,6 +459,11 @@ export const PetProfilePage = () => {
                   <p className="text-[#44683b] font-semibold mt-1">
                     Người bạn đồng hành {activePet.breed} đáng yêu
                   </p>
+                  {activePet.microchipId && (
+                    <p className="text-[10px] font-bold text-[#8a7e75] uppercase tracking-wider mt-2.5 bg-[#eeeeea] px-3 py-1.5 rounded-full inline-block">
+                      Mã Microchip: {activePet.microchipId}
+                    </p>
+                  )}
                   <div className="flex flex-wrap justify-center gap-2 mt-8">
                     {activePet.personalityTags?.map((tag, idx) => (
                       <span 
@@ -554,13 +654,15 @@ export const PetProfilePage = () => {
                       <h4 className="font-headline font-bold text-xl">Cá tính & Đặc điểm</h4>
                     </div>
                     <div className="space-y-4 text-[#5d605c] leading-relaxed">
-                      <p>
-                        {activePet.name} là một bé cưng vô cùng ngoan ngoãn. Bé có tính cách thân thiện, rất thích được vuốt ve và nhanh chóng làm thân với các nhân viên chăm sóc. Bé thích vận động nhẹ nhàng và ngủ sâu giấc.
+                      <p className="whitespace-pre-line">
+                        {activePet.specialNotes || `${activePet.name} là một bé cưng vô cùng ngoan ngoãn, thân thiện và rất dễ gần.`}
                       </p>
                       <div className="flex flex-wrap gap-2 pt-2">
-                        <span className="bg-[#e1e3df] px-3 py-1 rounded text-xs font-semibold text-[#303330]">Thân thiện</span>
-                        <span className="bg-[#e1e3df] px-3 py-1 rounded text-xs font-semibold text-[#303330]">Dễ gần</span>
-                        <span className="bg-[#e1e3df] px-3 py-1 rounded text-xs font-semibold text-[#303330]">Ngoan ngoãn</span>
+                        {activePet.personalityTags?.map((tag, idx) => (
+                          <span key={idx} className="bg-[#e1e3df] px-3 py-1 rounded text-xs font-semibold text-[#303330]">
+                            {tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -599,13 +701,7 @@ export const PetProfilePage = () => {
 
       </main>
 
-      {/* Floating Chat Support */}
-      <button 
-        style={primaryGlow} 
-        className="fixed bottom-8 right-8 w-16 h-16 rounded-full flex items-center justify-center text-[#fff7f6] z-50 hover:scale-110 transition-transform shadow-lg cursor-pointer"
-      >
-        <MessageSquare size={28} />
-      </button>
+
 
       {/* Footer */}
       <footer className="bg-[#f4f4f0] border-t border-[#b1b2af]/20 py-12 px-8 text-sm text-[#5d605c] mt-24 text-left">
@@ -734,6 +830,19 @@ export const PetProfilePage = () => {
                 />
               </div>
 
+              {/* Mã định danh Microchip */}
+              <div>
+                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Mã định danh Microchip (nếu có)</label>
+                <input
+                  value={editPet ? (editPet.microchipId || '') : form.microchipId}
+                  onChange={e => editPet
+                    ? setEditPet({...editPet, microchipId: e.target.value})
+                    : setForm({...form, microchipId: e.target.value})}
+                  placeholder="Nhập mã microchip định danh của bé..."
+                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
+                />
+              </div>
+
               {/* Tuổi + Cân nặng */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -790,6 +899,19 @@ export const PetProfilePage = () => {
                 />
               </div>
 
+              {/* Lịch ăn uống */}
+              <div>
+                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Lịch trình & Khẩu phần ăn</label>
+                <input
+                  value={editPet ? (editPet.feedingSchedule || '') : form.feedingSchedule}
+                  onChange={e => editPet
+                    ? setEditPet({...editPet, feedingSchedule: e.target.value})
+                    : setForm({...form, feedingSchedule: e.target.value})}
+                  placeholder="VD: Hai bữa chính lúc 8:00 và 18:00..."
+                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
+                />
+              </div>
+
               {/* Ghi chú */}
               <div>
                 <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Ghi chú đặc biệt</label>
@@ -804,8 +926,71 @@ export const PetProfilePage = () => {
                 />
               </div>
 
-              {/* Đã tiêm vaccine */}
-              <div className="space-y-3">
+              {/* Lựa chọn Cá tính */}
+              <div>
+                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-2 block">Cá tính & Đặc điểm nổi bật</label>
+                <div className="flex flex-wrap gap-2 p-3 bg-stone-50 rounded-2xl border border-[#e5d8d0]">
+                  {['Thân thiện', 'Năng động', 'Ngoan ngoãn', 'Nhút nhát', 'Dễ gần', 'Thích vuốt ve', 'Tò mò', 'Ham chơi'].map(tag => {
+                    const currentTags = editPet ? (editPet.personalityTags || []) : form.personalityTags
+                    const isSelected = currentTags.includes(tag)
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          let nextTags: string[]
+                          if (isSelected) {
+                            nextTags = currentTags.filter(t => t !== tag)
+                          } else {
+                            nextTags = [...currentTags, tag]
+                          }
+                          if (editPet) {
+                            setEditPet({...editPet, personalityTags: nextTags})
+                          } else {
+                            setForm({...form, personalityTags: nextTags})
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                          isSelected
+                            ? 'bg-[#44683b] text-white border-[#44683b]'
+                            : 'bg-white text-[#5d605c] border-[#e5d8d0] hover:border-[#44683b]/60'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Tùy chọn Sức khỏe & Sinh hoạt */}
+              <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0] space-y-3">
+                <label className="text-xs font-bold text-[#8a7e75] uppercase block">Tùy chọn Sức khỏe & Sinh hoạt</label>
+                
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editPet ? (editPet.isIndoorOnly || false) : form.isIndoorOnly}
+                    onChange={e => editPet
+                      ? setEditPet({...editPet, isIndoorOnly: e.target.checked})
+                      : setForm({...form, isIndoorOnly: e.target.checked})}
+                    className="rounded text-[#a43e24]"
+                  />
+                  <span className="text-xs font-bold text-[#303330]">Chỉ nuôi trong nhà (Indoor only)</span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editPet ? (editPet.hasSpecialDiet || false) : form.hasSpecialDiet}
+                    onChange={e => editPet
+                      ? setEditPet({...editPet, hasSpecialDiet: e.target.checked})
+                      : setForm({...form, hasSpecialDiet: e.target.checked})}
+                    className="rounded text-[#a43e24]"
+                  />
+                  <span className="text-xs font-bold text-[#303330]">Có chế độ ăn kiêng / đặc biệt (Special Diet)</span>
+                </label>
+
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -815,11 +1000,11 @@ export const PetProfilePage = () => {
                       : setForm({...form, isVaccinated: e.target.checked})}
                     className="rounded text-[#a43e24]"
                   />
-                  <span className="text-sm font-bold text-[#303330]">Đã tiêm vaccine đầy đủ</span>
+                  <span className="text-xs font-bold text-[#303330]">Đã tiêm vaccine đầy đủ</span>
                 </label>
 
                 {((editPet ? editPet.isVaccinated : form.isVaccinated)) && (
-                  <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0] space-y-3 mt-2">
+                  <div className="bg-white p-4 rounded-xl border border-[#e5d8d0] space-y-3 mt-2">
                     <label className="text-xs font-bold text-[#8a7e75] uppercase block">Ảnh sổ tiêm phòng / Hồ sơ vaccine</label>
                     
                     {/* Danh sách ảnh sổ vaccine đã upload */}
@@ -885,6 +1070,57 @@ export const PetProfilePage = () => {
                 style={{ backgroundColor: submitting ? '#ffac98' : '#a43e24' }}
               >
                 {submitting ? 'Đang lưu...' : editPet ? 'Lưu thay đổi' : 'Thêm thú cưng'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CUSTOM ALERT MODAL ── */}
+      {alertModal.show && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center border border-[#eeeeea]">
+            <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 ${
+              alertModal.type === 'success' ? 'bg-[#ebffdf] text-[#44683b]' :
+              alertModal.type === 'warning' ? 'bg-[#fff5f0] text-[#a43e24]' : 'bg-red-50 text-red-500'
+            }`}>
+              {alertModal.type === 'success' ? <CheckCircle2 size={32} /> : <AlertCircle size={32} />}
+            </div>
+            <h3 className="text-lg font-black text-[#303330] mb-2">{alertModal.title}</h3>
+            <p className="text-xs text-[#5d605c] leading-relaxed mb-6 whitespace-pre-line">{alertModal.message}</p>
+            <button
+              onClick={() => setAlertModal(prev => ({ ...prev, show: false }))}
+              className="w-full py-3 rounded-full text-white text-xs font-bold transition-all bg-[#a43e24] hover:bg-[#a43e24]/90"
+            >
+              Đồng ý
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── CUSTOM DELETE CONFIRMATION MODAL ── */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center border border-[#eeeeea]">
+            <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 mx-auto flex items-center justify-center mb-4">
+              <AlertCircle size={32} />
+            </div>
+            <h3 className="text-lg font-black text-[#303330] mb-2">Xác nhận xóa</h3>
+            <p className="text-xs text-[#5d605c] leading-relaxed mb-6">
+              Bạn có chắc chắn muốn xóa hồ sơ của bé cưng này không? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 py-3 rounded-full border border-[#e5d8d0] text-xs font-bold text-[#8a7e75] hover:bg-stone-50 transition-all"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 py-3 rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-all"
+              >
+                Xác nhận xóa
               </button>
             </div>
           </div>
