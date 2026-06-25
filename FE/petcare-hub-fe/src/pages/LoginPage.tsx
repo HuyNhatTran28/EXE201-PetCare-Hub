@@ -130,7 +130,12 @@ export const LoginPage = () => {
         formState: { errors },
     } = useForm<LoginRequest>()
 
-    const onSubmit = (data: LoginRequest) => login(data)
+    const onSubmit = (data: LoginRequest) => {
+        login({
+            ...data,
+            email: data.email?.trim()
+        })
+    }
 
     return (
         <div

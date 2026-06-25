@@ -69,16 +69,11 @@ export const ChatPage = () => {
         {/* Chat messages */}
         <div className="flex-1 bg-white rounded-3xl border border-[#e1e3df] shadow-sm p-4 flex flex-col gap-3 overflow-y-auto min-h-[400px] max-h-[520px]">
           {messages.map((msg, i) => (
-            <div key={i} className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                msg.role === 'model' ? 'bg-[#feeadb] text-[#a43e24]' : 'bg-[#d0fac0] text-[#44683b]'
-              }`}>
-                {msg.role === 'model' ? <Bot size={16} /> : <User size={16} />}
-              </div>
+            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
                 msg.role === 'user'
                   ? 'bg-[#a43e24] text-white rounded-tr-sm'
-                  : 'bg-[#f4f4f0] text-[#303330] rounded-tl-sm'
+                  : 'bg-[#f4f4f0] text-[#303330] rounded-tl-sm border border-[#e1e3df]'
               }`}>
                 {msg.content}
               </div>
@@ -86,11 +81,8 @@ export const ChatPage = () => {
           ))}
 
           {loading && (
-            <div className="flex gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#feeadb] text-[#a43e24] flex items-center justify-center flex-shrink-0">
-                <Bot size={16} />
-              </div>
-              <div className="bg-[#f4f4f0] px-4 py-2.5 rounded-2xl rounded-tl-sm flex items-center gap-2">
+            <div className="flex justify-start">
+              <div className="bg-[#f4f4f0] px-4 py-2.5 rounded-2xl rounded-tl-sm border border-[#e1e3df] flex items-center gap-2">
                 <Loader2 size={14} className="animate-spin text-[#a43e24]" />
                 <span className="text-xs text-[#8a7e75]">Đang tư vấn...</span>
               </div>
@@ -106,7 +98,7 @@ export const ChatPage = () => {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Nhập câu hỏi... (Enter để gửi)"
+            placeholder="Enter để gửi..."
             rows={2}
             className="flex-1 border border-[#e1e3df] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24] resize-none"
           />

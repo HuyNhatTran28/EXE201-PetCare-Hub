@@ -25,7 +25,12 @@ export const RegisterPage = () => {
 
     const onSubmit = (data: FormData) => {
         const { confirmPassword, ...registerData } = data
-        register({ ...registerData, role: selectedRole })
+        register({
+            ...registerData,
+            fullName: registerData.fullName?.trim(),
+            email: registerData.email?.trim(),
+            role: selectedRole
+        })
     }
 
     const apiError = (error as AxiosError<{ message: string }>)?.response?.data?.message

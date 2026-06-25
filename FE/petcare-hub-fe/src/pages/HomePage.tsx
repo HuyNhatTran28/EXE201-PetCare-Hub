@@ -28,6 +28,10 @@ export const HomePage = () => {
   useEffect(() => {
     if (user?.role === 'PARTNER') {
       navigate('/partner/dashboard', { replace: true })
+    } else if (user?.role === 'ADMIN') {
+      navigate('/admin/dashboard', { replace: true })
+    } else if (user?.role === 'STAFF') {
+      navigate('/partner/messages', { replace: true })
     }
   }, [user, navigate])
 
@@ -268,9 +272,9 @@ export const HomePage = () => {
   const handleTestimonialLink = (e: React.MouseEvent) => {
     e.preventDefault()
     if (!user) {
-      navigate('/login', { state: { from: '/pets' } })
+      navigate('/login', { state: { from: '/pet-diaries' } })
     } else {
-      navigate('/pets')
+      navigate('/pet-diaries')
     }
   }
 

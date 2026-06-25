@@ -481,15 +481,6 @@ export const PetProfilePage = () => {
                 </div>
               </div>
 
-              <div className="bg-[#44683b] text-[#ebffdf] p-8 rounded-2xl flex flex-col gap-4" style={sunlightShadow}>
-                <h4 className="font-bold text-xl font-headline">Lưu trú hiện tại</h4>
-                <p className="text-sm opacity-90 leading-relaxed">
-                  {activePet.name} hiện đang tận hưởng chuyến nghỉ dưỡng của mình tại <span className="font-bold">Garden Suite</span>. Bé đã nhanh chóng hòa nhập và rất ngoan ngoãn!
-                </p>
-                <button className="bg-[#ebffdf] text-[#44683b] w-full py-3 rounded-full font-bold text-sm hover:opacity-90 transition-opacity">
-                  Xem trực tiếp qua Camera
-                </button>
-              </div>
             </div>
 
             {/* Detailed Content with Tabs */}

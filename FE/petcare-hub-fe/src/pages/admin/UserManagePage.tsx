@@ -5,11 +5,11 @@ import {
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 
-const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; icon: any }> = {
-  OWNER:   { label: 'Owner',   bg: 'bg-purple-50', text: 'text-purple-700', icon: <User size={12}/> },
-  PARTNER: { label: 'Partner', bg: 'bg-teal-50',   text: 'text-teal-700',   icon: <Building size={12}/> },
-  STAFF:   { label: 'Staff',   bg: 'bg-amber-50',  text: 'text-amber-700',  icon: <Wrench size={12}/> },
-  ADMIN:   { label: 'Admin',   bg: 'bg-red-50',    text: 'text-red-700',    icon: <Crown size={12}/> },
+const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  OWNER:   { label: 'Owner',   bg: 'bg-purple-50', text: 'text-purple-700' },
+  PARTNER: { label: 'Partner', bg: 'bg-teal-50',   text: 'text-teal-700' },
+  STAFF:   { label: 'Staff',   bg: 'bg-amber-50',  text: 'text-amber-700' },
+  ADMIN:   { label: 'Admin',   bg: 'bg-red-50',    text: 'text-red-700' },
 }
 
 const TABS = ['ALL', 'OWNER', 'PARTNER', 'STAFF', 'ADMIN']
@@ -175,7 +175,7 @@ export const UserManagePage = () => {
                     {/* Role */}
                     <td className="p-4">
                       <span className={`inline-flex items-center gap-1 text-[10px] font-black px-3 py-1 rounded-full ${roleCfg.bg} ${roleCfg.text}`}>
-                        {roleCfg.icon} {roleCfg.label}
+                        {roleCfg.label}
                       </span>
                     </td>
 
