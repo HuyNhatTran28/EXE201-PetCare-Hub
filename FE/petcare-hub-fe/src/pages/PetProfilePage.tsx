@@ -300,7 +300,10 @@ export const PetProfilePage = () => {
       showAlert('Thành công', 'Đã xóa hồ sơ thú cưng thành công!', 'success')
     } catch (err: any) {
       console.error('Failed to delete pet:', err)
-      const errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể xóa thú cưng này';
+      let errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể xóa thú cưng này';
+      if (err.message === 'Network Error' || !err.response) {
+        errMsg = 'Lỗi kết nối: Không thể kết nối tới máy chủ. Vui lòng đảm bảo server Backend đã khởi động và hoạt động bình thường.';
+      }
       showAlert(
         'Không thể xóa thú cưng',
         typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg,
