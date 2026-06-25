@@ -81,16 +81,18 @@ public class GlobalExceptionHandler {
         
         String message = "Không thể thực hiện hành động do ràng buộc dữ liệu.";
         String rootMsg = ex.getRootCause() != null ? ex.getRootCause().getMessage() : "";
+        String exMsg = ex.getMessage() != null ? ex.getMessage() : "";
+        String combined = (rootMsg + " " + exMsg).toLowerCase();
         
-        if (rootMsg.contains("violates foreign key constraint") || rootMsg.contains("fk")) {
-            if (rootMsg.contains("booking_pets") || rootMsg.contains("booking")) {
+        if (combined.contains("violates foreign key constraint") || combined.contains("fk")) {
+            if (combined.contains("booking_pets") || combined.contains("booking")) {
                 message = "Không thể xóa thú cưng này vì bé đang có lịch sử đặt phòng liên kết.";
-            } else if (rootMsg.contains("pet_diary_entries") || rootMsg.contains("diary")) {
+            } else if (combined.contains("pet_diary_entries") || combined.contains("diary")) {
                 message = "Không thể xóa thú cưng này vì bé đang có nhật ký lưu trú liên kết.";
             } else {
                 message = "Không thể xóa dữ liệu này do đang có các dữ liệu khác liên kết.";
             }
-        } else if (rootMsg.contains("duplicate key value violates unique constraint") || rootMsg.contains("unique")) {
+        } else if (combined.contains("duplicate key value violates unique constraint") || combined.contains("unique")) {
             message = "Dữ liệu đã tồn tại trong hệ thống (trùng lặp giá trị duy nhất).";
         }
         
