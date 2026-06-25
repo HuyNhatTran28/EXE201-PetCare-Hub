@@ -200,6 +200,7 @@ export const HotelDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [bookingLoading, setBookingLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [availabilityMap, setAvailabilityMap] = useState<Record<string, number | null>>({})
   const [invoiceNumber, setInvoiceNumber] = useState('')
 
   // Polling trạng thái thanh toán
@@ -427,6 +428,28 @@ export const HotelDetailPage = () => {
     }
   }, [checkInDate, checkOutDate, bookingType])
 
+  // Fetch số phòng còn trống cho mỗi loại phòng theo ngày đang chọn
+  useEffect(() => {
+    if (roomTypes.length === 0) return
+    const today = new Date()
+    const tomorrow  = new Date(today.getTime() + 86400000).toISOString().split('T')[0]
+    const dayAfter  = new Date(today.getTime() + 86400000 * 2).toISOString().split('T')[0]
+    const ci = checkInDate  || tomorrow
+    const co = checkOutDate || dayAfter
+    Promise.all(
+      roomTypes.map(rt =>
+        axiosInstance
+          .get<number>(`/api/room-types/${rt.id}/availability`, {
+            params: { checkIn: ci, checkOut: co, bookingType }
+          })
+          .then(res => ({ id: rt.id, count: res.data as number }))
+          .catch(() => ({ id: rt.id, count: null as null }))
+      )
+    ).then(results => {
+      setAvailabilityMap(Object.fromEntries(results.map(r => [r.id, r.count])))
+    })
+  }, [roomTypes, checkInDate, checkOutDate, bookingType])
+
   // Tự động chuyển về OVERNIGHT nếu loại phòng đã chọn không hỗ trợ gửi ngày
   useEffect(() => {
     if (bookingType === 'DAYCARE' && activeRoom && !activeRoom.dayRate) {
@@ -596,7 +619,12 @@ export const HotelDetailPage = () => {
       }
     } catch (error: any) {
       console.error('Failed to create booking', error)
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi đặt phòng. Vui lòng kiểm tra lại vai trò của bạn.')
+      const msg = error.response?.data?.message || 'Có lỗi xảy ra khi đặt phòng. Vui lòng kiểm tra lại vai trò của bạn.'
+      alert(msg)
+      if (error.response?.status === 409) {
+        // Phòng hết chỗ — cập nhật ngay map để nút bị disable
+        setAvailabilityMap(prev => ({ ...prev, [selectedRoomId]: 0 }))
+      }
     } finally {
       setBookingLoading(false)
     }
@@ -960,20 +988,38 @@ export const HotelDetailPage = () => {
                             </span>
                             <p className="text-xs text-[#5d605c] leading-relaxed line-clamp-3">{room.description}</p>
                           </div>
-                          <button 
-                            onClick={() => {
-                              if (!user) {
-                                navigate('/login', { state: { from: `/hotels/${id}` } })
-                              } else {
-                                setSelectedRoomId(room.id)
-                                setShowBookingFlow(true)
-                                setStep(2) // Jump immediately to Step 2
-                              }
-                            }}
-                            className="w-full py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-all bg-[#a43e24] text-white hover:bg-[#a43e24]/90 flex items-center justify-center gap-2"
-                          >
-                            Đặt ngay phòng này <ArrowRight size={14} />
-                          </button>
+                          {(() => {
+                            const avail = availabilityMap[room.id]
+                            const isFull = avail !== undefined && avail !== null && avail <= 0
+                            return (
+                              <>
+                                {avail != null && (
+                                  <p className={`text-xs font-bold mb-3 ${isFull ? 'text-rose-500' : 'text-emerald-600'}`}>
+                                    {isFull ? 'Hết phòng trong thời gian đã chọn' : `Còn ${avail} phòng trống`}
+                                  </p>
+                                )}
+                                <button
+                                  disabled={isFull}
+                                  onClick={() => {
+                                    if (!user) {
+                                      navigate('/login', { state: { from: `/hotels/${id}` } })
+                                    } else {
+                                      setSelectedRoomId(room.id)
+                                      setShowBookingFlow(true)
+                                      setStep(2)
+                                    }
+                                  }}
+                                  className={`w-full py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                                    isFull
+                                      ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                                      : 'bg-[#a43e24] text-white hover:bg-[#a43e24]/90'
+                                  }`}
+                                >
+                                  {isFull ? 'Hết phòng' : (<>Đặt ngay phòng này <ArrowRight size={14} /></>)}
+                                </button>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
                     ))}

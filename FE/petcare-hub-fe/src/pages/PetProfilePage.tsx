@@ -74,6 +74,24 @@ export const PetProfilePage = () => {
     personalityTags: [] as string[]
   })
 
+  // Popup/Modal States
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [alertModal, setAlertModal] = useState<{
+    show: boolean
+    title: string
+    message: string
+    type: 'success' | 'error' | 'warning'
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    type: 'error'
+  })
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' = 'error') => {
+    setAlertModal({ show: true, title, message, type })
+  }
+
   const mapPets = (list: any[]) => list.map((p: any) => {
     const tags = p.personalityTags || []
     const displayTags = [...tags]
@@ -131,7 +149,7 @@ export const PetProfilePage = () => {
         setForm(prev => ({ ...prev, avatarUrl: url }))
       }
     } catch (err) {
-      alert('Upload ảnh thất bại')
+      showAlert('Lỗi tải ảnh', 'Tải ảnh đại diện thất bại. Vui lòng thử lại.')
     } finally {
       setUploadingAvatar(false)
     }
@@ -153,7 +171,7 @@ export const PetProfilePage = () => {
         setForm(prev => ({ ...prev, vaccineBookUrls: [...(prev.vaccineBookUrls || []), url] }))
       }
     } catch (err) {
-      alert('Upload ảnh sổ tiêm phòng thất bại')
+      showAlert('Lỗi tải ảnh', 'Tải ảnh sổ tiêm phòng thất bại. Vui lòng thử lại.')
     } finally {
       setUploadingVaccine(false)
     }
@@ -161,11 +179,11 @@ export const PetProfilePage = () => {
 
   const handleCreate = async () => {
     if (!form.name.trim()) {
-      alert('Vui lòng nhập tên thú cưng')
+      showAlert('Thiếu thông tin', 'Vui lòng nhập tên thú cưng.', 'warning')
       return
     }
     if (!form.species) {
-      alert('Vui lòng chọn loài thú cưng (Chó hoặc Mèo)')
+      showAlert('Thiếu thông tin', 'Vui lòng chọn loài thú cưng (Chó hoặc Mèo).', 'warning')
       return
     }
     setSubmitting(true)
@@ -211,10 +229,11 @@ export const PetProfilePage = () => {
         hasSpecialDiet: false,
         personalityTags: []
       })
+      showAlert('Thành công', 'Đã thêm thú cưng mới thành công!', 'success')
     } catch (err: any) {
       console.error('Failed to create pet:', err);
       const errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể tạo thú cưng';
-      alert(typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg);
+      showAlert('Không thể tạo thú cưng', typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg, 'error')
     } finally {
       setSubmitting(false)
     }
@@ -223,11 +242,11 @@ export const PetProfilePage = () => {
   const handleUpdate = async () => {
     if (!editPet) return
     if (!editPet.name.trim()) {
-      alert('Vui lòng nhập tên thú cưng')
+      showAlert('Thiếu thông tin', 'Vui lòng nhập tên thú cưng.', 'warning')
       return
     }
     if (!editPet.species) {
-      alert('Vui lòng chọn loài thú cưng (Chó hoặc Mèo)')
+      showAlert('Thiếu thông tin', 'Vui lòng chọn loài thú cưng (Chó hoặc Mèo).', 'warning')
       return
     }
     setSubmitting(true)
@@ -253,17 +272,24 @@ export const PetProfilePage = () => {
       const fetchedPets = mapPets(response.data)
       setPets(fetchedPets)
       setEditPet(null)
+      showAlert('Thành công', 'Đã cập nhật hồ sơ thú cưng thành công!', 'success')
     } catch (err: any) {
       console.error('Failed to update pet:', err);
       const errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể cập nhật';
-      alert(typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg);
+      showAlert('Không thể cập nhật', typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg, 'error')
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleDelete = async (petId: string) => {
-    if (!confirm('Bạn có chắc muốn xóa thú cưng này?')) return
+  const handleDelete = (petId: string) => {
+    setDeleteConfirmId(petId)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return
+    const petId = deleteConfirmId
+    setDeleteConfirmId(null)
     try {
       await axiosInstance.delete(`/api/pets/${petId}`)
       const remainingPets = pets.filter(p => p.id !== petId)
@@ -271,8 +297,15 @@ export const PetProfilePage = () => {
       if (selectedPetId === petId) {
         setSelectedPetId(remainingPets.length > 0 ? remainingPets[0].id : '')
       }
-    } catch (err) {
-      alert('Không thể xóa thú cưng này')
+      showAlert('Thành công', 'Đã xóa hồ sơ thú cưng thành công!', 'success')
+    } catch (err: any) {
+      console.error('Failed to delete pet:', err)
+      const errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể xóa thú cưng này';
+      showAlert(
+        'Không thể xóa thú cưng',
+        typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg,
+        'error'
+      )
     }
   }
 
@@ -1034,6 +1067,57 @@ export const PetProfilePage = () => {
                 style={{ backgroundColor: submitting ? '#ffac98' : '#a43e24' }}
               >
                 {submitting ? 'Đang lưu...' : editPet ? 'Lưu thay đổi' : 'Thêm thú cưng'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CUSTOM ALERT MODAL ── */}
+      {alertModal.show && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center border border-[#eeeeea]">
+            <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 ${
+              alertModal.type === 'success' ? 'bg-[#ebffdf] text-[#44683b]' :
+              alertModal.type === 'warning' ? 'bg-[#fff5f0] text-[#a43e24]' : 'bg-red-50 text-red-500'
+            }`}>
+              {alertModal.type === 'success' ? <CheckCircle2 size={32} /> : <AlertCircle size={32} />}
+            </div>
+            <h3 className="text-lg font-black text-[#303330] mb-2">{alertModal.title}</h3>
+            <p className="text-xs text-[#5d605c] leading-relaxed mb-6 whitespace-pre-line">{alertModal.message}</p>
+            <button
+              onClick={() => setAlertModal(prev => ({ ...prev, show: false }))}
+              className="w-full py-3 rounded-full text-white text-xs font-bold transition-all bg-[#a43e24] hover:bg-[#a43e24]/90"
+            >
+              Đồng ý
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── CUSTOM DELETE CONFIRMATION MODAL ── */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center border border-[#eeeeea]">
+            <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 mx-auto flex items-center justify-center mb-4">
+              <AlertCircle size={32} />
+            </div>
+            <h3 className="text-lg font-black text-[#303330] mb-2">Xác nhận xóa</h3>
+            <p className="text-xs text-[#5d605c] leading-relaxed mb-6">
+              Bạn có chắc chắn muốn xóa hồ sơ của bé cưng này không? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 py-3 rounded-full border border-[#e5d8d0] text-xs font-bold text-[#8a7e75] hover:bg-stone-50 transition-all"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 py-3 rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-all"
+              >
+                Xác nhận xóa
               </button>
             </div>
           </div>

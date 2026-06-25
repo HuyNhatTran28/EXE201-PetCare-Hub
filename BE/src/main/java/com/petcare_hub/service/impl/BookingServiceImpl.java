@@ -121,7 +121,7 @@ public class BookingServiceImpl implements BookingService {
         );
         if (overlapping >= roomType.getTotalRooms()) {
             throw new AppException(
-                "Không còn phòng trống trong khoảng thời gian này",
+                "Loại phòng này đã hết chỗ trong thời gian bạn chọn",
                 HttpStatus.CONFLICT);
         }
 
