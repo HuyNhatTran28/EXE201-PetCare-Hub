@@ -44,24 +44,8 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
         String token = authHeader.substring(7);
 
-        try {
-            if (!jwtUtils.isTokenValid(token)) {
-                log.error("[WS] Token validation failed. Let's trace the exception:");
-                // Run extractClaims directly to catch and log the real exception (e.g. ExpiredJwtException)
-                try {
-                    jwtUtils.extractClaims(token);
-                } catch (Exception traceEx) {
-                    log.error("[WS] Token parse trace exception: ", traceEx);
-                }
-                throw new IllegalArgumentException("[WS] JWT không hợp lệ hoặc đã hết hạn");
-            }
-            if (!jwtUtils.isAccessToken(token)) {
-                log.warn("[WS] Token type claim is not 'access'. Type claim value: {}", jwtUtils.extractType(token));
-                throw new IllegalArgumentException("[WS] JWT không phải là Access Token");
-            }
-        } catch (Exception e) {
-            log.error("[WS] Exception during JWT check: {}", e.getMessage());
-            throw new IllegalArgumentException("[WS] JWT không hợp lệ hoặc đã hết hạn", e);
+        if (!jwtUtils.isTokenValid(token) || !jwtUtils.isAccessToken(token)) {
+            throw new IllegalArgumentException("[WS] JWT không hợp lệ hoặc đã hết hạn");
         }
 
         UUID   userId = jwtUtils.extractUserId(token);

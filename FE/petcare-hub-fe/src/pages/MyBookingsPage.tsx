@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { maskAccountNumber } from '@/utils/maskAccountNumber'
 import { useNavigate } from 'react-router-dom'
 import { Header } from '@/components/Header'
 import {
@@ -634,7 +635,7 @@ const PaymentModal = ({ booking, onClose, onConfirmed }: {
                 className="w-48 h-48 mx-auto rounded-xl shadow-sm border border-stone-200"
               />
               <p className="text-[10px] text-[#8a7e75] mt-2 font-bold">
-                Tài khoản: {payosData.accountNumber} - {payosData.accountName}
+                Tài khoản: {maskAccountNumber(payosData.accountNumber)} - {payosData.accountName}
               </p>
               <a 
                 href={payosData.checkoutUrl} 

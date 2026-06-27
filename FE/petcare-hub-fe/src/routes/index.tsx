@@ -16,6 +16,7 @@ import { PetDiaryPage } from '@/pages/PetDiaryPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PaymentResultPage } from '@/pages/PaymentResultPage'
+import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage'
 import { ChatPage } from '@/pages/ChatPage'
 import { ForceChangePasswordPage } from '@/pages/ForceChangePasswordPage'
 
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
   // Public
   { path: '/', element: <HomePage /> },
   { path: '/login', element: <LoginPage /> },
+  { path: '/oauth-callback', element: <OAuthCallbackPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/hotels', element: <HotelListPage /> },

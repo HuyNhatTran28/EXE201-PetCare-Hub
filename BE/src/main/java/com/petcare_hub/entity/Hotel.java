@@ -44,6 +44,9 @@ public class Hotel extends BaseEntity {
     @Builder.Default
     private HotelStatus status = HotelStatus.PENDING;
 
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
+
     private Double averageRating;
 
     @OneToMany(mappedBy = "hotel", fetch = FetchType.LAZY)

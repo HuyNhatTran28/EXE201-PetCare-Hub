@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Check, X, ShieldCheck, Loader2, ExternalLink, Image, Upload, FileText, Trash2 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
+import { maskAccountNumber } from '@/utils/maskAccountNumber'
 
 export const WithdrawalApprovePage = () => {
   const [requests, setRequests] = useState<any[]>([])
@@ -163,7 +164,7 @@ export const WithdrawalApprovePage = () => {
                         <div>Đối tác: <span className="text-[#303330] font-black">{r.partnerName}</span></div>
                         <div>Email: <span className="text-[#303330] font-bold font-mono">{r.partnerEmail}</span></div>
                         <div>Ngân hàng: <span className="text-[#303330] font-black">{r.bankName}</span></div>
-                        <div>Số tài khoản: <span className="text-[#303330] font-bold font-mono">{r.bankAccountNumber}</span></div>
+                        <div>Số tài khoản: <span className="text-[#303330] font-bold font-mono">{maskAccountNumber(r.bankAccountNumber)}</span></div>
                         <div>Tên thụ hưởng: <span className="text-[#303330] font-black">{r.bankAccountName}</span></div>
                         <div>Gửi lúc: <span className="text-gray-400 font-normal">{new Date(r.createdAt).toLocaleString('vi-VN')}</span></div>
                       </div>
@@ -241,7 +242,7 @@ export const WithdrawalApprovePage = () => {
                             </td>
                             <td className="p-4 leading-normal">
                               <span className="font-bold text-[#303330] block">{r.bankName}</span>
-                              <span className="text-[10px] text-gray-500 block">{r.bankAccountNumber} - {r.bankAccountName}</span>
+                              <span className="text-[10px] text-gray-500 block">{maskAccountNumber(r.bankAccountNumber)} - {r.bankAccountName}</span>
                             </td>
                             <td className="p-4 text-gray-400 font-normal">
                               {new Date(r.createdAt).toLocaleString('vi-VN')}

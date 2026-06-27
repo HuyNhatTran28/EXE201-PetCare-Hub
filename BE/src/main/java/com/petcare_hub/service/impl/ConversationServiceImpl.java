@@ -176,12 +176,19 @@ public class ConversationServiceImpl implements ConversationService {
 
     // ── MAPPERS ───────────────────────────────────────────────────────────────
 
+    private String resolveHotelName(UUID hotelId) {
+        return hotelRepository.findById(hotelId)
+            .map(h -> h.getName())
+            .orElse("Khách sạn");
+    }
+
     private ConversationResponse toResponse(Conversation conv) {
         return ConversationResponse.builder()
             .id(conv.getId())
             .bookingId(conv.getBookingId())
             .petOwnerId(conv.getPetOwnerId())
             .hotelId(conv.getHotelId())
+            .hotelName(resolveHotelName(conv.getHotelId()))
             .lastMessageAt(conv.getLastMessageAt())
             .build();
     }
@@ -199,6 +206,7 @@ public class ConversationServiceImpl implements ConversationService {
             .bookingId(conv.getBookingId())
             .petOwnerId(conv.getPetOwnerId())
             .hotelId(conv.getHotelId())
+            .hotelName(resolveHotelName(conv.getHotelId()))
             .lastMessageAt(conv.getLastMessageAt())
             .lastMessageContent(lastContent)
             .unreadCount(unread)

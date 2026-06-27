@@ -22,15 +22,10 @@ export function useChatSocket() {
   const connect = useCallback(() => {
     if (clientRef.current?.active) return
     const token = useAuthStore.getState().accessToken
-    if (!token) {
-      console.warn('[useChatSocket] No access token found in authStore, connection aborted')
-      return
-    }
+    if (!token) return
 
-    console.log('[useChatSocket] Connecting WebSocket with token:', token.substring(0, 15) + '...')
     setStatus('connecting')
     const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
-    console.log('[useChatSocket] WebSocket endpoint target:', `${apiBase}/ws`)
 
     const client = new Client({
       webSocketFactory: () => new SockJS(`${apiBase}/ws`) as unknown as WebSocket,

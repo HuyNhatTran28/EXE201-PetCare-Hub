@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { maskAccountNumber } from '@/utils/maskAccountNumber'
 import {
   PawPrint, Star,
   Settings, PlusCircle, MapPin, ListOrdered,
@@ -113,7 +114,6 @@ export const PartnerDashboard = () => {
 
   // Đăng ký khách sạn mới qua API thật
   const [showAddHotelModal, setShowAddHotelModal] = useState(false)
-  const [wizardStep, setWizardStep] = useState(1) // 1 to 3
   
   // Step 1: Store Profile
   const [newHotelName, setNewHotelName] = useState('')
@@ -169,6 +169,7 @@ export const PartnerDashboard = () => {
   const [uploadingField, setUploadingField] = useState<string | null>(null)
   const [isAddingHotel, setIsAddingHotel] = useState(false)
   const [editingHotelId, setEditingHotelId] = useState<string | null>(null)
+  const [agreeTerms, setAgreeTerms] = useState(false)
 
   // Finance states
   const [banks, setBanks] = useState<any[]>([])
@@ -455,27 +456,13 @@ export const PartnerDashboard = () => {
       if (serviceShop) selectedServices.push('Pet Shop')
       if (serviceOther) selectedServices.push('Other Services')
 
-      // Compile description JSON containing KYC and Bank info
+      // Compile description JSON (ảnh & thông tin cơ sở — pháp lý/ngân hàng không thu tại đây)
       const extraInfo = {
         petTarget,
         logoUrl,
         frontUrl,
         roomsUrl,
         imageUrls: hotelImages,
-        cccd: {
-          number: cccdNumber,
-          frontUrl: cccdFrontUrl,
-          backUrl: cccdBackUrl
-        },
-        legal: {
-          businessLicenseUrl,
-          vetCertUrl
-        },
-        banking: {
-          bankName,
-          accountNumber: bankAccountNumber,
-          accountName: bankAccountName
-        }
       }
 
       const payload = {
@@ -520,7 +507,6 @@ export const PartnerDashboard = () => {
       setBankAccountName('')
       setShowAddHotelModal(false)
       setEditingHotelId(null)
-      setWizardStep(1)
       window.location.reload()
     } catch (error: any) {
       console.error('Failed to save hotel', error)
@@ -571,7 +557,6 @@ export const PartnerDashboard = () => {
     setVetCertUrl('')
     setBankAccountNumber('')
     setBankAccountName('')
-    setWizardStep(1)
     setShowAddHotelModal(true)
   }
 
@@ -693,7 +678,6 @@ export const PartnerDashboard = () => {
       console.error('Failed to parse hotel description JSON:', err)
     }
 
-    setWizardStep(1)
     setShowAddHotelModal(true)
   }
 
@@ -715,6 +699,19 @@ export const PartnerDashboard = () => {
     } catch (err: any) {
       console.error('Failed to toggle hotel status', err)
       alert(err.response?.data?.message || 'Không thể thay đổi trạng thái khách sạn. Vui lòng thử lại.')
+    }
+  }
+
+  const handleResubmitHotel = async (hotelId: string) => {
+    const hotel = hotels.find(h => h.id === hotelId)
+    if (!hotel) return
+    if (!window.confirm(`Gửi duyệt lại khách sạn "${hotel.name}"? Hồ sơ sẽ chuyển về trạng thái chờ admin xét duyệt.`)) return
+    try {
+      await axiosInstance.patch(`/api/hotels/${hotelId}/resubmit`)
+      alert('Đã gửi duyệt lại thành công! Admin sẽ xem xét hồ sơ của bạn.')
+      window.location.reload()
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Không thể gửi duyệt lại. Vui lòng thử lại.')
     }
   }
 
@@ -1354,24 +1351,37 @@ export const PartnerDashboard = () => {
                             <h4 className="text-xl font-black text-[#303330] group-hover:text-[#fa7150] transition-colors">
                               {hotel.name}
                             </h4>
-                            <span 
+                            <span
                               className={`text-[9px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm border ${
-                                isActive 
-                                  ? 'bg-[#e3f4e1] text-[#2c4e24] border-[#d0fac0]' 
+                                isActive
+                                  ? 'bg-[#e3f4e1] text-[#2c4e24] border-[#d0fac0]'
                                   : hotel.status === 'PENDING'
                                   ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : hotel.status === 'REJECTED'
+                                  ? 'bg-red-100 text-red-700 border-red-300'
                                   : 'bg-rose-50 text-rose-700 border-rose-200'
                               }`}
                             >
-                              {isActive ? 'Đang hoạt động' : hotel.status === 'PENDING' ? 'Chờ duyệt' : 'Tạm ngưng'}
+                              {isActive ? 'Đang hoạt động'
+                                : hotel.status === 'PENDING' ? 'Chờ duyệt'
+                                : hotel.status === 'REJECTED' ? 'Bị từ chối'
+                                : 'Tạm ngưng'}
                             </span>
                           </div>
                           
                           {/* Địa chỉ */}
                           <p className="text-xs text-[#8a7e75] flex items-center gap-1.5 mb-3 leading-relaxed">
-                            <MapPin size={13} className="text-[#fa7150] shrink-0" /> 
+                            <MapPin size={13} className="text-[#fa7150] shrink-0" />
                             <span className="line-clamp-2">{hotel.address}</span>
                           </p>
+
+                          {/* Lý do từ chối */}
+                          {hotel.status === 'REJECTED' && hotel.rejectionReason && (
+                            <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-3">
+                              <p className="text-[9px] font-black text-red-500 uppercase tracking-wider mb-0.5">Lý do từ chối</p>
+                              <p className="text-xs text-red-700">{hotel.rejectionReason}</p>
+                            </div>
+                          )}
 
                           {/* Đánh giá & Maps */}
                           <div className="flex items-center gap-4 text-xs">
@@ -1417,13 +1427,22 @@ export const PartnerDashboard = () => {
                           >
                             <Edit size={13} /> Chỉnh sửa cơ sở
                           </button>
-                          {hotel.status !== 'PENDING' && (
+                          {hotel.status === 'REJECTED' && (
+                            <button
+                              type="button"
+                              onClick={() => handleResubmitHotel(hotel.id)}
+                              className="px-4 py-2.5 rounded-xl text-center font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer border bg-[#fa7150]/10 border-[#fa7150]/30 text-[#fa7150] hover:bg-[#fa7150]/20"
+                            >
+                              Gửi duyệt lại
+                            </button>
+                          )}
+                          {hotel.status !== 'PENDING' && hotel.status !== 'REJECTED' && (
                             <button
                               type="button"
                               onClick={() => handleToggleHotelStatus(hotel.id)}
                               className={`px-4 py-2.5 rounded-xl text-center font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer border ${
-                                isActive 
-                                  ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100' 
+                                isActive
+                                  ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'
                                   : 'bg-[#e3f4e1] border-[#d0fac0] text-[#2c4e24] hover:bg-[#d0fac0]/20'
                               }`}
                             >
@@ -2077,7 +2096,7 @@ export const PartnerDashboard = () => {
                                   src={`https://img.vietqr.io/image/${bankNameCode}-${bankAccountNo}-compact2.png?amount=${finalCheckoutAmount}&addInfo=${currentCheckOutBooking.invoiceNumber}&accountName=${encodeURIComponent(bankAccountNameText)}`} 
                                   className="w-32 h-32 mx-auto mb-2 border border-gray-100 rounded-lg" 
                                 />
-                                <span className="text-[9px] font-bold text-gray-500 block mb-0.5">{bankNameCode} - {bankAccountNo}</span>
+                                <span className="text-[9px] font-bold text-gray-500 block mb-0.5">{bankNameCode} - {maskAccountNumber(bankAccountNo)}</span>
                                 <span className="text-[10px] font-black text-[#a43e24] block">{finalCheckoutAmount.toLocaleString('vi-VN')}đ</span>
                               </div>
                             )}
@@ -3055,7 +3074,7 @@ export const PartnerDashboard = () => {
                         </div>
                         <div className="text-[#8a7e75] leading-normal font-semibold space-y-0.5">
                           <div>Ngân hàng: <span className="text-[#303330]">{w.bankName}</span></div>
-                          <div>Số tài khoản: <span className="text-[#303330]">{w.bankAccountNumber}</span></div>
+                          <div>Số tài khoản: <span className="text-[#303330]">{maskAccountNumber(w.bankAccountNumber)}</span></div>
                           <div>Chủ tài khoản: <span className="text-[#303330]">{w.bankAccountName}</span></div>
                           <div className="text-[10px] text-gray-400 mt-1">Yêu cầu lúc: {new Date(w.createdAt).toLocaleString('vi-VN')}</div>
                         </div>
@@ -3087,45 +3106,12 @@ export const PartnerDashboard = () => {
             {/* Tiêu đề Modal & Stepper */}
             <div className="border-b border-[#e5d8d0]/60 pb-5 mb-6">
               <h3 className="text-2xl font-black text-[#303330]">{editingHotelId ? 'Cập nhật Thông tin Cơ sở' : 'Đăng ký Đối tác & Cơ sở mới'}</h3>
-              <p className="text-xs text-[#8a7e75] mt-1">{editingHotelId ? 'Chỉnh sửa thông tin cơ bản của cơ sở đã đăng ký.' : 'Hoàn thành 3 bước đăng ký thông tin để gửi hồ sơ phê duyệt.'}</p>
-              
-              {/* Stepper bar */}
-              {editingHotelId ? (
-                <div className="flex items-center justify-between mt-6 max-w-sm mx-auto">
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${wizardStep >= 1 ? 'bg-[#fa7150] text-white' : 'bg-gray-100 text-gray-400'}`}>1</div>
-                    <span className="text-[9px] font-black uppercase tracking-wider mt-1 text-[#fa7150]">Cửa hàng</span>
-                  </div>
-                  <div className={`flex-1 h-[2px] mx-2 ${wizardStep >= 3 ? 'bg-[#fa7150]' : 'bg-gray-200'}`} />
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${wizardStep >= 3 ? 'bg-[#fa7150] text-white' : 'bg-gray-100 text-gray-400'}`}>2</div>
-                    <span className={`text-[9px] font-black uppercase tracking-wider mt-1 ${wizardStep >= 3 ? 'text-[#fa7150]' : 'text-gray-400'}`}>Tài chính</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between mt-6 max-w-md mx-auto">
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${wizardStep >= 1 ? 'bg-[#fa7150] text-white' : 'bg-gray-100 text-gray-400'}`}>1</div>
-                    <span className="text-[9px] font-black uppercase tracking-wider mt-1 text-[#fa7150]">Cửa hàng</span>
-                  </div>
-                  <div className={`flex-1 h-[2px] mx-2 ${wizardStep >= 2 ? 'bg-[#fa7150]' : 'bg-gray-200'}`} />
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${wizardStep >= 2 ? 'bg-[#fa7150] text-white' : 'bg-gray-100 text-gray-400'}`}>2</div>
-                    <span className={`text-[9px] font-black uppercase tracking-wider mt-1 ${wizardStep >= 2 ? 'text-[#fa7150]' : 'text-gray-400'}`}>Pháp lý</span>
-                  </div>
-                  <div className={`flex-1 h-[2px] mx-2 ${wizardStep >= 3 ? 'bg-[#fa7150]' : 'bg-gray-200'}`} />
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${wizardStep >= 3 ? 'bg-[#fa7150] text-white' : 'bg-gray-100 text-gray-400'}`}>3</div>
-                    <span className={`text-[9px] font-black uppercase tracking-wider mt-1 ${wizardStep >= 3 ? 'text-[#fa7150]' : 'text-gray-400'}`}>Tài chính</span>
-                  </div>
-                </div>
-              )}
+              <p className="text-xs text-[#8a7e75] mt-1">{editingHotelId ? 'Chỉnh sửa thông tin cơ bản của cơ sở đã đăng ký.' : 'Điền thông tin cơ sở để gửi hồ sơ. Admin sẽ xét duyệt trong 1–3 ngày làm việc.'}</p>
             </div>
 
             <form onSubmit={handleAddHotel} className="space-y-6 text-xs font-bold">
               
               {/* ── BƯỚC 1: HỒ SƠ CỬA HÀNG ── */}
-              {wizardStep === 1 && (
                 <div className="space-y-4 animate-in fade-in duration-200">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -3448,321 +3434,32 @@ export const PartnerDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Chuyển bước */}
+                  {!editingHotelId && (
+                    <div className="flex items-start gap-2.5 pt-4 border-t border-[#e5d8d0]/60">
+                      <input
+                        type="checkbox"
+                        id="agree-terms"
+                        checked={agreeTerms}
+                        onChange={e => setAgreeTerms(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-[#fa7150] cursor-pointer shrink-0"
+                      />
+                      <label htmlFor="agree-terms" className="text-[11px] text-[#8a7e75] font-normal cursor-pointer leading-relaxed">
+                        Tôi đồng ý với <span className="text-[#fa7150] font-bold">Điều khoản hợp tác</span> của PetCare Hub. Hợp đồng chính thức sẽ được ký qua email sau khi hồ sơ được duyệt.
+                      </label>
+                    </div>
+                  )}
                   <div className="flex justify-end gap-3 pt-4 border-t border-[#e5d8d0]/60">
                     <button type="button" onClick={() => { setShowAddHotelModal(false); setEditingHotelId(null); }} className="px-5 py-3 bg-[#f5ede8] hover:bg-[#e5d8d0] rounded-xl cursor-pointer">Hủy bỏ</button>
                     <button
-                      type="button"
-                      onClick={() => {
-                        if (!newHotelName.trim() || !hotelStreet.trim() || !hotelDistrict.trim()) {
-                          alert('Vui lòng điền đầy đủ Tên cửa hàng và Địa chỉ trước khi tiếp tục.')
-                          return
-                        }
-                        if (editingHotelId) {
-                          setWizardStep(3)
-                        } else {
-                          setWizardStep(2)
-                        }
-                      }}
-                      className="px-6 py-3 bg-[#fa7150] text-white rounded-xl cursor-pointer shadow-md hover:scale-[1.01] transition-transform"
-                    >
-                      {editingHotelId ? 'Tiếp tục (Tài chính)' : 'Tiếp tục bước 2'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* ── BƯỚC 2: THÔNG TIN PHÁP LÝ & KYC ── */}
-              {wizardStep === 2 && (
-                <div className="space-y-6 animate-in fade-in duration-200">
-                  <div className="bg-[#faf9f6] p-5 rounded-2xl border border-[#e5d8d0]/60 space-y-4">
-                    <span className="text-[10px] text-[#fa7150] uppercase tracking-wider block mb-1">Hồ sơ định danh cá nhân / Doanh nghiệp</span>
-                    
-                    <div>
-                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Số CCCD của người đại diện pháp luật</label>
-                      <input
-                        type="text"
-                        value={cccdNumber}
-                        onChange={e => setCccdNumber(e.target.value)}
-                        placeholder="Nhập số CCCD gồm 12 số"
-                        className="w-full p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {/* CCCD Front */}
-                      <div>
-                        <span className="block text-[#8a7e75] mb-2 uppercase text-[10px]">Ảnh CCCD Mặt trước</span>
-                        <label className="cursor-pointer bg-white hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-2xl p-4 flex flex-col items-center justify-center transition-colors min-h-[100px] relative overflow-hidden">
-                          <input type="file" accept="image/*" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'cccdFront')} />
-                          {uploadingField === 'cccdFront' && (
-                            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-1.5 z-20">
-                              <span className="w-5 h-5 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
-                              <span className="text-[8px] font-bold text-[#fa7150] uppercase tracking-wider">Đang tải...</span>
-                            </div>
-                          )}
-                          {cccdFrontUrl ? (
-                            <img src={cccdFrontUrl} className="max-h-20 rounded-lg object-contain" />
-                          ) : (
-                            <>
-                              <Camera size={20} className="text-[#fa7150] mb-1" />
-                              <span className="text-[9px] uppercase text-gray-500">Mặt trước CCCD</span>
-                            </>
-                          )}
-                        </label>
-                      </div>
-                      {/* CCCD Back */}
-                      <div>
-                        <span className="block text-[#8a7e75] mb-2 uppercase text-[10px]">Ảnh CCCD Mặt sau</span>
-                        <label className="cursor-pointer bg-white hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-2xl p-4 flex flex-col items-center justify-center transition-colors min-h-[100px] relative overflow-hidden">
-                          <input type="file" accept="image/*" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'cccdBack')} />
-                          {uploadingField === 'cccdBack' && (
-                            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-1.5 z-20">
-                              <span className="w-5 h-5 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
-                              <span className="text-[8px] font-bold text-[#fa7150] uppercase tracking-wider">Đang tải...</span>
-                            </div>
-                          )}
-                          {cccdBackUrl ? (
-                            <img src={cccdBackUrl} className="max-h-20 rounded-lg object-contain" />
-                          ) : (
-                            <>
-                              <Camera size={20} className="text-[#fa7150] mb-1" />
-                              <span className="text-[9px] uppercase text-gray-500">Mặt sau CCCD</span>
-                            </>
-                          )}
-                        </label>
-                      </div>
-                      {/* Selfie */}
-                      <div>
-                        <span className="block text-[#8a7e75] mb-2 uppercase text-[10px]">Ảnh chân dung (Selfie)</span>
-                        <div className="bg-white border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150]/40 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[110px] space-y-2 transition-colors relative overflow-hidden">
-                          {uploadingField === 'selfie' && (
-                            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-1.5 z-20">
-                              <span className="w-5 h-5 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
-                              <span className="text-[8px] font-bold text-[#fa7150] uppercase tracking-wider">Đang tải...</span>
-                            </div>
-                          )}
-                          {selfieUrl ? (
-                            <div className="relative group w-full flex justify-center">
-                              <img src={selfieUrl} className="max-h-20 rounded-lg object-contain" />
-                              <button 
-                                type="button"
-                                onClick={() => { setSelfieUrl(''); setSelfieFile(null); }}
-                                disabled={kycVerifying || !!uploadingField}
-                                className="absolute top-0 right-2 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1 transition-colors shadow-sm disabled:opacity-50"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <Camera size={20} className="text-[#fa7150]" />
-                              <div className="flex gap-2 w-full mt-1.5">
-                                <label className="flex-1 py-1.5 bg-[#faf9f6] hover:bg-[#fa7150]/5 border border-[#e5d8d0] hover:border-[#fa7150] rounded-xl text-[9px] font-black uppercase text-center cursor-pointer transition-all flex items-center justify-center gap-1">
-                                  <input type="file" accept="image/*" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'selfie')} />
-                                  Tải file
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={startCamera}
-                                  disabled={kycVerifying || !!uploadingField}
-                                  className="flex-1 py-1.5 bg-[#fa7150] disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-xl text-[9px] font-black uppercase text-center cursor-pointer transition-all flex items-center justify-center gap-1 hover:scale-[1.02] hover:bg-[#a43e24]"
-                                >
-                                  Mở Cam
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* eKYC Verification Trigger */}
-                    <div className="pt-3 border-t border-[#e5d8d0]/60 flex flex-col sm:flex-row justify-between items-center gap-3">
-                      <div className="text-left">
-                        {isKycVerified ? (
-                          <p className="text-emerald-700 text-[10px] font-black flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping inline-block"></span>
-                            ✓ XÁC THỰC THÀNH CÔNG VỚI VNPT eKYC
-                          </p>
-                        ) : kycError ? (
-                          <p className="text-rose-600 text-[10px] font-black">
-                            ✗ Lỗi eKYC: {kycError}
-                          </p>
-                        ) : (
-                          <p className="text-[#8a7e75] text-[10px] font-bold">
-                            Tải lên đủ 3 ảnh trên rồi nhấn "Xác thực danh tính (eKYC)".
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleVerifyKyc}
-                        disabled={kycVerifying || !cccdFrontFile || !cccdBackFile || !selfieFile}
-                        className="w-full sm:w-auto px-5 py-2.5 bg-[#303330] hover:bg-black disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-xl cursor-pointer transition-colors shadow-sm text-[10px] uppercase tracking-wider font-black flex items-center justify-center gap-1.5"
-                      >
-                        {kycVerifying ? (
-                          <>
-                            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                            <span>Đang xử lý eKYC...</span>
-                          </>
-                        ) : (
-                          'Xác thực danh tính (eKYC)'
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-[#faf9f6] p-5 rounded-2xl border border-[#e5d8d0]/60 space-y-4">
-                    <span className="text-[10px] text-[#fa7150] uppercase tracking-wider block mb-1">Giấy chứng nhận đăng ký kinh doanh & hành nghề</span>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Business license */}
-                      <div>
-                        <span className="block text-[#8a7e75] mb-2 uppercase text-[10px]">Giấy phép Đăng ký kinh doanh / MST</span>
-                        <label className="cursor-pointer bg-white hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-2xl p-4 flex flex-col items-center justify-center transition-colors min-h-[100px] relative overflow-hidden">
-                          <input type="file" accept="image/*,application/pdf" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'businessLicense')} />
-                          {uploadingField === 'businessLicense' && (
-                            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-1.5 z-20">
-                              <span className="w-5 h-5 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
-                              <span className="text-[8px] font-bold text-[#fa7150] uppercase tracking-wider">Đang tải...</span>
-                            </div>
-                          )}
-                          {businessLicenseUrl ? (
-                            <div className="text-center">
-                              <FileText size={24} className="text-[#fa7150] mx-auto mb-1" />
-                              <span className="text-[8px] text-gray-600 block truncate max-w-[120px]">{businessLicenseUrl.split('/').pop()}</span>
-                            </div>
-                          ) : (
-                            <>
-                              <Upload size={20} className="text-[#fa7150] mb-1" />
-                              <span className="text-[9px] uppercase text-gray-500">Đính kèm Ảnh/PDF</span>
-                            </>
-                          )}
-                        </label>
-                      </div>
-                      {/* Vet certificate */}
-                      <div>
-                        <span className="block text-[#8a7e75] mb-2 uppercase text-[10px]">Chứng chỉ hành nghề thú y (Nếu có)</span>
-                        <label className="cursor-pointer bg-white hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-2xl p-4 flex flex-col items-center justify-center transition-colors min-h-[100px] relative overflow-hidden">
-                          <input type="file" accept="image/*,application/pdf" disabled={kycVerifying || !!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'vetCert')} />
-                          {uploadingField === 'vetCert' && (
-                            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-1.5 z-20">
-                              <span className="w-5 h-5 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
-                              <span className="text-[8px] font-bold text-[#fa7150] uppercase tracking-wider">Đang tải...</span>
-                            </div>
-                          )}
-                          {vetCertUrl ? (
-                            <div className="text-center">
-                              <FileText size={24} className="text-[#fa7150] mx-auto mb-1" />
-                              <span className="text-[8px] text-gray-600 block truncate max-w-[120px]">{vetCertUrl.split('/').pop()}</span>
-                            </div>
-                          ) : (
-                            <>
-                              <Upload size={20} className="text-[#fa7150] mb-1" />
-                              <span className="text-[9px] uppercase text-gray-500">Đính kèm Ảnh/PDF</span>
-                            </>
-                          )}
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {uploadingField && <p className="text-[9px] text-[#fa7150] font-bold animate-pulse text-right">Đang tải tài liệu lên hệ thống...</p>}
-
-                  {/* Chuyển bước */}
-                  <div className="flex justify-between gap-3 pt-4 border-t border-[#e5d8d0]/60">
-                    <button type="button" onClick={() => setWizardStep(1)} className="px-5 py-3 bg-[#f5ede8] hover:bg-[#e5d8d0] rounded-xl cursor-pointer">Quay lại bước 1</button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!isKycVerified) {
-                          alert('Vui lòng hoàn tất xác thực danh tính điện tử (eKYC) trước khi tiếp tục.')
-                          return
-                        }
-                        if (!cccdNumber.trim()) {
-                          alert('Vui lòng điền Số CCCD người đại diện pháp luật trước khi tiếp tục.')
-                          return
-                        }
-                        setWizardStep(3)
-                      }}
-                      className="px-6 py-3 bg-[#fa7150] text-white rounded-xl cursor-pointer shadow-md"
-                    >
-                      Tiếp tục bước 3
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* ── BƯỚC 3: THÔNG TIN TÀI KHOẢN NGÂN HÀNG ── */}
-              {wizardStep === 3 && (
-                <div className="space-y-6 animate-in fade-in duration-200">
-                  <div className="bg-[#faf9f6] p-6 rounded-2xl border border-[#e5d8d0]/60 space-y-4">
-                    <div className="flex items-center gap-2 text-[#a43e24]">
-                      <ShieldAlert size={16} />
-                      <span className="text-[10px] font-black uppercase tracking-wider">Thông tin tài khoản đối soát doanh thu</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Tên ngân hàng thụ hưởng</label>
-                        <select
-                          value={bankName}
-                          onChange={e => setBankName(e.target.value)}
-                          className="w-full p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
-                        >
-                          <option value="Techcombank">Techcombank (Tập đoàn Kỹ thương)</option>
-                          <option value="Vietcombank">Vietcombank (Ngoại thương)</option>
-                          <option value="MBBank">MBBank (Quân đội)</option>
-                          <option value="BIDV">BIDV (Đầu tư & Phát triển)</option>
-                          <option value="ACB">ACB (Á Châu)</option>
-                          <option value="Sacombank">Sacombank</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Số tài khoản ngân hàng</label>
-                        <input
-                          type="text"
-                          required
-                          value={bankAccountNumber}
-                          onChange={e => setBankAccountNumber(e.target.value)}
-                          placeholder="Ví dụ: 1903456789001"
-                          className="w-full p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Tên chủ tài khoản</label>
-                      <input
-                        type="text"
-                        required
-                        value={bankAccountName}
-                        onChange={e => setBankAccountName(e.target.value)}
-                        placeholder="VIẾT HOA KHÔNG DẤU, ví dụ: NGUYEN VAN A"
-                        className="w-full p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none"
-                      />
-                      <p className="text-[9px] text-[#8a7e75] mt-1.5 font-normal">
-                        * Chú ý: Tên chủ tài khoản ngân hàng thụ hưởng nên trùng khớp hoàn toàn với tên đại diện pháp luật trên Căn cước công dân và Giấy chứng nhận kinh doanh để đối soát rút tiền.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Chuyển bước & Gửi hồ sơ */}
-                  <div className="flex justify-between gap-3 pt-4 border-t border-[#e5d8d0]/60">
-                    <button type="button" onClick={() => setWizardStep(editingHotelId ? 1 : 2)} className="px-5 py-3 bg-[#f5ede8] hover:bg-[#e5d8d0] rounded-xl cursor-pointer">
-                      {editingHotelId ? 'Quay lại Cửa hàng' : 'Quay lại bước 2'}
-                    </button>
-                    <button
                       type="submit"
-                      disabled={isAddingHotel}
-                      className="px-6 py-3 bg-[#fa7150] text-white rounded-xl cursor-pointer shadow-md hover:opacity-95 disabled:opacity-50 flex items-center gap-2"
+                      disabled={isAddingHotel || (!editingHotelId && !agreeTerms)}
+                      className="px-6 py-3 bg-[#fa7150] text-white rounded-xl cursor-pointer shadow-md hover:opacity-95 disabled:opacity-50 flex items-center gap-2 transition-all"
                     >
                       {isAddingHotel ? (editingHotelId ? 'Đang lưu...' : 'Đang gửi hồ sơ...') : (editingHotelId ? 'Lưu thay đổi' : 'Hoàn tất & Gửi duyệt')}
                     </button>
                   </div>
                 </div>
-              )}
+
 
             </form>
           </div>

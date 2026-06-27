@@ -10,6 +10,7 @@ import com.petcare_hub.base.BaseEntity;
 @Table(name = "staff")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

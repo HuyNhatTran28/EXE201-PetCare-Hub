@@ -49,7 +49,8 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                                             .googleId(googleId)
                                             .fullName(fullName)
                                             .avatarUrl(avatarUrl)
-                                            .role(Role.OWNER) // mặc định OWNER
+                                            .role(Role.OWNER)
+                                            .isVerified(true) // Google đã xác thực email
                                             .build();
                                     log.info("User mới từ Google: {}", email);
                                     return userRepository.save(newUser);

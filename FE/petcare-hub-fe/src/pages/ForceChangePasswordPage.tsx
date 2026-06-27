@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PawPrint, Eye, EyeOff, Lock } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
+import { getHomeByRole } from '@/utils/navigateByRole'
 
 export const ForceChangePasswordPage = () => {
   const navigate = useNavigate()
@@ -41,12 +42,7 @@ export const ForceChangePasswordPage = () => {
         user: s.user ? { ...s.user, mustChangePassword: false } : null,
       }))
 
-      // Redirect theo role
-      const role = user?.role
-      if (role === 'STAFF') navigate('/staff/dashboard')
-      else if (role === 'PARTNER') navigate('/partner/dashboard')
-      else if (role === 'ADMIN') navigate('/admin/dashboard')
-      else navigate('/hotels')
+      navigate(getHomeByRole(user?.role ?? ''))
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Đổi mật khẩu thất bại. Vui lòng thử lại.'
       setError(msg)

@@ -11,8 +11,9 @@ import java.util.UUID;
 @Repository
 public interface StaffRepository extends JpaRepository<Staff, UUID> {
     List<Staff> findByWorkplaceIdAndDeletedFalse(UUID hotelId);
-    List<Staff> findByWorkplaceIdAndDeletedFalseOrderByCreatedAtDesc(UUID hotelId);
+    List<Staff> findByWorkplaceIdAndDeletedFalseOrderByCreatedAtDesc(UUID workplaceId);
     Optional<Staff> findByUserAccountIdAndDeletedFalse(UUID userId);
-    boolean existsByUserAccountIdAndWorkplaceIdAndDeletedFalse(UUID userId, UUID hotelId);
+    boolean existsByUserAccountIdAndWorkplaceIdAndDeletedFalse(UUID userAccountId, UUID workplaceId);
     boolean existsByUserAccountIdAndDeletedFalse(UUID userId);
+
 }

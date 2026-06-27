@@ -19,4 +19,7 @@ public interface ConversationService {
     List<MessageResponse> getMessages(UUID conversationId, UUID currentUserId);
 
     MessageResponse sendMessage(UUID conversationId, UUID senderId, String content);
+
+    void deleteConversation(UUID conversationId, UUID currentUserId);
+
 }

@@ -4,6 +4,7 @@ import com.petcare_hub.dto.request.RoomTypeRequest;
 import com.petcare_hub.dto.response.RoomTypeResponse;
 import com.petcare_hub.entity.Hotel;
 import com.petcare_hub.entity.RoomType;
+import com.petcare_hub.enums.HotelStatus;
 import com.petcare_hub.exception.AppException;
 import com.petcare_hub.repository.HotelRepository;
 import com.petcare_hub.repository.RoomTypeRepository;
@@ -59,6 +60,11 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     @Override
     @Transactional(readOnly = true)
     public List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId, Boolean activeOnly) {
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new AppException("Không tìm thấy khách sạn", HttpStatus.NOT_FOUND));
+        if (hotel.getStatus() != HotelStatus.ACTIVE) {
+            throw new AppException("Cơ sở không khả dụng", HttpStatus.NOT_FOUND);
+        }
         List<RoomType> roomTypes = (activeOnly == null || activeOnly)
                 ? roomTypeRepository.findByHotelIdAndIsActiveTrue(hotelId)
                 : roomTypeRepository.findByHotelId(hotelId);
@@ -102,6 +108,10 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         RoomType roomType = roomTypeRepository.findById(roomTypeId)
                 .orElseThrow(() -> new AppException(
                         "Không tìm thấy loại phòng", HttpStatus.NOT_FOUND));
+
+        if (roomType.getHotel().getStatus() != HotelStatus.ACTIVE) {
+            throw new AppException("Cơ sở không khả dụng", HttpStatus.NOT_FOUND);
+        }
 
         LocalDate reqStart = checkIn;
         LocalDate reqEnd = (bookingType == com.petcare_hub.enums.BookingType.DAYCARE) ? checkOut : checkOut.minusDays(1);

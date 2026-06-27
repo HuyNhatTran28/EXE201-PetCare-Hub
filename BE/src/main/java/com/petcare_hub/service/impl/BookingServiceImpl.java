@@ -4,7 +4,9 @@ import com.petcare_hub.dto.request.BookingRequest;
 import com.petcare_hub.dto.response.BookingResponse;
 import com.petcare_hub.entity.*;
 import com.petcare_hub.enums.BookingStatus;
+import com.petcare_hub.enums.BookingType;
 import com.petcare_hub.enums.DiscountType;
+import com.petcare_hub.enums.HotelStatus;
 import com.petcare_hub.enums.BookingType;
 import java.time.LocalTime;
 import com.petcare_hub.exception.AppException;
@@ -97,6 +99,12 @@ public class BookingServiceImpl implements BookingService {
         Hotel hotel = hotelRepository.findById(request.getHotelId())
                 .orElseThrow(() -> new AppException(
                     "Không tìm thấy khách sạn", HttpStatus.NOT_FOUND));
+
+        if (hotel.getStatus() != HotelStatus.ACTIVE) {
+            throw new AppException(
+                "Khách sạn này hiện không nhận đặt phòng",
+                HttpStatus.BAD_REQUEST);
+        }
 
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new AppException(
