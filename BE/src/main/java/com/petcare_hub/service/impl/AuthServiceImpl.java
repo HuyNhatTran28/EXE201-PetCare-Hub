@@ -1,6 +1,7 @@
 package com.petcare_hub.service.impl;
 
 import com.petcare_hub.dto.request.ChangePasswordRequest;
+import com.petcare_hub.dto.request.ForceChangePasswordRequest;
 import com.petcare_hub.dto.request.LoginRequest;
 import com.petcare_hub.dto.request.RefreshTokenRequest;
 import com.petcare_hub.dto.request.RegisterRequest;
@@ -190,6 +191,7 @@ public class AuthServiceImpl implements AuthService {
                 .phone(user.getPhone())
                 .avatarUrl(user.getAvatarUrl())
                 .role(user.getRole())
+                .mustChangePassword(user.getMustChangePassword())
                 .build();
     }
 
@@ -206,6 +208,22 @@ public class AuthServiceImpl implements AuthService {
                 .isActive(user.getIsActive())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void forceChangePassword(UUID userId, ForceChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+            throw new AppException("Mật khẩu tạm thời không chính xác", HttpStatus.BAD_REQUEST);
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setMustChangePassword(false);
+        userRepository.save(user);
+        log.info("User đổi mật khẩu lần đầu thành công: {}", user.getEmail());
     }
 
     @Override

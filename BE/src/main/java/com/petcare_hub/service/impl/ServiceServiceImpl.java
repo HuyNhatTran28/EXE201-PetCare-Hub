@@ -3,6 +3,7 @@ package com.petcare_hub.service.impl;
 import com.petcare_hub.dto.request.ServiceRequest;
 import com.petcare_hub.dto.response.ServiceResponse;
 import com.petcare_hub.entity.Hotel;
+import com.petcare_hub.enums.HotelStatus;
 import com.petcare_hub.exception.AppException;
 import com.petcare_hub.repository.HotelRepository;
 import com.petcare_hub.repository.ServiceRepository;
@@ -59,6 +60,11 @@ public class ServiceServiceImpl implements ServiceService {
     @Override
     @Transactional(readOnly = true)
     public List<ServiceResponse> getServicesByHotel(UUID hotelId, Boolean enabledOnly) {
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new AppException("Không tìm thấy khách sạn", HttpStatus.NOT_FOUND));
+        if (hotel.getStatus() != HotelStatus.ACTIVE) {
+            throw new AppException("Cơ sở không khả dụng", HttpStatus.NOT_FOUND);
+        }
         List<com.petcare_hub.entity.Service> services = (enabledOnly == null || enabledOnly)
                 ? serviceRepository.findByHotelIdAndIsEnabledTrue(hotelId)
                 : serviceRepository.findByHotelId(hotelId);

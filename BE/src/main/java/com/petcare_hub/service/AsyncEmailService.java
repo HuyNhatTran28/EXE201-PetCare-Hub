@@ -69,6 +69,44 @@ public class AsyncEmailService {
     }
 
     @Async
+    public void sendStaffWelcomeEmailAsync(
+            String email, String fullName, String hotelName,
+            String tempPassword, String loginUrl) {
+        Email from = new Email(fromEmail, fromName);
+        Email to = new Email(email);
+        String subject = "🐾 PetCare Hub — Tài khoản nhân viên của bạn đã được tạo";
+        String htmlContent = String.format(
+            "<div style=\"background:#f8f9fa;padding:30px 10px;font-family:Arial,sans-serif\">" +
+            "<div style=\"max-width:480px;margin:0 auto;background:#fff;border-radius:16px;padding:35px;box-shadow:0 4px 12px rgba(0,0,0,0.06)\">" +
+            "<h2 style=\"color:#44683b;margin:0 0 20px\">PetCare Hub 🐾</h2>" +
+            "<p>Xin chào <strong style=\"color:#a43e24\">%s</strong>,</p>" +
+            "<p>Bạn đã được thêm vào đội ngũ nhân viên của <strong>%s</strong> trên nền tảng PetCare Hub.</p>" +
+            "<div style=\"background:#faf9f6;border-radius:12px;padding:20px;margin:20px 0;border:1px solid #e5d8d0\">" +
+            "<p style=\"margin:0 0 8px\"><strong>Email đăng nhập:</strong> %s</p>" +
+            "<p style=\"margin:0\"><strong>Mật khẩu tạm thời:</strong> <code style=\"background:#f0ebe8;padding:2px 8px;border-radius:6px;font-size:15px\">%s</code></p>" +
+            "</div>" +
+            "<p style=\"color:#666;font-size:13px\">Bạn sẽ được yêu cầu đổi mật khẩu sau khi đăng nhập lần đầu.</p>" +
+            "<a href=\"%s\" style=\"display:inline-block;background:#a43e24;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:10px\">Đăng nhập ngay</a>" +
+            "<hr style=\"border:0;border-top:1px solid #eee;margin:28px 0 18px\">" +
+            "<p style=\"color:#aaa;font-size:12px;margin:0\">© 2026 PetCare Hub. Bảo lưu mọi quyền.</p>" +
+            "</div></div>",
+            fullName, hotelName, email, tempPassword, loginUrl
+        );
+        Content content = new Content("text/html", htmlContent);
+        Mail mail = new Mail(from, subject, to, content);
+        try {
+            Request request = new Request();
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            sendGrid.api(request);
+            log.info("Đã gửi email chào mừng nhân viên tới: {}", email);
+        } catch (Exception e) {
+            log.error("Không thể gửi email nhân viên: {}", e.getMessage());
+        }
+    }
+
+    @Async
     public void sendConfirmEmailAsync(
             String invoiceNumber, String ownerEmail, String ownerName,
             String hotelName, String roomName,

@@ -19,6 +19,28 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, UUID> {
     // Lấy tất cả loại phòng của 1 KS (kể cả inactive)
     List<RoomType> findByHotelId(UUID hotelId);
 
+    // Lấy tất cả phòng active kèm hotel (JOIN FETCH để tránh LazyInit khi đọc hotel.id ngoài transaction)
+    @Query("SELECT r FROM RoomType r JOIN FETCH r.hotel WHERE r.isActive = true")
+    List<RoomType> findAllActiveWithHotel();
+
+    // Lấy tất cả phòng active (của hotel ACTIVE) cho chó/mèo, sắp xếp theo giá giảm dần
+    @Query(value = "SELECT r.* FROM room_types r " +
+                   "JOIN hotels h ON r.hotel_id = h.id " +
+                   "WHERE r.is_active = true " +
+                   "AND h.status = 'ACTIVE' " +
+                   "AND (r.allowed_pet_types @> CAST('[\"DOG\"]' AS jsonb) " +
+                   "     OR r.allowed_pet_types @> CAST('[\"dog\"]' AS jsonb) " +
+                   "     OR r.allowed_pet_types @> CAST('[\"CAT\"]' AS jsonb) " +
+                   "     OR r.allowed_pet_types @> CAST('[\"cat\"]' AS jsonb) " +
+                   "     OR r.allowed_pet_types @> CAST('[\"DOG_SMALL\"]' AS jsonb) " +
+                   "     OR r.allowed_pet_types @> CAST('[\"dog_small\"]' AS jsonb) " +
+                   "     OR r.allowed_pet_types @> CAST('[\"DOG_LARGE\"]' AS jsonb) " +
+                   "     OR r.allowed_pet_types @> CAST('[\"dog_large\"]' AS jsonb)) " +
+                   "ORDER BY r.price_per_night DESC",
+           nativeQuery = true)
+    List<RoomType> findActiveDogAndCatRoomTypes();
+
+
     // Kiểm tra số phòng còn trống theo ngày
     @Query("""
         SELECT rt.totalRooms - COUNT(b)

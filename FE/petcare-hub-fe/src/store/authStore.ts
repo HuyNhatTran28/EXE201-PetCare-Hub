@@ -10,6 +10,7 @@ interface UserInfo {
   phone: string | null
   avatarUrl: string | null
   role: Role
+  mustChangePassword?: boolean
 }
 
 interface AuthState {

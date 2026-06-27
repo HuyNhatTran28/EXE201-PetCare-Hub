@@ -26,6 +26,7 @@ public class HotelResponse {
     private String checkInTime;
     private String checkOutTime;
     private HotelStatus status;
+    private String rejectionReason;
     private Double averageRating;
     private Integer totalReviews;
     private BigDecimal minPrice;

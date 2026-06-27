@@ -1,6 +1,7 @@
 package com.petcare_hub.service;
 
 import com.petcare_hub.dto.request.ChangePasswordRequest;
+import com.petcare_hub.dto.request.ForceChangePasswordRequest;
 import com.petcare_hub.dto.request.LoginRequest;
 import com.petcare_hub.dto.request.RefreshTokenRequest;
 import com.petcare_hub.dto.request.RegisterRequest;
@@ -20,6 +21,8 @@ public interface AuthService {
     UserResponse getMe(UUID userId);
 
     void changePassword(UUID userId, ChangePasswordRequest request);
+
+    void forceChangePassword(UUID userId, ForceChangePasswordRequest request);
 
     void sendChangePasswordOtp(UUID userId);
 

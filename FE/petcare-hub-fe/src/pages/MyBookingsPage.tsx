@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
+import { maskAccountNumber } from '@/utils/maskAccountNumber'
 import { useNavigate } from 'react-router-dom'
 import { Header } from '@/components/Header'
 import {
   CheckCircle, XCircle,
-  ArrowRight, PawPrint, MapPin, Clock, Star
+  ArrowRight, PawPrint, MapPin, Clock, Star, MessageCircle
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
+import { BookingChatModal } from '@/components/BookingChatModal'
 
 interface Booking {
   id: string
@@ -43,6 +45,8 @@ export const MyBookingsPage = () => {
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [payingBooking, setPayingBooking] = useState<Booking | null>(null)
   const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null)
+  const [chatState, setChatState] = useState<{ conversationId: string; hotelName: string } | null>(null)
+  const [openingChatFor, setOpeningChatFor] = useState<string | null>(null)
 
   useEffect(() => {
     const fetch = async () => {
@@ -77,6 +81,20 @@ export const MyBookingsPage = () => {
       alert(err.response?.data?.message || 'Không thể hủy booking này')
     } finally {
       setCancelling(null)
+    }
+  }
+
+  const handleOpenChat = async (booking: Booking) => {
+    setOpeningChatFor(booking.id)
+    try {
+      const res = await axiosInstance.post<{ data: { id: string } }>(
+        `/api/conversations/booking/${booking.id}`
+      )
+      setChatState({ conversationId: res.data.data.id, hotelName: booking.hotelName })
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Không thể mở chat. Vui lòng thử lại.')
+    } finally {
+      setOpeningChatFor(null)
     }
   }
 
@@ -237,13 +255,23 @@ export const MyBookingsPage = () => {
                   {/* Actions */}
                   <div className="flex gap-2 pt-4 border-t border-[#e5d8d0]">
                     {booking.status === 'CHECKED_IN' && (
-                      <button
-                        onClick={() => navigate(`/diary/${booking.id}`)}
-                        className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white"
-                        style={{ backgroundColor: '#a43e24' }}
-                      >
-                        Xem nhật ký lưu trú
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleOpenChat(booking)}
+                          disabled={openingChatFor === booking.id}
+                          className="py-2.5 px-4 rounded-xl text-xs font-bold border border-[#e5d8d0] text-[#a43e24] hover:bg-[#feeadb] transition-all flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <MessageCircle size={12} />
+                          {openingChatFor === booking.id ? '...' : 'Nhắn khách sạn'}
+                        </button>
+                        <button
+                          onClick={() => navigate(`/diary/${booking.id}`)}
+                          className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white"
+                          style={{ backgroundColor: '#a43e24' }}
+                        >
+                          Xem nhật ký lưu trú
+                        </button>
+                      </>
                     )}
                     {booking.status === 'PENDING' && (
                       <>
@@ -264,29 +292,49 @@ export const MyBookingsPage = () => {
                       </>
                     )}
                     {booking.status === 'CONFIRMED' && (
-                      <button
-                        onClick={() => handleCancel(booking.id)}
-                        disabled={cancelling === booking.id}
-                        className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-rose-200 text-rose-500 hover:bg-rose-50 transition-all"
-                      >
-                        {cancelling === booking.id ? 'Đang hủy...' : 'Hủy booking'}
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleOpenChat(booking)}
+                          disabled={openingChatFor === booking.id}
+                          className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-[#e5d8d0] text-[#a43e24] hover:bg-[#feeadb] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                          <MessageCircle size={12} />
+                          {openingChatFor === booking.id ? '...' : 'Nhắn khách sạn'}
+                        </button>
+                        <button
+                          onClick={() => handleCancel(booking.id)}
+                          disabled={cancelling === booking.id}
+                          className="py-2.5 px-4 rounded-xl text-xs font-bold border border-rose-200 text-rose-500 hover:bg-rose-50 transition-all"
+                        >
+                          {cancelling === booking.id ? 'Đang hủy...' : 'Hủy'}
+                        </button>
+                      </>
                     )}
                     {booking.status === 'COMPLETED' && (
                       <div className="flex items-center gap-3 w-full justify-between">
                         <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
                           <CheckCircle size={14} /> Đã hoàn thành
                         </div>
-                        {booking.isReviewed ? (
-                          <span className="text-xs text-[#8a7e75] italic font-bold">Đã đánh giá</span>
-                        ) : (
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={() => setSelectedReviewBooking(booking)}
-                            className="bg-[#2c4e24] text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1"
+                            onClick={() => handleOpenChat(booking)}
+                            disabled={openingChatFor === booking.id}
+                            className="border border-[#e5d8d0] text-[#a43e24] px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-[#feeadb] transition-all flex items-center gap-1 disabled:opacity-50"
                           >
-                            <Star size={12} fill="currentColor" /> Viết đánh giá
+                            <MessageCircle size={12} />
+                            {openingChatFor === booking.id ? '...' : 'Nhắn'}
                           </button>
-                        )}
+                          {booking.isReviewed ? (
+                            <span className="text-xs text-[#8a7e75] italic font-bold">Đã đánh giá</span>
+                          ) : (
+                            <button
+                              onClick={() => setSelectedReviewBooking(booking)}
+                              className="bg-[#2c4e24] text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1"
+                            >
+                              <Star size={12} fill="currentColor" /> Viết đánh giá
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                     {booking.status === 'CANCELLED' && (
@@ -328,6 +376,14 @@ export const MyBookingsPage = () => {
           }}
         />
       )}
+
+      {chatState && (
+        <BookingChatModal
+          conversationId={chatState.conversationId}
+          hotelName={chatState.hotelName}
+          onClose={() => setChatState(null)}
+        />
+      )}
     </div>
   )
 }
@@ -339,7 +395,33 @@ const ReviewModal = ({ booking, onClose, onReviewed }: {
 }) => {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
+  const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await axiosInstance.post('/api/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      if (res.data && res.data.url) {
+        setPhotoUrls(prev => [...prev, res.data.url])
+      }
+    } catch (err: any) {
+      alert('Không thể tải ảnh lên. Vui lòng thử lại.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemoveImage = (index: number) => {
+    setPhotoUrls(prev => prev.filter((_, i) => i !== index))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -353,7 +435,7 @@ const ReviewModal = ({ booking, onClose, onReviewed }: {
         bookingId: booking.id,
         starRating: rating,
         comment: comment,
-        photoUrls: []
+        photoUrls: photoUrls
       })
       alert('Cảm ơn bạn đã gửi đánh giá!')
       onReviewed(booking.id)
@@ -401,6 +483,40 @@ const ReviewModal = ({ booking, onClose, onReviewed }: {
               className="w-full border border-[#e5d8d0] rounded-xl px-4 py-2.5 text-xs outline-none resize-none focus:border-[#fa7150]"
               required
             />
+          </div>
+
+          {/* Ảnh đính kèm */}
+          <div>
+            <label className="block text-[10px] font-bold text-[#8a7e75] uppercase mb-1.5">Hình ảnh thực tế</label>
+            <div className="flex flex-wrap gap-2.5 items-center">
+              {photoUrls.map((url, idx) => (
+                <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-stone-200 shadow-sm bg-stone-50 group">
+                  <img src={url} alt="Review attachment" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(idx)}
+                    className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              ))}
+
+              <label className={`w-16 h-16 rounded-xl border-2 border-dashed border-stone-200 hover:border-[#fa7150] transition-all flex flex-col items-center justify-center cursor-pointer bg-[#faf9f6] text-stone-400 hover:text-[#fa7150] ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUploadImage}
+                  className="hidden"
+                  disabled={uploading}
+                />
+                {uploading ? (
+                  <span className="w-4 h-4 rounded-full border-2 border-[#a43e24]/20 border-t-[#a43e24] animate-spin" />
+                ) : (
+                  <span className="text-[10px] font-bold">+ Ảnh</span>
+                )}
+              </label>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -519,7 +635,7 @@ const PaymentModal = ({ booking, onClose, onConfirmed }: {
                 className="w-48 h-48 mx-auto rounded-xl shadow-sm border border-stone-200"
               />
               <p className="text-[10px] text-[#8a7e75] mt-2 font-bold">
-                Tài khoản: {payosData.accountNumber} - {payosData.accountName}
+                Tài khoản: {maskAccountNumber(payosData.accountNumber)} - {payosData.accountName}
               </p>
               <a 
                 href={payosData.checkoutUrl} 

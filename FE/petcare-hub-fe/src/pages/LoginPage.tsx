@@ -130,7 +130,12 @@ export const LoginPage = () => {
         formState: { errors },
     } = useForm<LoginRequest>()
 
-    const onSubmit = (data: LoginRequest) => login(data)
+    const onSubmit = (data: LoginRequest) => {
+        login({
+            ...data,
+            email: data.email?.trim()
+        })
+    }
 
     return (
         <div
@@ -386,6 +391,9 @@ export const LoginPage = () => {
                         {/* Google */}
                         <button
                             type="button"
+                            onClick={() => {
+                                window.location.href = `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/oauth2/authorization/google`
+                            }}
                             className="w-full py-3 rounded-xl text-sm font-semibold border flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
                             style={{
                                 backgroundColor: '#ffffff',

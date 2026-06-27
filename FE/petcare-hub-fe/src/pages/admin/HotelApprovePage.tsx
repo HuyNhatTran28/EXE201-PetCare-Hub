@@ -4,6 +4,7 @@ import {
   XCircle, Ban, Star, MapPin, Eye, X, ExternalLink
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
+import { maskAccountNumber } from '@/utils/maskAccountNumber'
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
   PENDING:  { label: 'Chờ duyệt',   bg: 'bg-amber-50 border-amber-200',  text: 'text-amber-700',  dot: 'bg-amber-500' },
@@ -20,6 +21,8 @@ export const HotelApprovePage = () => {
   const [search, setSearch] = useState('')
   const [processing, setProcessing] = useState<string | null>(null)
   const [selectedHotel, setSelectedHotel] = useState<any | null>(null)
+  const [rejectTarget, setRejectTarget] = useState<string | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
 
   const parseDescription = (desc: string) => {
     if (!desc) return null
@@ -40,7 +43,7 @@ export const HotelApprovePage = () => {
       if (activeTab !== 'ALL') {
         params.status = activeTab
       }
-      const res = await axiosInstance.get('/api/hotels', { params })
+      const res = await axiosInstance.get('/api/admin/hotels', { params })
       setHotels(res.data.content || [])
     } catch (err) {
       console.error('Failed to load hotels', err)
@@ -53,17 +56,48 @@ export const HotelApprovePage = () => {
     fetchHotels()
   }, [activeTab])
 
-  const handleUpdateStatus = async (hotelId: string, status: 'ACTIVE' | 'REJECTED' | 'PENDING') => {
-    const actionLabel = status === 'ACTIVE' ? 'duyệt hoạt động' : status === 'REJECTED' ? 'từ chối' : 'tạm dừng'
-    if (!confirm(`Bạn có chắc muốn ${actionLabel} khách sạn này?`)) return
+  const handleApprove = async (hotelId: string) => {
+    if (!confirm('Xác nhận duyệt khách sạn này?')) return
     setProcessing(hotelId)
     try {
-      await axiosInstance.patch(`/api/hotels/${hotelId}/status?status=${status}`)
+      await axiosInstance.patch(`/api/admin/hotels/${hotelId}/approve`)
       setHotels(prev => prev.map(h =>
-        h.id === hotelId ? { ...h, status } : h
+        h.id === hotelId ? { ...h, status: 'ACTIVE', rejectionReason: null } : h
       ))
-    } catch (err) {
-      alert('Không thể cập nhật trạng thái khách sạn')
+    } catch {
+      alert('Không thể duyệt khách sạn')
+    } finally {
+      setProcessing(null)
+    }
+  }
+
+  const handleReject = async (hotelId: string, reason: string) => {
+    if (!reason.trim()) { alert('Vui lòng nhập lý do từ chối'); return }
+    setProcessing(hotelId)
+    try {
+      await axiosInstance.patch(`/api/admin/hotels/${hotelId}/reject`, { reason: reason.trim() })
+      setHotels(prev => prev.map(h =>
+        h.id === hotelId ? { ...h, status: 'REJECTED', rejectionReason: reason.trim() } : h
+      ))
+      setRejectTarget(null)
+      setRejectReason('')
+    } catch {
+      alert('Không thể từ chối khách sạn')
+    } finally {
+      setProcessing(null)
+    }
+  }
+
+  const handleSuspend = async (hotelId: string) => {
+    if (!confirm('Tạm ngưng hoạt động khách sạn này?')) return
+    setProcessing(hotelId)
+    try {
+      await axiosInstance.patch(`/api/hotels/${hotelId}/status?status=PENDING`)
+      setHotels(prev => prev.map(h =>
+        h.id === hotelId ? { ...h, status: 'PENDING' } : h
+      ))
+    } catch {
+      alert('Không thể tạm ngưng khách sạn')
     } finally {
       setProcessing(null)
     }
@@ -239,14 +273,14 @@ export const HotelApprovePage = () => {
                         {hotel.status === 'PENDING' && (
                           <>
                             <button
-                              onClick={() => handleUpdateStatus(hotel.id, 'ACTIVE')}
+                              onClick={() => handleApprove(hotel.id)}
                               disabled={processing === hotel.id}
                               className="flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-all cursor-pointer"
                             >
                               <CheckCircle size={12} /> Duyệt
                             </button>
                             <button
-                              onClick={() => handleUpdateStatus(hotel.id, 'REJECTED')}
+                              onClick={() => { setRejectTarget(hotel.id); setRejectReason('') }}
                               disabled={processing === hotel.id}
                               className="flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold border border-rose-200 text-rose-500 hover:bg-rose-50 transition-all cursor-pointer"
                             >
@@ -256,7 +290,7 @@ export const HotelApprovePage = () => {
                         )}
                         {hotel.status === 'ACTIVE' && (
                           <button
-                            onClick={() => handleUpdateStatus(hotel.id, 'PENDING')}
+                            onClick={() => handleSuspend(hotel.id)}
                             disabled={processing === hotel.id}
                             className="flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold border border-amber-200 text-amber-600 hover:bg-amber-50 transition-all cursor-pointer"
                           >
@@ -265,11 +299,11 @@ export const HotelApprovePage = () => {
                         )}
                         {hotel.status === 'REJECTED' && (
                           <button
-                            onClick={() => handleUpdateStatus(hotel.id, 'PENDING')}
+                            onClick={() => handleApprove(hotel.id)}
                             disabled={processing === hotel.id}
                             className="flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold border border-stone-200 text-[#8a7e75] hover:bg-[#faf9f6] transition-all cursor-pointer"
                           >
-                            <RefreshCw size={12} /> Khôi phục
+                            <RefreshCw size={12} /> Duyệt lại
                           </button>
                         )}
                       </div>
@@ -311,6 +345,13 @@ export const HotelApprovePage = () => {
 
               {/* Scrollable Content */}
               <div className="p-8 overflow-y-auto space-y-6 flex-1 text-xs">
+                {/* Rejection reason alert */}
+                {selectedHotel.status === 'REJECTED' && selectedHotel.rejectionReason && (
+                  <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
+                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-wider mb-1">Lý do từ chối</p>
+                    <p className="text-rose-700 font-semibold">{selectedHotel.rejectionReason}</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Left Column: basic info & banking */}
                   <div className="space-y-6">
@@ -407,7 +448,7 @@ export const HotelApprovePage = () => {
                           </div>
                           <div>
                             <p className="text-[#8a7e75] uppercase text-[9px]">Số tài khoản</p>
-                            <p className="text-gray-800 font-bold font-mono text-sm">{details.banking.accountNumber || '—'}</p>
+                            <p className="text-gray-800 font-bold font-mono text-sm">{details.banking.accountNumber ? maskAccountNumber(details.banking.accountNumber) : '—'}</p>
                           </div>
                           <div className="col-span-2">
                             <p className="text-[#8a7e75] uppercase text-[9px]">Tên chủ tài khoản</p>
@@ -554,10 +595,7 @@ export const HotelApprovePage = () => {
                   <>
                     <button
                       type="button"
-                      onClick={() => {
-                        handleUpdateStatus(selectedHotel.id, 'ACTIVE');
-                        setSelectedHotel(null);
-                      }}
+                      onClick={() => { handleApprove(selectedHotel.id); setSelectedHotel(null) }}
                       disabled={processing === selectedHotel.id}
                       className="px-5 py-2.5 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
@@ -565,10 +603,7 @@ export const HotelApprovePage = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        handleUpdateStatus(selectedHotel.id, 'REJECTED');
-                        setSelectedHotel(null);
-                      }}
+                      onClick={() => { setSelectedHotel(null); setRejectTarget(selectedHotel.id); setRejectReason('') }}
                       disabled={processing === selectedHotel.id}
                       className="px-5 py-2.5 rounded-xl font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
@@ -579,10 +614,7 @@ export const HotelApprovePage = () => {
                 {selectedHotel.status === 'ACTIVE' && (
                   <button
                     type="button"
-                    onClick={() => {
-                      handleUpdateStatus(selectedHotel.id, 'PENDING');
-                      setSelectedHotel(null);
-                    }}
+                    onClick={() => { handleSuspend(selectedHotel.id); setSelectedHotel(null) }}
                     disabled={processing === selectedHotel.id}
                     className="px-5 py-2.5 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
@@ -592,14 +624,11 @@ export const HotelApprovePage = () => {
                 {selectedHotel.status === 'REJECTED' && (
                   <button
                     type="button"
-                    onClick={() => {
-                      handleUpdateStatus(selectedHotel.id, 'PENDING');
-                      setSelectedHotel(null);
-                    }}
+                    onClick={() => { handleApprove(selectedHotel.id); setSelectedHotel(null) }}
                     disabled={processing === selectedHotel.id}
                     className="px-5 py-2.5 rounded-xl font-bold bg-[#fa7150] hover:bg-[#a43e24] text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <RefreshCw size={14} /> Khôi phục hồ sơ
+                    <RefreshCw size={14} /> Duyệt lại hồ sơ
                   </button>
                 )}
               </div>
@@ -607,6 +636,39 @@ export const HotelApprovePage = () => {
           </div>
         )
       })()}
+
+      {/* REJECT REASON DIALOG */}
+      {rejectTarget && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-[#e5d8d0] shadow-2xl w-full max-w-md p-8">
+            <h3 className="text-lg font-black text-[#303330] mb-1">Từ chối hồ sơ</h3>
+            <p className="text-xs text-[#8a7e75] mb-5">Nhập lý do để partner biết cần chỉnh sửa điều gì trước khi gửi duyệt lại.</p>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="Ví dụ: Thiếu giấy phép kinh doanh, hình ảnh không rõ..."
+              rows={4}
+              className="w-full border border-[#e5d8d0] rounded-2xl p-3 text-xs outline-none focus:border-[#fa7150] resize-none"
+              autoFocus
+            />
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                onClick={() => { setRejectTarget(null); setRejectReason('') }}
+                className="px-5 py-2.5 rounded-xl font-bold bg-[#f5ede8] hover:bg-[#e5d8d0] text-gray-700 transition-colors cursor-pointer text-sm"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => handleReject(rejectTarget, rejectReason)}
+                disabled={processing === rejectTarget || !rejectReason.trim()}
+                className="px-5 py-2.5 rounded-xl font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white flex items-center gap-1.5 transition-colors cursor-pointer text-sm"
+              >
+                <XCircle size={14} /> Xác nhận từ chối
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -112,8 +112,16 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     @Transactional(readOnly = true)
-    public HotelResponse getHotelById(UUID hotelId) {
+    public HotelResponse getHotelById(UUID hotelId, UUID requesterId, boolean requesterIsAdmin) {
         Hotel hotel = findHotelById(hotelId);
+
+        if (hotel.getStatus() != HotelStatus.ACTIVE) {
+            boolean isOwner = requesterId != null && hotel.getPartner().getId().equals(requesterId);
+            if (!requesterIsAdmin && !isOwner) {
+                throw new AppException("Cơ sở không khả dụng", HttpStatus.NOT_FOUND);
+            }
+        }
+
         return toResponse(hotel);
     }
 
@@ -138,7 +146,7 @@ public class HotelServiceImpl implements HotelService {
         return hotelRepository.findAll(pageable).map(this::toResponse);
     }
 
-    // ── Admin duyệt KS ────────────────────────────────────────
+    // ── Admin duyệt / từ chối KS ──────────────────────────────
 
     @Override
     @Transactional
@@ -146,6 +154,42 @@ public class HotelServiceImpl implements HotelService {
         Hotel hotel = findHotelById(hotelId);
         hotel.setStatus(status);
         log.info("KS {} chuyển sang status: {}", hotelId, status);
+        return toResponse(hotelRepository.save(hotel));
+    }
+
+    @Override
+    @Transactional
+    public HotelResponse approveHotel(UUID hotelId) {
+        Hotel hotel = findHotelById(hotelId);
+        hotel.setStatus(HotelStatus.ACTIVE);
+        hotel.setRejectionReason(null);
+        log.info("Admin đã duyệt khách sạn {}", hotelId);
+        return toResponse(hotelRepository.save(hotel));
+    }
+
+    @Override
+    @Transactional
+    public HotelResponse rejectHotel(UUID hotelId, String reason) {
+        Hotel hotel = findHotelById(hotelId);
+        hotel.setStatus(HotelStatus.REJECTED);
+        hotel.setRejectionReason(reason);
+        log.info("Admin đã từ chối khách sạn {} — lý do: {}", hotelId, reason);
+        return toResponse(hotelRepository.save(hotel));
+    }
+
+    @Override
+    @Transactional
+    public HotelResponse resubmitHotel(UUID hotelId, UUID partnerId) {
+        Hotel hotel = findHotelById(hotelId);
+        if (!hotel.getPartner().getId().equals(partnerId)) {
+            throw new AppException("Bạn không có quyền chỉnh sửa khách sạn này", HttpStatus.FORBIDDEN);
+        }
+        if (hotel.getStatus() != HotelStatus.REJECTED) {
+            throw new AppException("Chỉ có thể gửi duyệt lại khi khách sạn đang ở trạng thái bị từ chối", HttpStatus.BAD_REQUEST);
+        }
+        hotel.setStatus(HotelStatus.PENDING);
+        hotel.setRejectionReason(null);
+        log.info("Partner {} đã gửi duyệt lại khách sạn {}", partnerId, hotelId);
         return toResponse(hotelRepository.save(hotel));
     }
 
@@ -182,6 +226,13 @@ public class HotelServiceImpl implements HotelService {
         hotel.setCheckInTime(request.getCheckInTime());
         hotel.setCheckOutTime(request.getCheckOutTime());
 
+        // Nếu bị từ chối và partner chỉnh sửa lại → tự động gửi duyệt lại
+        if (hotel.getStatus() == HotelStatus.REJECTED) {
+            hotel.setStatus(HotelStatus.PENDING);
+            hotel.setRejectionReason(null);
+            log.info("KS {} bị từ chối → partner chỉnh sửa → tự động gửi duyệt lại", hotelId);
+        }
+
         return toResponse(hotelRepository.save(hotel));
     }
 
@@ -205,6 +256,11 @@ public class HotelServiceImpl implements HotelService {
         } else if (hotel.getStatus() == HotelStatus.CLOSED) {
             hotel.setStatus(HotelStatus.ACTIVE);
             log.info("Partner {} đã kích hoạt lại khách sạn {}", partnerId, hotelId);
+        } else if (hotel.getStatus() == HotelStatus.REJECTED) {
+            throw new AppException(
+                    "Khách sạn đang bị từ chối. Vui lòng chỉnh sửa thông tin và gửi duyệt lại",
+                    HttpStatus.BAD_REQUEST
+            );
         } else {
             throw new AppException(
                     "Khách sạn đang chờ duyệt, không thể thay đổi trạng thái hoạt động",
@@ -347,6 +403,7 @@ public class HotelServiceImpl implements HotelService {
                 .checkInTime(hotel.getCheckInTime())
                 .checkOutTime(hotel.getCheckOutTime())
                 .status(hotel.getStatus())
+                .rejectionReason(hotel.getRejectionReason())
                 .averageRating(hotel.getAverageRating())
                 .totalReviews(hotel.getTotalReviews())
                 .minPrice(minPrice)

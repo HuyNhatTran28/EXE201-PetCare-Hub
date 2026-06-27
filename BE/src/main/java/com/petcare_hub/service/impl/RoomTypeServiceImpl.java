@@ -4,6 +4,7 @@ import com.petcare_hub.dto.request.RoomTypeRequest;
 import com.petcare_hub.dto.response.RoomTypeResponse;
 import com.petcare_hub.entity.Hotel;
 import com.petcare_hub.entity.RoomType;
+import com.petcare_hub.enums.HotelStatus;
 import com.petcare_hub.exception.AppException;
 import com.petcare_hub.repository.HotelRepository;
 import com.petcare_hub.repository.RoomTypeRepository;
@@ -23,6 +24,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
 
     private final RoomTypeRepository roomTypeRepository;
     private final HotelRepository hotelRepository;
+    private final com.petcare_hub.repository.BookingRepository bookingRepository;
 
     @Override
     @Transactional
@@ -45,6 +47,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .pricePerNight(request.getPricePerNight())
+                .dayRate(request.getDayRate())
                 .maxPets(request.getMaxPets())
                 .totalRooms(request.getTotalRooms())
                 .allowedPetTypes(request.getAllowedPetTypes())
@@ -57,6 +60,11 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     @Override
     @Transactional(readOnly = true)
     public List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId, Boolean activeOnly) {
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new AppException("Không tìm thấy khách sạn", HttpStatus.NOT_FOUND));
+        if (hotel.getStatus() != HotelStatus.ACTIVE) {
+            throw new AppException("Cơ sở không khả dụng", HttpStatus.NOT_FOUND);
+        }
         List<RoomType> roomTypes = (activeOnly == null || activeOnly)
                 ? roomTypeRepository.findByHotelIdAndIsActiveTrue(hotelId)
                 : roomTypeRepository.findByHotelId(hotelId);
@@ -83,6 +91,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         roomType.setName(request.getName());
         roomType.setDescription(request.getDescription());
         roomType.setPricePerNight(request.getPricePerNight());
+        roomType.setDayRate(request.getDayRate());
         roomType.setMaxPets(request.getMaxPets());
         roomType.setTotalRooms(request.getTotalRooms());
         roomType.setAllowedPetTypes(request.getAllowedPetTypes());
@@ -94,11 +103,21 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     @Override
     @Transactional(readOnly = true)
     public Integer getAvailableRooms(
-            UUID roomTypeId, LocalDate checkIn, LocalDate checkOut) {
+            UUID roomTypeId, LocalDate checkIn, LocalDate checkOut, com.petcare_hub.enums.BookingType bookingType) {
 
-        Long available = roomTypeRepository
-                .countAvailableRooms(roomTypeId, checkIn, checkOut);
-        return available != null ? available.intValue() : 0;
+        RoomType roomType = roomTypeRepository.findById(roomTypeId)
+                .orElseThrow(() -> new AppException(
+                        "Không tìm thấy loại phòng", HttpStatus.NOT_FOUND));
+
+        if (roomType.getHotel().getStatus() != HotelStatus.ACTIVE) {
+            throw new AppException("Cơ sở không khả dụng", HttpStatus.NOT_FOUND);
+        }
+
+        LocalDate reqStart = checkIn;
+        LocalDate reqEnd = (bookingType == com.petcare_hub.enums.BookingType.DAYCARE) ? checkOut : checkOut.minusDays(1);
+
+        long overlapping = bookingRepository.countOverlappingBookings(roomTypeId, reqStart, reqEnd);
+        return Math.max(0, roomType.getTotalRooms() - (int) overlapping);
     }
 
     @Override
@@ -131,6 +150,15 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         return toResponse(roomTypeRepository.save(roomType), null);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoomTypeResponse> getHighestPricedRoomTypes() {
+        List<RoomType> activeRoomTypes = roomTypeRepository.findActiveDogAndCatRoomTypes();
+        return activeRoomTypes.stream()
+                .map(rt -> toResponse(rt, null))
+                .toList();
+    }
+
     private RoomTypeResponse toResponse(RoomType rt, Integer availableRooms) {
         return RoomTypeResponse.builder()
                 .id(rt.getId())
@@ -139,6 +167,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
                 .name(rt.getName())
                 .description(rt.getDescription())
                 .pricePerNight(rt.getPricePerNight())
+                .dayRate(rt.getDayRate())
                 .maxPets(rt.getMaxPets())
                 .totalRooms(rt.getTotalRooms())
                 .availableRooms(availableRooms)

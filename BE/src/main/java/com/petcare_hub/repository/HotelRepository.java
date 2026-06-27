@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -21,6 +23,9 @@ public interface HotelRepository extends
 
     // Lấy KS theo partner
     Page<Hotel> findByPartnerId(UUID partnerId, Pageable pageable);
+
+    // Kiểm tra KS thuộc đúng partner (dùng cho authorization)
+    Optional<Hotel> findByIdAndPartnerId(UUID id, UUID partnerId);
 
     // Lấy KS theo status
     Page<Hotel> findByStatus(HotelStatus status, Pageable pageable);

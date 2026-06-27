@@ -1,5 +1,6 @@
 package com.petcare_hub.controller;
 
+import com.petcare_hub.base.ApiResponse;
 import com.petcare_hub.dto.request.*;
 import com.petcare_hub.dto.response.AuthResponse;
 import com.petcare_hub.dto.response.UserResponse;
@@ -128,5 +129,15 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
                 "message", "Đặt lại mật khẩu thành công."
         ));
+    }
+
+    @Operation(summary = "Đổi mật khẩu lần đầu (dành cho staff vừa được tạo)")
+    @PostMapping("/force-change-password")
+    public ResponseEntity<ApiResponse<Void>> forceChangePassword(
+            @Valid @RequestBody ForceChangePasswordRequest request,
+            Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        authService.forceChangePassword(userId, request);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }
