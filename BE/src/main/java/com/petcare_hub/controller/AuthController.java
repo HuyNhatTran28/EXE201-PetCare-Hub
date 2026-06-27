@@ -138,6 +138,6 @@ public class AuthController {
             Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
         authService.forceChangePassword(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công"));
     }
 }

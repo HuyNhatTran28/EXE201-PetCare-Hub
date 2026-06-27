@@ -28,13 +28,17 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         SELECT COUNT(b) FROM Booking b
         WHERE b.roomType.id = :roomTypeId
           AND b.status IN ('CONFIRMED', 'CHECKED_IN')
-          AND b.checkInDate  < :checkOut
-          AND b.checkOutDate > :checkIn
+          AND b.checkInDate <= :reqEnd
+          AND (
+            ((b.bookingType = 'OVERNIGHT' OR b.bookingType IS NULL) AND b.checkOutDate > :reqStart)
+            OR
+            (b.bookingType = 'DAYCARE' AND b.checkOutDate >= :reqStart)
+          )
     """)
     long countOverlappingBookings(
         @Param("roomTypeId") UUID roomTypeId,
-        @Param("checkIn")    LocalDate checkIn,
-        @Param("checkOut")   LocalDate checkOut
+        @Param("reqStart")   LocalDate reqStart,
+        @Param("reqEnd")     LocalDate reqEnd
     );
 
     // Tìm booking PENDING quá 30 phút — scheduler tự hủy

@@ -7,6 +7,7 @@ import com.petcare_hub.enums.BookingStatus;
 import com.petcare_hub.enums.BookingType;
 import com.petcare_hub.enums.DiscountType;
 import com.petcare_hub.enums.HotelStatus;
+import com.petcare_hub.enums.BookingType;
 import java.time.LocalTime;
 import com.petcare_hub.exception.AppException;
 import com.petcare_hub.repository.*;

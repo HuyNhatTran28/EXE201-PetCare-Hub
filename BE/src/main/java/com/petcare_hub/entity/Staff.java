@@ -13,13 +13,14 @@ import com.petcare_hub.base.BaseEntity;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Staff extends BaseEntity {
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User userAccount;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hotel_id")
     private Hotel workplace;
 

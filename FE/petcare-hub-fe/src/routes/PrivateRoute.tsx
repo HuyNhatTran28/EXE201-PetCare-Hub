@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import type { Role } from '@/types/enums'
 
@@ -8,10 +8,11 @@ interface PrivateRouteProps {
 
 export const PrivateRoute = ({ allowedRoles }: PrivateRouteProps) => {
   const { user, isAuthenticated } = useAuthStore()
+  const location = useLocation()
 
   // Chưa đăng nhập → về trang login
   if (!isAuthenticated()) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
   // Đăng nhập rồi nhưng không đúng role

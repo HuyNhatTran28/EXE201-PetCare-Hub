@@ -9,6 +9,7 @@ import { useChatSocket, type MessageResponse } from '@/hooks/useChatSocket'
 
 // ── AI types ──────────────────────────────────────────────────────────────────
 
+
 interface SuggestedRoom {
   name: string
   pricePerNight: number
@@ -17,7 +18,9 @@ interface SuggestedRoom {
   hotelId: string
 }
 
+        
 interface AiMessage {
+
   role: 'user' | 'model'
   content: string
   suggestedRooms?: SuggestedRoom[]
@@ -44,6 +47,7 @@ type Tab = 'ai' | 'chat'
 const STORAGE_HISTORY = 'petcare_chat_history'
 const STORAGE_OPEN    = 'petcare_chat_open'
 const FALLBACK_IMG    = 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400'
+
 
 function readSession<T>(key: string, fallback: T): T {
   try {

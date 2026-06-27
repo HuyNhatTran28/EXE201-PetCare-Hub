@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
 import {
   Star,
-  PawPrint,
-  Sparkles,
-  ChevronDown,
   Search,
   Check,
-  MapPin
+  MapPin,
+  PawPrint
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { Header } from '@/components/Header'
+
 
 interface HotelType {
   id: string
@@ -23,6 +23,7 @@ interface HotelType {
   price?: number
   tags?: string[]
   image?: string
+  imageUrls?: string[]
   isPopular?: boolean
   amenities?: string[]
 }
@@ -33,16 +34,51 @@ const DEFAULT_HOTEL_IMAGES = [
   'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800'
 ]
 
+const HotelCardImage = ({ images, name }: { images: string[]; name: string }) => {
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  useEffect(() => {
+    if (!images || images.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [images])
+
+  if (!images || images.length === 0) return null
+
+  return (
+    <img
+      className="w-full h-full object-cover transition-all duration-1000 ease-in-out transform scale-100 group-hover:scale-103"
+      src={images[currentIndex]}
+      alt={`${name}-${currentIndex}`}
+    />
+  )
+}
+
 export const HotelListPage = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useAuthStore()
   const [hotels, setHotels] = useState<HotelType[]>([])
   const [loading, setLoading] = useState(true)
 
   // State bộ lọc tìm kiếm
   const [searchQuery, setSearchQuery] = useState('')
   const [petType, setPetType] = useState<string | null>(null) // DOG, CAT, SMALL
-  const [priceRange, setPriceRange] = useState<number>(1000000)
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+
+  useEffect(() => {
+    if (location.state) {
+      if (location.state.petType) {
+        setPetType(location.state.petType)
+      }
+      if (location.state.searchQuery) {
+        setSearchQuery(location.state.searchQuery)
+      }
+    }
+  }, [location.state])
+
 
   const fetchNearbyHotels = async () => {
     setLoading(true)
@@ -61,8 +97,13 @@ export const HotelListPage = () => {
           image: (h.imageUrls && h.imageUrls.length > 0)
             ? h.imageUrls[0]
             : DEFAULT_HOTEL_IMAGES[idx % DEFAULT_HOTEL_IMAGES.length],
+          imageUrls: (h.imageUrls && h.imageUrls.length > 0)
+            ? h.imageUrls
+            : [DEFAULT_HOTEL_IMAGES[idx % DEFAULT_HOTEL_IMAGES.length]],
           isPopular: idx % 3 === 0,
-          amenities: idx % 3 === 0 ? ['Đệm ngủ cao cấp'] : idx % 3 === 1 ? ['Private Garden'] : ['Điều hòa (AC)']
+          amenities: (h.amenities && h.amenities.some((a: string) => ['Private Garden', 'Điều hòa (AC)', 'Camera 24/7', 'Đệm ngủ cao cấp'].includes(a)))
+            ? h.amenities
+            : (idx % 3 === 0 ? ['Camera 24/7'] : idx % 3 === 1 ? ['Private Garden'] : ['Điều hòa (AC)'])
         }))
         setHotels(list)
       } else {
@@ -103,16 +144,18 @@ export const HotelListPage = () => {
       matchesPet = h.tags?.some(t => t.toLowerCase().includes('small') || t.toLowerCase().includes('thỏ') || t.toLowerCase().includes('hamster') || t.toLowerCase().includes('nhỏ')) ?? false
     }
 
-    // Lọc theo giá
-    const matchesPrice = (h.price ?? 0) <= priceRange
-
     // Lọc theo tiện nghi
     let matchesAmenities = true
     if (selectedAmenities.length > 0) {
-      matchesAmenities = selectedAmenities.every(a => h.amenities?.includes(a))
+      matchesAmenities = selectedAmenities.every(a => {
+        if (a === 'Camera 24/7') {
+          return h.amenities?.includes('Camera 24/7') || h.amenities?.includes('Đệm ngủ cao cấp')
+        }
+        return h.amenities?.includes(a)
+      })
     }
 
-    return matchesSearch && matchesPet && matchesPrice && matchesAmenities
+    return matchesSearch && matchesPet && matchesAmenities
   })
 
   return (
@@ -125,10 +168,10 @@ export const HotelListPage = () => {
       <main className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-10 px-8 py-10 w-full text-left">
         
         {/* SIDEBAR BỘ LỌC CỰC KỲ ĐẸP MẮT */}
-        <aside className="w-full lg:w-[300px] flex flex-col gap-8 p-8 bg-white rounded-3xl border border-[#e5d8d0] shadow-sm shrink-0">
+        <aside className="w-full lg:w-[320px] flex flex-col gap-6 p-6 bg-white rounded-3xl border border-[#e5d8d0] shadow-sm shrink-0 self-start sticky top-24">
           <div>
-            <h2 className="text-2xl font-black text-[#303330]">Filter Sanctuary</h2>
-            <p className="text-xs text-[#8a7e75] mt-1">Refine by preference</p>
+            <h2 className="text-2xl font-black text-[#303330]">Bộ Lọc Tìm Kiếm</h2>
+            <p className="text-xs text-[#8a7e75] mt-1">Lọc theo sở thích của bạn</p>
           </div>
 
           {/* Loại thú cưng */}
@@ -136,47 +179,25 @@ export const HotelListPage = () => {
             <h3 className="text-xs font-black uppercase tracking-wider text-[#303330]">Loại Thú Cưng</h3>
             <div className="space-y-2">
               {[
-                { id: 'DOG', label: 'Dogs', icon: <PawPrint size={16} /> },
-                { id: 'CAT', label: 'Cats', icon: <Sparkles size={16} /> },
-                { id: 'SMALL', label: 'Small Pets', icon: <Sparkles size={16} /> }
+                { id: 'DOG', label: 'Chó' },
+                { id: 'CAT', label: 'Mèo' },
+                { id: 'SMALL', label: 'Thú nhỏ' }
               ].map(item => {
                 const isActive = petType === item.id
                 return (
                   <button
                     key={item.id}
                     onClick={() => setPetType(isActive ? null : item.id)}
-                    className={`w-full flex items-center gap-3 rounded-2xl px-5 py-3.5 font-bold text-xs transition-all duration-300 border ${
+                    className={`w-full flex items-center rounded-2xl px-5 py-3.5 font-bold text-xs transition-all duration-300 border ${
                       isActive 
                         ? 'bg-[#a43e24] text-white border-[#a43e24] shadow-md shadow-[#a43e24]/10' 
                         : 'bg-[#faf9f6] border-[#e1e3df] text-[#8a7e75] hover:border-[#a43e24]/30'
                     }`}
                   >
-                    {item.icon}
                     <span>{item.label}</span>
                   </button>
                 )
               })}
-            </div>
-          </div>
-
-          {/* Khoảng giá */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#303330]">Khoảng Giá (VND)</h3>
-            <div className="space-y-2">
-              <input
-                type="range"
-                min={200000}
-                max={2000000}
-                step={50000}
-                value={priceRange}
-                onChange={e => setPriceRange(Number(e.target.value))}
-                className="w-full h-1 bg-[#e1e3df] rounded-lg appearance-none cursor-pointer accent-[#a43e24]"
-              />
-              <div className="flex justify-between text-[10px] font-bold text-[#8a7e75]">
-                <span>200kđ</span>
-                <span className="text-[#a43e24] font-black">{priceRange.toLocaleString('vi-VN')}đ</span>
-                <span>2Mđ</span>
-              </div>
             </div>
           </div>
 
@@ -187,7 +208,7 @@ export const HotelListPage = () => {
               {[
                 { id: 'Private Garden', label: 'Sân vườn riêng' },
                 { id: 'Điều hòa (AC)', label: 'Điều hòa nhiệt độ' },
-                { id: 'Đệm ngủ cao cấp', label: 'Camera 24/7' }
+                { id: 'Camera 24/7', label: 'Camera 24/7' }
               ].map(amenity => {
                 const isChecked = selectedAmenities.includes(amenity.id)
                 return (
@@ -214,12 +235,11 @@ export const HotelListPage = () => {
               onClick={() => {
                 setSearchQuery('')
                 setPetType(null)
-                setPriceRange(1000000)
                 setSelectedAmenities([])
               }}
               className="text-xs font-bold text-[#a43e24] hover:underline"
             >
-              Clear All Filters
+              Xóa tất cả bộ lọc
             </button>
           </div>
         </aside>
@@ -228,39 +248,39 @@ export const HotelListPage = () => {
         <section className="flex-grow space-y-8">
           
           {/* Header & Tiêu đề kèm Thanh tìm kiếm */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#e1e3df] pb-6">
-            <div className="space-y-2">
-              <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-[#303330]">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-[#e1e3df] pb-6">
+            <div className="space-y-2 min-w-0">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-[#303330] leading-tight">
                 Tìm kiếm thiên đường nghỉ dưỡng
               </h1>
               <p className="text-[#8a7e75] text-xs sm:text-sm">
-                Khám phá những không gian riêng tư, ấm cúng và đầy đủ tiện nghi dành riêng cho người bạn bốn chân.
+                Khám phá không gian ấm cúng, đầy đủ tiện nghi dành riêng cho người bạn bốn chân.
               </p>
             </div>
             
-            {/* Sorting & Search */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0">
-              <div className="relative w-full sm:w-64">
+            {/* Search Input Container */}
+            <div className="shrink-0 w-full sm:w-auto">
+              <div className="relative flex items-center bg-white border border-[#e1e3df] rounded-full pl-4 pr-3 py-2 w-full sm:w-80 shadow-sm transition-all focus-within:border-[#a43e24] focus-within:shadow-[0_4px_20px_rgba(164,62,36,0.06)] focus-within:ring-2 focus-within:ring-[#a43e24]/5">
+                <Search size={14} className="text-[#8a7e75] mr-2.5 shrink-0" />
                 <input
                   type="text"
-                  placeholder="Tìm kiếm phòng..."
+                  placeholder="Tìm kiếm theo tên khách sạn..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#faf9f6] border border-[#e1e3df] rounded-full pl-4 pr-10 py-2.5 text-xs outline-none focus:border-[#a43e24] transition-all"
+                  className="w-full bg-transparent border-none text-xs text-[#303330] placeholder-[#b1b2af] outline-none focus:ring-0 p-0"
                 />
-                <Search size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
-              </div>
-              <div className="flex items-center gap-3 bg-[#faf9f6] border border-[#e1e3df] p-2.5 rounded-full px-5 text-xs font-bold text-[#8a7e75]">
-                <span>Sắp xếp:</span>
-                <select className="bg-transparent border-none text-xs font-black text-[#303330] focus:ring-0 cursor-pointer p-0 outline-none">
-                  <option>Gần nhất</option>
-                  <option>Giá thấp đến cao</option>
-                  <option>Đánh giá tốt nhất</option>
-                </select>
-                <ChevronDown size={12} className="text-stone-500" />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-[10px] font-bold text-[#8a7e75] hover:text-[#a43e24] transition-colors ml-1"
+                  >
+                    Xóa
+                  </button>
+                )}
               </div>
             </div>
           </div>
+
 
           {/* Grid Resort Cards */}
           {loading ? (
@@ -288,11 +308,7 @@ export const HotelListPage = () => {
                     className="group flex flex-col bg-white rounded-3xl overflow-hidden border border-[#e1e3df] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                   >
                     <div className="relative h-60 overflow-hidden">
-                      <img
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
-                        src={hotel.image}
-                        alt={hotel.name}
-                      />
+                      <HotelCardImage images={hotel.imageUrls || []} name={hotel.name} />
                       {/* Price Badge */}
                       <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-1.5 rounded-full text-[#a43e24] font-black text-xs shadow-sm border border-[#e1e3df]">
                         {(hotel.price ?? 0).toLocaleString('vi-VN')}đ/đêm
@@ -324,11 +340,36 @@ export const HotelListPage = () => {
                         </div>
 
                         {/* Rating row */}
-                        <div className="flex items-center gap-1 text-amber-500">
-                          <Star size={12} fill="currentColor" />
-                          <span className="text-xs font-black text-[#303330]">
-                            {hotel.rating ? hotel.rating.toFixed(1) : '—'}
-                          </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-1 text-amber-500">
+                            <Star size={12} fill="currentColor" />
+                            <span className="text-xs font-black text-[#303330]">
+                              {hotel.rating ? hotel.rating.toFixed(1) : '—'}
+                            </span>
+                          </div>
+                          {hotel.rating && (
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                              hotel.rating >= 4.5
+                                ? 'bg-[#d0fac0] text-[#2c4e24]'
+                                : hotel.rating >= 4.0
+                                ? 'bg-[#e8f5e9] text-[#388e3c]'
+                                : hotel.rating >= 3.0
+                                ? 'bg-[#fff8e1] text-[#f57f17]'
+                                : hotel.rating >= 2.0
+                                ? 'bg-[#fff3e0] text-[#e65100]'
+                                : 'bg-[#fce4ec] text-[#c62828]'
+                            }`}>
+                              {hotel.rating >= 4.5
+                                ? 'Xuất sắc'
+                                : hotel.rating >= 4.0
+                                ? 'Tốt'
+                                : hotel.rating >= 3.0
+                                ? 'Khá'
+                                : hotel.rating >= 2.0
+                                ? 'Trung bình'
+                                : 'Kém'}
+                            </span>
+                          )}
                           <span className="text-[10px] text-[#8a7e75] font-bold">
                             ({hotel.totalReviews || 0} đánh giá)
                           </span>
@@ -336,11 +377,14 @@ export const HotelListPage = () => {
 
                         {/* Tags list */}
                         <div className="flex flex-wrap gap-1.5 pt-1">
-                          {hotel.tags?.map((tag, idx) => (
+                          {hotel.tags?.map((tag, idx) => {
+                            const tagVi = tag === 'Dogs' ? 'Chó' : tag === 'Cats' ? 'Mèo' : tag === 'Small Pets' ? 'Thú nhỏ' : tag === 'CAT' ? 'Mèo' : tag === 'DOG' ? 'Chó' : tag === 'DOG_SMALL' ? 'Chó & Thú nhỏ' : tag === 'CAT_SMALL' ? 'Mèo & Thú nhỏ' : tag
+                            return (
                             <span key={idx} className="bg-[#feeadb]/60 text-[#a43e24] px-3 py-1 rounded-full text-[10px] font-bold">
-                              {tag}
+                              {tagVi}
                             </span>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
 
@@ -353,7 +397,13 @@ export const HotelListPage = () => {
                           Chi tiết
                         </button>
                         <button
-                          onClick={() => navigate(`/hotels/${hotel.id}`)}
+                          onClick={() => {
+                            if (!user) {
+                              navigate('/login', { state: { from: `/hotels/${hotel.id}` } })
+                            } else {
+                              navigate(`/hotels/${hotel.id}`)
+                            }
+                          }}
                           className="flex-1 py-2.5 rounded-full bg-[#a43e24] text-white font-bold text-xs hover:opacity-90 shadow-md shadow-[#a43e24]/10 transition-all text-center"
                         >
                           Đặt ngay
@@ -370,10 +420,10 @@ export const HotelListPage = () => {
           <div className="bg-[#c2ebb2]/40 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8 overflow-hidden relative border border-[#c2ebb2]/50 text-left">
             <div className="z-10 flex-grow space-y-4 max-w-xl">
               <span className="bg-[#3e6135] text-white px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider">
-                Đặc quyền Premium
+                Đặc quyền cao cấp
               </span>
               <h2 className="text-3xl font-black text-[#2c4e24] leading-tight">
-                Gói Chăm Sóc 'Luxury Paw'
+                Gói Chăm Sóc Cao Cấp
               </h2>
               <p className="text-[#3e6135] text-xs leading-relaxed font-bold">
                 Tặng ngay liệu trình Spa và Massage thư giãn khi đặt phòng Suite từ 3 đêm trở lên.

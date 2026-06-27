@@ -19,17 +19,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-import com.sendgrid.Method;
-import com.sendgrid.Request;
-import com.sendgrid.SendGrid;
-import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
-import com.sendgrid.helpers.mail.objects.Email;
-import org.springframework.beans.factory.annotation.Value;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -40,13 +36,9 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
-    private final SendGrid sendGrid;
+    private final JavaMailSender mailSender;
 
-    @Value("${sendgrid.from-email}")
-    private String fromEmail;
-
-    @Value("${sendgrid.from-name}")
-    private String fromName;
+    private static final String FROM = "noreply@petcarehub.vn";
 
     private final Map<UUID, OtpEntry> changePasswordOtpStore = new ConcurrentHashMap<>();
     private final Map<String, OtpEntry> forgotPasswordOtpStore = new ConcurrentHashMap<>();
@@ -273,20 +265,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void sendChangePasswordEmail(String toEmail, String fullName, String otpCode) {
-        Email from     = new Email(fromEmail, fromName);
-        Email to       = new Email(toEmail);
-        String subject = "Mã xác thực đổi mật khẩu - PetCare Hub";
-        Content content = new Content("text/html",
-                buildChangePasswordEmailContent(fullName, otpCode));
-
-        Mail mail = new Mail(from, subject, to, content);
-
         try {
-            Request request = new Request();
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-            sendGrid.api(request);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setFrom(FROM);
+            helper.setTo(toEmail);
+            helper.setSubject("Mã xác thực đổi mật khẩu - PetCare Hub");
+            helper.setText(buildChangePasswordEmailContent(fullName, otpCode), true);
+            mailSender.send(mimeMessage);
             log.info("Đã gửi email OTP đổi mật khẩu tới: {}", toEmail);
         } catch (Exception e) {
             log.error("Lỗi gửi email OTP đổi mật khẩu: {}", e.getMessage());
@@ -372,20 +358,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void sendForgotPasswordEmail(String toEmail, String fullName, String otpCode) {
-        Email from     = new Email(fromEmail, fromName);
-        Email to       = new Email(toEmail);
-        String subject = "Mã xác thực khôi phục mật khẩu - PetCare Hub";
-        Content content = new Content("text/html",
-                buildForgotPasswordEmailContent(fullName, otpCode));
-
-        Mail mail = new Mail(from, subject, to, content);
-
         try {
-            Request request = new Request();
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-            sendGrid.api(request);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setFrom(FROM);
+            helper.setTo(toEmail);
+            helper.setSubject("Mã xác thực khôi phục mật khẩu - PetCare Hub");
+            helper.setText(buildForgotPasswordEmailContent(fullName, otpCode), true);
+            mailSender.send(mimeMessage);
             log.info("Đã gửi email OTP khôi phục mật khẩu tới: {}", toEmail);
         } catch (Exception e) {
             log.error("Lỗi gửi email OTP khôi phục mật khẩu: {}", e.getMessage());
@@ -427,5 +407,21 @@ public class AuthServiceImpl implements AuthService {
             </div>
         </div>
         """.formatted(fullName, otpCode);
+    }
+
+    @Override
+    @Transactional
+    public void forceChangePassword(UUID userId, ForceChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+            throw new AppException("Mật khẩu cũ không chính xác", HttpStatus.BAD_REQUEST);
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setMustChangePassword(false);
+        userRepository.save(user);
+        log.info("User {} hoàn tất đổi mật khẩu lần đầu", user.getEmail());
     }
 }

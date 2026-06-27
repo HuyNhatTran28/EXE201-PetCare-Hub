@@ -29,4 +29,6 @@ public interface AuthService {
     void sendForgotPasswordOtp(String email);
 
     void resetPassword(String email, String otpCode, String newPassword);
+
+    void forceChangePassword(UUID userId, ForceChangePasswordRequest request);
 }

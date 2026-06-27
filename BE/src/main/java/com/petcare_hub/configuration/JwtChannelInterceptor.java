@@ -34,7 +34,11 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
 
         String authHeader = accessor.getFirstNativeHeader("Authorization");
+        log.info("[WS] CONNECT frame Authorization header received: {}", 
+            authHeader != null ? (authHeader.substring(0, Math.min(authHeader.length(), 20)) + "...") : "null");
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("[WS] Authorization header is missing or does not start with 'Bearer '");
             throw new IllegalArgumentException("[WS] Thiếu JWT trong header Authorization khi CONNECT");
         }
 

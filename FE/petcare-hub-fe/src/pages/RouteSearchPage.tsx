@@ -24,6 +24,7 @@ interface HotelType {
   isPopular?: boolean
   locationLat: number
   locationLong: number
+  amenities?: string[]
 }
 
 interface PlaceSuggestion {
@@ -152,7 +153,8 @@ export const RouteSearchPage = () => {
             : DEFAULT_HOTEL_IMAGES[idx % DEFAULT_HOTEL_IMAGES.length],
         isPopular: idx % 3 === 0,
         locationLat: h.locationLat,
-        locationLong: h.locationLong
+        locationLong: h.locationLong,
+        amenities: h.amenities || []
       }))
 
       setHotels(list)
@@ -683,16 +685,38 @@ export const RouteSearchPage = () => {
         h.name.toLowerCase().includes('spa') ||
         h.name.toLowerCase().includes('grooming') ||
         h.name.toLowerCase().includes('dịch vụ') ||
+        h.name.toLowerCase().includes('clinic') ||
+        h.name.toLowerCase().includes('thú y') ||
         h.address?.toLowerCase().includes('spa') ||
         h.tags?.some(
           t =>
             t.toLowerCase().includes('spa') ||
             t.toLowerCase().includes('service') ||
             t.toLowerCase().includes('dịch vụ')
+        ) ||
+        h.amenities?.some(
+          a =>
+            a.toLowerCase().includes('spa') ||
+            a.toLowerCase().includes('grooming') ||
+            a.toLowerCase().includes('veterinary') ||
+            a.toLowerCase().includes('clinic') ||
+            a.toLowerCase().includes('pet shop') ||
+            a.toLowerCase().includes('dịch vụ')
         )
 
+      // Cơ sở được tính là khách sạn nếu:
+      // 1. Có tiện ích lưu trú (Pet Boarding/Lưu trú)
+      // 2. Hoặc có giá phòng hiển thị (> 0)
+      // 3. Hoặc chưa cấu hình tiện ích nào (mới tạo)
+      // 4. Hoặc tên không chứa các từ khóa chỉ phòng khám/bệnh viện y tế thuần túy.
+      const isHotel =
+        h.amenities?.some(a => a.toLowerCase().includes('boarding') || a.toLowerCase().includes('lưu trú')) ||
+        (h.price !== undefined && h.price > 0) ||
+        (!h.amenities || h.amenities.length === 0) ||
+        (!h.name.toLowerCase().includes('clinic') && !h.name.toLowerCase().includes('bệnh viện') && !h.name.toLowerCase().includes('phòng khám'))
+
       if (filterType === 'HOTEL') {
-        return !isSpaOrGrooming
+        return isHotel
       }
 
       if (filterType === 'SERVICE') {
@@ -1080,7 +1104,7 @@ export const RouteSearchPage = () => {
 
             <button
               onClick={geolocateUser}
-              className="absolute bottom-8 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all z-20 cursor-pointer"
+              className="absolute bottom-28 right-4 w-12 h-12 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all z-20 cursor-pointer"
               style={{
                 background:
                   'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
