@@ -96,6 +96,7 @@ class StaffAccountFlowTest {
                 .passwordHash(passwordEncoder.encode("Password@123"))
                 .fullName("Partner A (test)")
                 .role(Role.PARTNER)
+                .isVerified(true)
                 .build());
 
         partnerB = userRepository.save(User.builder()
@@ -103,6 +104,7 @@ class StaffAccountFlowTest {
                 .passwordHash(passwordEncoder.encode("Password@123"))
                 .fullName("Partner B (test)")
                 .role(Role.PARTNER)
+                .isVerified(true)
                 .build());
 
         ownerUser = userRepository.save(User.builder()
@@ -110,6 +112,7 @@ class StaffAccountFlowTest {
                 .passwordHash(passwordEncoder.encode("Password@123"))
                 .fullName("Owner (test)")
                 .role(Role.OWNER)
+                .isVerified(true)
                 .build());
 
         hotelA = hotelRepository.save(Hotel.builder()

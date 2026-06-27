@@ -40,3 +40,9 @@ build/
 dist/
 dist-ssr/
 *.local
+
+### Cleanup — compiled rác / scratch files ###
+BE/vn/
+curl_out*.txt
+
+.claude/

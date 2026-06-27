@@ -21,5 +21,4 @@ public interface ConversationService {
     MessageResponse sendMessage(UUID conversationId, UUID senderId, String content);
 
     void deleteConversation(UUID conversationId, UUID currentUserId);
-
 }

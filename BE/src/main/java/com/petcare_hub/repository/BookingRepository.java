@@ -27,7 +27,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     @Query("""
         SELECT COUNT(b) FROM Booking b
         WHERE b.roomType.id = :roomTypeId
-          AND b.status IN ('CONFIRMED', 'CHECKED_IN')
+          AND b.status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED')
           AND b.checkInDate <= :reqEnd
           AND (
             ((b.bookingType = 'OVERNIGHT' OR b.bookingType IS NULL) AND b.checkOutDate > :reqStart)

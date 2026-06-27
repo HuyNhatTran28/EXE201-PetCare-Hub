@@ -3,8 +3,9 @@ import {
   Building, Search, RefreshCw, CheckCircle,
   XCircle, Ban, Star, MapPin, Eye, X, ExternalLink
 } from 'lucide-react'
-import axiosInstance from '@/lib/axios'
+import { cleanAddressDisplay } from '@/utils/cleanAddress'
 import { maskAccountNumber } from '@/utils/maskAccountNumber'
+import axiosInstance from '@/lib/axios'
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
   PENDING:  { label: 'Chờ duyệt',   bg: 'bg-amber-50 border-amber-200',  text: 'text-amber-700',  dot: 'bg-amber-500' },
@@ -230,7 +231,7 @@ export const HotelApprovePage = () => {
                     {/* Address */}
                     <td className="p-4">
                       <p className="text-xs text-[#5a5550] flex items-center gap-1">
-                        <MapPin size={12} className="text-[#fa7150]" /> {hotel.address || 'Hồ Chí Minh, Việt Nam'}
+                        <MapPin size={12} className="text-[#fa7150]" /> {cleanAddressDisplay(hotel.address || 'Hồ Chí Minh, Việt Nam')}
                       </p>
                     </td>
 
@@ -380,7 +381,7 @@ export const HotelApprovePage = () => {
                         <p className="text-[#8a7e75] uppercase text-[9px]">Địa chỉ</p>
                         <p className="text-gray-800 font-bold flex items-start gap-1">
                           <MapPin size={12} className="text-[#fa7150] mt-0.5 shrink-0" />
-                          <span>{selectedHotel.address}</span>
+                          <span>{cleanAddressDisplay(selectedHotel.address)}</span>
                         </p>
                       </div>
                       <div className="grid grid-cols-2 gap-3 pt-1 border-t border-gray-100">

@@ -13,7 +13,6 @@ import com.petcare_hub.base.BaseEntity;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Staff extends BaseEntity {
 
     @OneToOne(fetch = FetchType.LAZY)

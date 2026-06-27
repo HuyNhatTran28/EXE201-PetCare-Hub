@@ -45,7 +45,15 @@ public class ConversationServiceImpl implements ConversationService {
         }
 
         return conversationRepository.findByBookingId(bookingId)
-            .map(this::toResponse)
+            .map(conv -> {
+                if (Boolean.TRUE.equals(conv.getDeleted())) {
+                    conv.setDeleted(false);
+                    conv.setDeletedAt(null);
+                    conv.setDeletedBy(null);
+                    return toResponse(conversationRepository.save(conv));
+                }
+                return toResponse(conv);
+            })
             .orElseGet(() -> {
                 Conversation conv = Conversation.builder()
                     .bookingId(bookingId)
@@ -151,10 +159,36 @@ public class ConversationServiceImpl implements ConversationService {
             .build();
         ConversationMessage saved = messageRepository.save(msg);
 
+        if (Boolean.TRUE.equals(conv.getDeleted())) {
+            conv.setDeleted(false);
+            conv.setDeletedAt(null);
+            conv.setDeletedBy(null);
+        }
         conv.setLastMessageAt(saved.getSentAt());
         conversationRepository.save(conv);
 
         return toMessageResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteConversation(UUID conversationId, UUID currentUserId) {
+        Conversation conv = conversationRepository.findById(conversationId)
+            .orElseThrow(() -> new AppException("Không tìm thấy hội thoại", HttpStatus.NOT_FOUND));
+
+        boolean isOwner = currentUserId.equals(conv.getPetOwnerId());
+        boolean isStaff = staffRepository.existsByUserAccountIdAndWorkplaceIdAndDeletedFalse(
+            currentUserId, conv.getHotelId());
+        boolean isPartner = hotelRepository.findByIdAndPartnerId(conv.getHotelId(), currentUserId).isPresent();
+
+        if (!isOwner && !isStaff && !isPartner) {
+            throw new AppException("Không có quyền xóa hội thoại này", HttpStatus.FORBIDDEN);
+        }
+
+        conv.setDeleted(true);
+        conv.setDeletedAt(java.time.LocalDateTime.now());
+        conv.setDeletedBy(currentUserId.toString());
+        conversationRepository.save(conv);
     }
 
     // ── HELPERS ───────────────────────────────────────────────────────────────
@@ -183,14 +217,25 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     private ConversationResponse toResponse(Conversation conv) {
-        return ConversationResponse.builder()
+        var builder = ConversationResponse.builder()
             .id(conv.getId())
             .bookingId(conv.getBookingId())
             .petOwnerId(conv.getPetOwnerId())
             .hotelId(conv.getHotelId())
             .hotelName(resolveHotelName(conv.getHotelId()))
-            .lastMessageAt(conv.getLastMessageAt())
-            .build();
+            .lastMessageAt(conv.getLastMessageAt());
+
+        bookingRepository.findById(conv.getBookingId()).ifPresent(b -> {
+            String petNames = b.getPets().stream()
+                .map(com.petcare_hub.entity.Pet::getName)
+                .collect(java.util.stream.Collectors.joining(", "));
+            builder.petNames(petNames)
+                .checkInDate(b.getCheckInDate())
+                .checkOutDate(b.getCheckOutDate())
+                .bookingType(b.getBookingType() != null ? b.getBookingType().name() : "OVERNIGHT");
+        });
+
+        return builder.build();
     }
 
     private ConversationResponse toResponseWithMeta(Conversation conv, UUID currentUserId) {
@@ -201,7 +246,7 @@ public class ConversationServiceImpl implements ConversationService {
         long unread = messageRepository
             .countByConversationIdAndSenderIdNotAndIsReadFalse(conv.getId(), currentUserId);
 
-        return ConversationResponse.builder()
+        var builder = ConversationResponse.builder()
             .id(conv.getId())
             .bookingId(conv.getBookingId())
             .petOwnerId(conv.getPetOwnerId())
@@ -209,8 +254,19 @@ public class ConversationServiceImpl implements ConversationService {
             .hotelName(resolveHotelName(conv.getHotelId()))
             .lastMessageAt(conv.getLastMessageAt())
             .lastMessageContent(lastContent)
-            .unreadCount(unread)
-            .build();
+            .unreadCount(unread);
+
+        bookingRepository.findById(conv.getBookingId()).ifPresent(b -> {
+            String petNames = b.getPets().stream()
+                .map(com.petcare_hub.entity.Pet::getName)
+                .collect(java.util.stream.Collectors.joining(", "));
+            builder.petNames(petNames)
+                .checkInDate(b.getCheckInDate())
+                .checkOutDate(b.getCheckOutDate())
+                .bookingType(b.getBookingType() != null ? b.getBookingType().name() : "OVERNIGHT");
+        });
+
+        return builder.build();
     }
 
     private MessageResponse toMessageResponse(ConversationMessage msg) {

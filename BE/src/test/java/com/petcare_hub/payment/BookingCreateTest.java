@@ -91,10 +91,12 @@ class BookingCreateTest {
         when(hotelMock.getId()).thenReturn(HOTEL_ID);
         when(hotelMock.getName()).thenReturn("Test Hotel");
         when(hotelMock.getAddress()).thenReturn("123 Test St");
+        when(hotelMock.getStatus()).thenReturn(HotelStatus.ACTIVE);
         when(hotelRepository.findById(HOTEL_ID)).thenReturn(Optional.of(hotelMock));
 
         otherHotelMock = mock(Hotel.class);
         when(otherHotelMock.getId()).thenReturn(UUID.randomUUID()); // khác HOTEL_ID
+        when(otherHotelMock.getStatus()).thenReturn(HotelStatus.ACTIVE);
 
         RoomType roomType = mock(RoomType.class);
         when(roomType.getId()).thenReturn(ROOM_TYPE_ID);
