@@ -3,11 +3,14 @@ package com.petcare_hub.entity;
 import com.petcare_hub.base.BaseEntity;
 import com.petcare_hub.enums.BookingStatus;
 import com.petcare_hub.enums.PaymentMethod;
+import com.petcare_hub.enums.BookingType;
+import org.hibernate.annotations.ColumnDefault;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -119,6 +122,18 @@ public class Booking extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
     private PaymentMethod paymentMethod;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "booking_type", nullable = false, length = 50)
+    @ColumnDefault("'OVERNIGHT'")
+    @Builder.Default
+    private BookingType bookingType = BookingType.OVERNIGHT;
+
+    @Column(name = "drop_off_time")
+    private LocalTime dropOffTime;
+
+    @Column(name = "pick_up_time")
+    private LocalTime pickUpTime;
 
     // ── Check-in ───────────────────────────────────────────────
 

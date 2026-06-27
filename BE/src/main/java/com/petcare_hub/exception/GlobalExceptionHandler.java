@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@lombok.extern.slf4j.Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -74,9 +75,41 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    // Bắt lỗi ràng buộc dữ liệu cơ sở dữ liệu (ví dụ: khoá ngoại, trùng lặp...)
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityException(
+            org.springframework.dao.DataIntegrityViolationException ex) {
+        
+        String message = "Không thể thực hiện hành động do ràng buộc dữ liệu.";
+        String rootMsg = ex.getRootCause() != null ? ex.getRootCause().getMessage() : "";
+        String exMsg = ex.getMessage() != null ? ex.getMessage() : "";
+        String combined = (rootMsg + " " + exMsg).toLowerCase();
+        
+        if (combined.contains("violates foreign key constraint") || combined.contains("fk")) {
+            if (combined.contains("booking_pets") || combined.contains("booking")) {
+                message = "Không thể xóa thú cưng này vì bé đang có lịch sử đặt phòng liên kết.";
+            } else if (combined.contains("pet_diary_entries") || combined.contains("diary")) {
+                message = "Không thể xóa thú cưng này vì bé đang có nhật ký lưu trú liên kết.";
+            } else {
+                message = "Không thể xóa dữ liệu này do đang có các dữ liệu khác liên kết.";
+            }
+        } else if (combined.contains("duplicate key value violates unique constraint") || combined.contains("unique")) {
+            message = "Dữ liệu đã tồn tại trong hệ thống (trùng lặp giá trị duy nhất).";
+        }
+        
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.builder()
+                        .status(HttpStatus.CONFLICT.value())
+                        .message(message)
+                        .timestamp(LocalDateTime.now())
+                        .build());
+    }
+
     // Bắt các lỗi không mong muốn khác
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        log.error("Unhandled exception: ", ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.builder()

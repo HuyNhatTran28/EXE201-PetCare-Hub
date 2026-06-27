@@ -6,16 +6,12 @@ import com.petcare_hub.exception.AppException;
 import com.petcare_hub.repository.UserRepository;
 import com.petcare_hub.service.OtpService;
 import com.petcare_hub.utils.JwtUtils;
-import com.sendgrid.Method;
-import com.sendgrid.Request;
-import com.sendgrid.SendGrid;
-import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
-import com.sendgrid.helpers.mail.objects.Email;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,13 +27,9 @@ public class OtpServiceImpl implements OtpService {
 
     private final UserRepository userRepository;
     private final JwtUtils jwtUtils;
-    private final SendGrid sendGrid;
+    private final JavaMailSender mailSender;
 
-    @Value("${sendgrid.from-email}")
-    private String fromEmail;
-
-    @Value("${sendgrid.from-name}")
-    private String fromName;
+    private static final String FROM = "noreply@petcarehub.vn";
 
     private static final long ACCESS_TOKEN_EXPIRES_SECONDS = 900;
 
@@ -152,20 +144,14 @@ public class OtpServiceImpl implements OtpService {
     }
 
     private void sendOtpEmail(String toEmail, String fullName, String otpCode) {
-        Email from     = new Email(fromEmail, fromName);
-        Email to       = new Email(toEmail);
-        String subject = "Mã xác thực PetCare Hub";
-        Content content = new Content("text/html",
-                buildEmailContent(fullName, otpCode));
-
-        Mail mail = new Mail(from, subject, to, content);
-
         try {
-            Request request = new Request();
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-            sendGrid.api(request);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setFrom(FROM);
+            helper.setTo(toEmail);
+            helper.setSubject("Mã xác thực PetCare Hub");
+            helper.setText(buildEmailContent(fullName, otpCode), true);
+            mailSender.send(mimeMessage);
         } catch (Exception e) {
             log.error("Lỗi gửi email OTP: {}", e.getMessage());
             throw new AppException(

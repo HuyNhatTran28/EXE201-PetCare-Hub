@@ -1,0 +1,78 @@
+package com.petcare_hub.configuration;
+
+import com.petcare_hub.utils.JwtUtils;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.UUID;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class JwtChannelInterceptor implements ChannelInterceptor {
+
+    private final JwtUtils jwtUtils;
+
+    @Override
+    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(
+            message, StompHeaderAccessor.class);
+
+        // Chỉ xác thực frame CONNECT — các frame khác kế thừa Principal đã set
+        if (accessor == null || !StompCommand.CONNECT.equals(accessor.getCommand())) {
+            return message;
+        }
+
+        String authHeader = accessor.getFirstNativeHeader("Authorization");
+        log.info("[WS] CONNECT frame Authorization header received: {}", 
+            authHeader != null ? (authHeader.substring(0, Math.min(authHeader.length(), 20)) + "...") : "null");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("[WS] Authorization header is missing or does not start with 'Bearer '");
+            throw new IllegalArgumentException("[WS] Thiếu JWT trong header Authorization khi CONNECT");
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (!jwtUtils.isTokenValid(token)) {
+                log.error("[WS] Token validation failed. Let's trace the exception:");
+                // Run extractClaims directly to catch and log the real exception (e.g. ExpiredJwtException)
+                try {
+                    jwtUtils.extractClaims(token);
+                } catch (Exception traceEx) {
+                    log.error("[WS] Token parse trace exception: ", traceEx);
+                }
+                throw new IllegalArgumentException("[WS] JWT không hợp lệ hoặc đã hết hạn");
+            }
+            if (!jwtUtils.isAccessToken(token)) {
+                log.warn("[WS] Token type claim is not 'access'. Type claim value: {}", jwtUtils.extractType(token));
+                throw new IllegalArgumentException("[WS] JWT không phải là Access Token");
+            }
+        } catch (Exception e) {
+            log.error("[WS] Exception during JWT check: {}", e.getMessage());
+            throw new IllegalArgumentException("[WS] JWT không hợp lệ hoặc đã hết hạn", e);
+        }
+
+        UUID   userId = jwtUtils.extractUserId(token);
+        String role   = jwtUtils.extractRole(token);
+
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+            userId, null,
+            List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+
+        accessor.setUser(auth);
+        log.debug("[WS] STOMP CONNECT xác thực OK: userId={}, role={}", userId, role);
+        return message;
+    }
+}

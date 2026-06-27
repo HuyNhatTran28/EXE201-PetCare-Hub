@@ -1,9 +1,15 @@
 package com.petcare_hub.controller;
 
+import com.petcare_hub.dto.response.HotelResponse;
 import com.petcare_hub.dto.response.UserResponse;
 import com.petcare_hub.entity.User;
+import com.petcare_hub.enums.BookingStatus;
+import com.petcare_hub.enums.HotelStatus;
 import com.petcare_hub.enums.Role;
+import com.petcare_hub.repository.BookingRepository;
+import com.petcare_hub.repository.HotelRepository;
 import com.petcare_hub.repository.UserRepository;
+import com.petcare_hub.service.HotelService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,10 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.petcare_hub.repository.HotelRepository;
-import com.petcare_hub.repository.BookingRepository;
-import com.petcare_hub.enums.HotelStatus;
-import com.petcare_hub.enums.BookingStatus;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
@@ -31,6 +33,7 @@ public class AdminController {
     private final UserRepository userRepository;
     private final HotelRepository hotelRepository;
     private final BookingRepository bookingRepository;
+    private final HotelService hotelService;
 
     // GET /api/admin/users
     @GetMapping("/users")
@@ -57,6 +60,35 @@ public class AdminController {
             .orElseThrow(() -> new RuntimeException("User not found"));
         user.setIsActive(active);
         return ResponseEntity.ok(toUserResponse(userRepository.save(user)));
+    }
+
+    // GET /api/admin/hotels/pending — danh sách KS chờ duyệt
+    @GetMapping("/hotels/pending")
+    public ResponseEntity<Page<HotelResponse>> getPendingHotels(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(hotelService.getAllHotels(HotelStatus.PENDING, pageable));
+    }
+
+    // GET /api/admin/hotels?status=... — danh sách KS theo trạng thái
+    @GetMapping("/hotels")
+    public ResponseEntity<Page<HotelResponse>> getHotelsByStatus(
+            @RequestParam(required = false) HotelStatus status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(hotelService.getAllHotels(status, pageable));
+    }
+
+    // PATCH /api/admin/hotels/{id}/approve — duyệt KS
+    @PatchMapping("/hotels/{id}/approve")
+    public ResponseEntity<HotelResponse> approveHotel(@PathVariable UUID id) {
+        return ResponseEntity.ok(hotelService.approveHotel(id));
+    }
+
+    // PATCH /api/admin/hotels/{id}/reject — từ chối KS kèm lý do
+    @PatchMapping("/hotels/{id}/reject")
+    public ResponseEntity<HotelResponse> rejectHotel(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(hotelService.rejectHotel(id, body.get("reason")));
     }
 
     // Thống kê tổng quan

@@ -15,8 +15,8 @@ public interface HotelService {
     // Partner tạo KS mới
     HotelResponse createHotel(UUID partnerId, HotelRequest request);
 
-    // Lấy chi tiết 1 KS
-    HotelResponse getHotelById(UUID hotelId);
+    // Lấy chi tiết 1 KS — requesterId null = unauthenticated; isAdmin bypasses status check
+    HotelResponse getHotelById(UUID hotelId, UUID requesterId, boolean requesterIsAdmin);
 
     // Partner xem KS của mình
     Page<HotelResponse> getMyHotels(UUID partnerId, Pageable pageable);
@@ -24,8 +24,17 @@ public interface HotelService {
     // Admin xem tất cả KS theo status
     Page<HotelResponse> getAllHotels(HotelStatus status, Pageable pageable);
 
-    // Admin duyệt / từ chối KS
+    // Admin duyệt / từ chối KS (old generic)
     HotelResponse updateHotelStatus(UUID hotelId, HotelStatus status);
+
+    // Admin duyệt KS
+    HotelResponse approveHotel(UUID hotelId);
+
+    // Admin từ chối KS kèm lý do
+    HotelResponse rejectHotel(UUID hotelId, String reason);
+
+    // Partner gửi duyệt lại sau khi bị từ chối
+    HotelResponse resubmitHotel(UUID hotelId, UUID partnerId);
 
     // Partner cập nhật thông tin KS
     HotelResponse updateHotel(UUID hotelId, UUID partnerId, HotelRequest request);

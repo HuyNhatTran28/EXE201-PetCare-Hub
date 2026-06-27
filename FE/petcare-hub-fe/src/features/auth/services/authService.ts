@@ -8,8 +8,18 @@ export const authService = {
         return res.data
     },
 
-    register: async (data: RegisterRequest): Promise<AuthResponse> => {
+    register: async (data: RegisterRequest): Promise<{ message: string; email: string }> => {
         const res = await axiosInstance.post('/api/auth/register', data)
+        return res.data
+    },
+
+    verifyRegisterOtp: async (data: { email: string; otpCode: string }): Promise<AuthResponse> => {
+        const res = await axiosInstance.post('/api/auth/register/verify', data)
+        return res.data
+    },
+
+    resendRegisterOtp: async (email: string): Promise<{ message: string }> => {
+        const res = await axiosInstance.post('/api/auth/register/resend-otp', { email })
         return res.data
     },
 

@@ -53,12 +53,12 @@ export const Header = () => {
           <Link to="/route-search" className={getLinkClass('/route-search')}>
             Tìm theo tuyến đường
           </Link>
-          {user?.role === 'OWNER' && (
-            <Link to="/pets" className={getLinkClass('/pets')}>
+          {(!user || user?.role === 'OWNER') && (
+            <Link to="/pet-diaries" className={getLinkClass('/pet-diaries')}>
               Nhật ký Thú cưng
             </Link>
           )}
-          {user && (
+          {(!user || user?.role === 'OWNER') && (
             <Link to="/my-bookings" className={getLinkClass('/my-bookings')}>
               Nhật ký lưu trú
             </Link>
@@ -120,6 +120,26 @@ export const Header = () => {
                         className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                       >
                         Kênh Đối Tác (Partner)
+                      </Link>
+                    )}
+
+                    {user.role === 'ADMIN' && (
+                      <Link 
+                        to="/admin/dashboard" 
+                        onClick={() => setShowProfileDropdown(false)}
+                        className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
+                      >
+                        Trang quản trị (Admin)
+                      </Link>
+                    )}
+
+                    {user.role === 'STAFF' && (
+                      <Link 
+                        to="/partner/messages" 
+                        onClick={() => setShowProfileDropdown(false)}
+                        className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
+                      >
+                        Kênh Nhân Viên (Staff)
                       </Link>
                     )}
 

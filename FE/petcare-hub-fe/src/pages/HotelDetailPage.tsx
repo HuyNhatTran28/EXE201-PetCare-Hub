@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   PawPrint,
@@ -26,6 +26,7 @@ import {
 import axiosInstance from '@/lib/axios'
 import { Header } from '@/components/Header'
 import { useAuthStore } from '@/store/authStore'
+import { cleanAddressDisplay } from '@/utils/cleanAddress'
 
 
 
@@ -33,6 +34,7 @@ interface RoomType {
   id: string
   name: string
   pricePerNight: number
+  dayRate?: number | null
   petType: string
   description: string
   image: string
@@ -61,7 +63,7 @@ interface PetType {
 const DEFAULT_ROOMS: RoomType[] = [
   {
     id: 'b8e72c84-9dbb-4ae1-8d2a-71b56ce8145a',
-    name: 'Deluxe Garden View',
+    name: 'Phòng Deluxe Hướng Vườn',
     pricePerNight: 1200000,
     petType: 'Chó & Mèo - Mọi kích cỡ',
     description: 'Căn phòng rộng 20m² với tầm nhìn trực diện ra khu vườn trung tâm. Trang bị nệm memory foam và hệ thống lọc khí chuyên dụng.',
@@ -70,7 +72,7 @@ const DEFAULT_ROOMS: RoomType[] = [
   },
   {
     id: 'a12e3456-789b-12d3-a456-426614174000',
-    name: 'Royal Cat Suite',
+    name: 'Phòng Suite Hoàng Gia Cho Mèo',
     pricePerNight: 2500000,
     petType: 'Chỉ dành cho Mèo',
     description: 'Trải nghiệm hoàng gia với hệ thống leo trèo đa tầng, thác nước mini và chế độ chăm sóc đặc biệt 1-kèm-1.',
@@ -105,6 +107,7 @@ export const HotelDetailPage = () => {
   const [roomsUrls, setRoomsUrls] = useState<string[]>([])
   const [imageUrls, setImageUrls] = useState<string[]>([])
   const [hotelDescriptionText, setHotelDescriptionText] = useState<string | null>(null)
+  const [originalExtraJson, setOriginalExtraJson] = useState<any>(null)
   
   // Additional payload states to support updates
   const [partnerId, setPartnerId] = useState<string | null>(null)
@@ -115,11 +118,14 @@ export const HotelDetailPage = () => {
   // Carousel slider state
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
-  const allImages = [
-    ...(frontUrls || []),
-    ...(roomsUrls || []),
-    ...(imageUrls || [])
-  ].filter(Boolean) as string[]
+  const allImages = Array.from(
+    new Set([
+      logoUrl,
+      ...(frontUrls || []),
+      ...(roomsUrls || []),
+      ...(imageUrls || [])
+    ].filter(Boolean))
+  ) as string[]
 
   const handleNextImage = () => {
     if (allImages.length === 0) return
@@ -131,6 +137,15 @@ export const HotelDetailPage = () => {
     setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length)
   }
 
+  // Tự động chuyển ảnh cơ sở vật chất sau mỗi 5 giây
+  useEffect(() => {
+    if (allImages.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [allImages.length])
+
   // Edit modals state
   const [isEditDescOpen, setIsEditDescOpen] = useState(false)
   const [isEditImagesOpen, setIsEditImagesOpen] = useState(false)
@@ -141,6 +156,7 @@ export const HotelDetailPage = () => {
   const [editRoomsUrls, setEditRoomsUrls] = useState<string[]>([])
   const [editImageUrls, setEditImageUrls] = useState<string[]>([])
   const [editDescriptionText, setEditDescriptionText] = useState('')
+  const [editAmenities, setEditAmenities] = useState<string[]>([])
   const [updating, setUpdating] = useState(false)
   const [uploadingField, setUploadingField] = useState<string | null>(null)
 
@@ -155,6 +171,8 @@ export const HotelDetailPage = () => {
   const [selectedRoomId, setSelectedRoomId] = useState(DEFAULT_ROOMS[0].id)
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
   const [nights, setNights] = useState(1)
+  const [bookingType, setBookingType] = useState<'OVERNIGHT' | 'DAYCARE'>('OVERNIGHT')
+  const [days, setDays] = useState(1)
   const [checkInDate, setCheckInDate] = useState('')
   const [checkOutDate, setCheckOutDate] = useState('')
   const [entryTime, setEntryTime] = useState('08:00')
@@ -175,7 +193,7 @@ export const HotelDetailPage = () => {
   const [couponMessage, setCouponMessage] = useState('')
 
   // Trạng thái chọn phương thức thanh toán
-  const [paymentMethod, setPaymentMethod] = useState<'VIETQR' | 'MOMO' | 'VNPAY'>('VIETQR')
+  const [_paymentMethod, _setPaymentMethod] = useState<'VIETQR' | 'MOMO' | 'VNPAY'>('VIETQR')
   const [payosData, setPayosData] = useState<any>(null)
   const [loadingPayos, setLoadingPayos] = useState(false)
 
@@ -183,7 +201,47 @@ export const HotelDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [bookingLoading, setBookingLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [availabilityMap, setAvailabilityMap] = useState<Record<string, number | null>>({})
   const [invoiceNumber, setInvoiceNumber] = useState('')
+
+  // Polling trạng thái thanh toán
+  const [currentBookingId, setCurrentBookingId] = useState<string | null>(null)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false)
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollStartRef = useRef<number | null>(null)
+  const POLL_INTERVAL_MS = 4000
+  const POLL_MAX_MS = 15 * 60 * 1000 // 15 phút
+
+  const stopPolling = () => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+  }
+
+  useEffect(() => {
+    if (!currentBookingId || !isSuccess || paymentConfirmed) return
+
+    pollStartRef.current = Date.now()
+
+    pollingRef.current = setInterval(async () => {
+      if (Date.now() - (pollStartRef.current ?? 0) > POLL_MAX_MS) {
+        stopPolling()
+        return
+      }
+      try {
+        const res = await axiosInstance.get(`/api/payment/verify/${currentBookingId}`)
+        if (res.data?.bookingStatus === 'CONFIRMED') {
+          stopPolling()
+          setPaymentConfirmed(true)
+        }
+      } catch {
+        // lỗi mạng tạm thời — thử lại lần sau
+      }
+    }, POLL_INTERVAL_MS)
+
+    return () => stopPolling()
+  }, [currentBookingId, isSuccess, paymentConfirmed])
 
 
   useEffect(() => {
@@ -192,7 +250,7 @@ export const HotelDetailPage = () => {
         const hotelRes = await axiosInstance.get(`/api/hotels/${id}`)
         if (hotelRes.data) {
           setHotelName(hotelRes.data.name)
-          setHotelAddress(hotelRes.data.address || 'Hồ Chí Minh, Việt Nam')
+          setHotelAddress(cleanAddressDisplay(hotelRes.data.address || 'Hồ Chí Minh, Việt Nam'))
           setLocationLat(hotelRes.data.locationLat)
           setLocationLong(hotelRes.data.locationLong)
           setGoogleMapsUrl(hotelRes.data.googleMapsUrl)
@@ -205,6 +263,7 @@ export const HotelDetailPage = () => {
           if (desc && desc.trim().startsWith('{')) {
             try {
               const extra = JSON.parse(desc)
+              setOriginalExtraJson(extra)
               setLogoUrl(extra.logoUrl || null)
               const parsedFront = Array.isArray(extra.frontUrl) ? extra.frontUrl : (extra.frontUrl ? [extra.frontUrl] : [])
               const parsedRooms = Array.isArray(extra.roomsUrl) ? extra.roomsUrl : (extra.roomsUrl ? [extra.roomsUrl] : [])
@@ -229,13 +288,36 @@ export const HotelDetailPage = () => {
         }
 
 
+        const translatePetTypes = (types: string[] | undefined | null) => {
+          if (!types || types.length === 0) return 'Chó & Mèo'
+          const mapping: { [key: string]: string } = {
+            'DOG': 'Chó',
+            'CAT': 'Mèo',
+            'SMALL': 'Thú nhỏ',
+            'DOG_SMALL': 'Chó nhỏ',
+            'CAT_SMALL': 'Mèo nhỏ',
+            'ALL': 'Tất cả thú cưng'
+          }
+          return types.map(t => mapping[t.toUpperCase().trim()] || t).join(', ')
+        }
+
+        const translateRoomName = (name: string) => {
+          const mapping: { [key: string]: string } = {
+            'Standard Cozy Room': 'Phòng Tiêu Chuẩn Ấm Cúng',
+            'Deluxe Garden View': 'Phòng Deluxe Hướng Vườn',
+            'Royal Cat Suite': 'Phòng Suite Hoàng Gia Cho Mèo'
+          }
+          return mapping[name] || name
+        }
+
         const roomsRes = await axiosInstance.get(`/api/room-types/hotel/${id}`)
         if (roomsRes.data && roomsRes.data.length > 0) {
           const list = roomsRes.data.map((r: any) => ({
             id: r.id,
-            name: r.name,
+            name: translateRoomName(r.name),
             pricePerNight: r.pricePerNight,
-            petType: r.allowedPetTypes?.join(', ') || 'Chó & Mèo',
+            dayRate: r.dayRate,
+            petType: translatePetTypes(r.allowedPetTypes),
             description: r.description || 'Không gian ấm cúng, đầy đủ tiện ích cơ bản cho bé cưng.',
             image: r.images && r.images.length > 0 ? r.images[0] : 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800'
           }))
@@ -317,8 +399,9 @@ export const HotelDetailPage = () => {
 
   // Tính toán chi phí — công thức: totalAmount = (room + services − voucher) × 1.08 (VAT 8%)
   const activeRoom = roomTypes.find(r => r.id === selectedRoomId) || DEFAULT_ROOMS[0]
-  const chargeNights = nights === 0 ? 1 : nights
-  const roomCost = activeRoom.pricePerNight * chargeNights
+  const roomCost = bookingType === 'DAYCARE'
+    ? (activeRoom.dayRate || 0) * days
+    : activeRoom.pricePerNight * nights
   const selectedServicesList = services.filter(s => selectedServiceIds.includes(s.id))
   const servicesCost = selectedServicesList.reduce((sum, s) => sum + s.price, 0)
 
@@ -328,16 +411,55 @@ export const HotelDetailPage = () => {
   const vatAmount = Math.round(taxableBase * 0.08)
   const totalCost = taxableBase + vatAmount
 
-  // Tính nights từ checkIn/checkOut
+  // Tính nights/days từ checkIn/checkOut
   useEffect(() => {
     if (checkInDate && checkOutDate) {
-      const diff = Math.ceil(
-        (new Date(checkOutDate).getTime() - new Date(checkInDate).getTime()) 
+      const diff = Math.round(
+        (new Date(checkOutDate).getTime() - new Date(checkInDate).getTime())
         / (1000 * 60 * 60 * 24)
       )
-      if (diff >= 0) setNights(diff)
+      if (bookingType === 'OVERNIGHT') {
+        setNights(diff > 0 ? diff : 0)
+      } else {
+        setDays(diff >= 0 ? diff + 1 : 1)
+      }
+    } else {
+      setNights(0)
+      setDays(1)
     }
-  }, [checkInDate, checkOutDate])
+  }, [checkInDate, checkOutDate, bookingType])
+
+  // Fetch số phòng còn trống cho mỗi loại phòng theo ngày đang chọn
+  useEffect(() => {
+    if (roomTypes.length === 0) return
+    const today = new Date()
+    const tomorrow  = new Date(today.getTime() + 86400000).toISOString().split('T')[0]
+    const dayAfter  = new Date(today.getTime() + 86400000 * 2).toISOString().split('T')[0]
+    const ci = checkInDate  || tomorrow
+    const co = checkOutDate || dayAfter
+    Promise.all(
+      roomTypes.map(rt =>
+        axiosInstance
+          .get<number>(`/api/room-types/${rt.id}/availability`, {
+            params: { checkIn: ci, checkOut: co, bookingType }
+          })
+          .then(res => ({ id: rt.id, count: res.data as number }))
+          .catch(() => ({ id: rt.id, count: null as null }))
+      )
+    ).then(results => {
+      setAvailabilityMap(Object.fromEntries(results.map(r => [r.id, r.count])))
+    })
+  }, [roomTypes, checkInDate, checkOutDate, bookingType])
+
+  // Tự động chuyển về OVERNIGHT nếu loại phòng đã chọn không hỗ trợ gửi ngày
+  useEffect(() => {
+    if (bookingType === 'DAYCARE' && activeRoom && !activeRoom.dayRate) {
+      setBookingType('OVERNIGHT')
+      if (checkOutDate && checkOutDate <= checkInDate) {
+        setCheckOutDate('')
+      }
+    }
+  }, [selectedRoomId, roomTypes, activeRoom, bookingType, checkInDate, checkOutDate])
 
   const validateImageFile = (file: File): { isValid: boolean; message: string } => {
     const extension = file.name.split('.').pop()?.toLowerCase();
@@ -410,10 +532,11 @@ export const HotelDetailPage = () => {
 
   const isPartnerOwner = user && (user.role === 'ADMIN' || (user.role === 'PARTNER' && partnerId === user.id))
 
-  const handleUpdateHotelDetail = async (updatedDescText: string, updatedLogo: string, updatedFront: string[], updatedRooms: string[], updatedAlbum: string[]) => {
+  const handleUpdateHotelDetail = async (updatedDescText: string, updatedLogo: string, updatedFront: string[], updatedRooms: string[], updatedAlbum: string[], updatedAmenities: string[]) => {
     setUpdating(true)
     try {
       const updatedExtra = {
+        ...originalExtraJson,
         logoUrl: updatedLogo,
         frontUrl: updatedFront,
         roomsUrl: updatedRooms,
@@ -428,7 +551,7 @@ export const HotelDetailPage = () => {
         locationLong: locationLong,
         googleMapsUrl: googleMapsUrl,
         description: JSON.stringify(updatedExtra),
-        amenities: amenities,
+        amenities: updatedAmenities,
         checkInTime: checkInTime,
         checkOutTime: checkOutTime
       }
@@ -440,6 +563,7 @@ export const HotelDetailPage = () => {
         setRoomsUrls(updatedRooms)
         setImageUrls(updatedAlbum)
         setHotelDescriptionText(updatedDescText || null)
+        setAmenities(updatedAmenities)
         
         setIsEditDescOpen(false)
         setIsEditImagesOpen(false)
@@ -469,12 +593,16 @@ export const HotelDetailPage = () => {
         petIds: [selectedPetId || '00000000-0000-0000-0000-000000000000'],
         serviceIds: selectedServiceIds,
         voucherCode: discountPercent > 0 ? couponCode : null,
-        paymentMethod: 'VIETQR'
+        paymentMethod: 'VIETQR',
+        bookingType: bookingType,
+        dropOffTime: bookingType === 'DAYCARE' ? `${entryTime}:00` : null,
+        pickUpTime: bookingType === 'DAYCARE' ? `${exitTime}:00` : null
       }
 
       const response = await axiosInstance.post('/api/bookings', payload)
       if (response.data) {
         setInvoiceNumber(response.data.invoiceNumber || 'INV-' + Date.now())
+        setCurrentBookingId(response.data.id)
         setIsSuccess(true)
         setLoadingPayos(true)
         try {
@@ -492,7 +620,12 @@ export const HotelDetailPage = () => {
       }
     } catch (error: any) {
       console.error('Failed to create booking', error)
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi đặt phòng. Vui lòng kiểm tra lại vai trò của bạn.')
+      const msg = error.response?.data?.message || 'Có lỗi xảy ra khi đặt phòng. Vui lòng kiểm tra lại vai trò của bạn.'
+      alert(msg)
+      if (error.response?.status === 409) {
+        // Phòng hết chỗ — cập nhật ngay map để nút bị disable
+        setAvailabilityMap(prev => ({ ...prev, [selectedRoomId]: 0 }))
+      }
     } finally {
       setBookingLoading(false)
     }
@@ -506,77 +639,112 @@ export const HotelDetailPage = () => {
       {isSuccess && (
         <div className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl border border-[#e1e3df] animate-in fade-in zoom-in duration-300">
-            <div className="w-16 h-16 bg-[#d0fac0] text-[#44683b] rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle size={32} />
-            </div>
-            
-            <h3 className="text-2xl font-black text-[#303330] mb-1">Đặt phòng thành công!</h3>
-            <p className="text-xs text-[#5d605c] mb-2">
-              Mã hóa đơn: <strong className="text-[#a43e24]">{invoiceNumber}</strong>
-            </p>
-            <p className="text-xs text-[#5d605c] mb-6">
-              Trạng thái: <span className="font-bold text-amber-600">PENDING — Chờ thanh toán</span>
-            </p>
 
-            {/* QR thanh toán */}
-            {loadingPayos && (
-              <div className="bg-[#f4f4f0] border border-[#e1e3df] rounded-2xl p-8 mb-4 flex flex-col items-center justify-center min-h-[220px]">
-                <span className="w-8 h-8 rounded-full border-4 border-[#a43e24]/20 border-t-[#a43e24] animate-spin inline-block mb-3" />
-                <p className="text-xs text-[#8a7e75] font-bold">Đang tạo mã QR payOS...</p>
-              </div>
-            )}
-
-            {!loadingPayos && payosData && (
-              <div className="bg-[#f4f4f0] border border-[#e1e3df] rounded-2xl p-4 mb-4">
-                <img
-                  src={`https://img.vietqr.io/image/${payosData.bin}-${payosData.accountNumber}-compact2.png?amount=${payosData.amount}&addInfo=${payosData.description}&accountName=${encodeURIComponent(payosData.accountName)}`}
-                  alt="QR thanh toán"
-                  className="w-52 h-52 mx-auto rounded-xl shadow-sm border border-stone-200"
-                />
-                <p className="text-[10px] font-black text-[#a43e24] uppercase tracking-wider mt-2">
-                  Quét VietQR để thanh toán
+            {/* ── Nhánh CONFIRMED: thanh toán thành công ── */}
+            {paymentConfirmed ? (
+              <>
+                <div className="w-16 h-16 bg-[#d0fac0] text-[#44683b] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle size={32} />
+                </div>
+                <h3 className="text-2xl font-black text-[#44683b] mb-1">Thanh toán thành công!</h3>
+                <p className="text-xs text-[#5d605c] mb-2">
+                  Mã hóa đơn: <strong className="text-[#a43e24]">{invoiceNumber}</strong>
                 </p>
-                <p className="text-[10px] text-[#5d605c] mt-0.5 font-bold">
-                  Số tiền: {payosData.amount.toLocaleString('vi-VN')}đ
+                <p className="text-xs text-[#5d605c] mb-6">
+                  Trạng thái: <span className="font-bold text-[#44683b]">CONFIRMED — Đã xác nhận</span>
                 </p>
-                <a 
-                  href={payosData.checkoutUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="mt-2.5 text-xs text-[#a43e24] hover:underline font-black block"
+                <p className="text-[10px] text-[#8a7e75] mb-6">
+                  Đặt phòng của bạn đã được xác nhận. Chúng tôi sẽ liên hệ để sắp xếp nhận bé cưng.
+                </p>
+                <button
+                  onClick={() => navigate('/my-bookings')}
+                  className="w-full bg-[#44683b] text-white py-3.5 rounded-full font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-2"
                 >
-                  Mở cổng thanh toán payOS ↗
-                </a>
-              </div>
-            )}
+                  Xem lịch sử đặt phòng <ArrowRight size={14} />
+                </button>
+              </>
+            ) : (
+              /* ── Nhánh PENDING: đang chờ thanh toán ── */
+              <>
+                <div className="w-16 h-16 bg-[#d0fac0] text-[#44683b] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle size={32} />
+                </div>
 
-            {!loadingPayos && !payosData && (
-              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 mb-4 text-center">
-                <p className="text-xs text-rose-700 font-bold">
-                  Không thể kết nối cổng thanh toán payOS. Vui lòng thanh toán lại sau trong Lịch sử đặt phòng.
+                <h3 className="text-2xl font-black text-[#303330] mb-1">Đặt phòng thành công!</h3>
+                <p className="text-xs text-[#5d605c] mb-2">
+                  Mã hóa đơn: <strong className="text-[#a43e24]">{invoiceNumber}</strong>
                 </p>
-              </div>
+                <p className="text-xs text-[#5d605c] mb-4">
+                  Trạng thái: <span className="font-bold text-amber-600">PENDING — Chờ thanh toán</span>
+                </p>
+
+                {/* Indicator đang poll */}
+                <div className="flex items-center justify-center gap-2 mb-4 text-[10px] text-[#8a7e75]">
+                  <span className="w-3 h-3 rounded-full border-2 border-[#a43e24]/30 border-t-[#a43e24] animate-spin inline-block" />
+                  Đang chờ xác nhận thanh toán...
+                </div>
+
+                {/* QR thanh toán */}
+                {loadingPayos && (
+                  <div className="bg-[#f4f4f0] border border-[#e1e3df] rounded-2xl p-8 mb-4 flex flex-col items-center justify-center min-h-[220px]">
+                    <span className="w-8 h-8 rounded-full border-4 border-[#a43e24]/20 border-t-[#a43e24] animate-spin inline-block mb-3" />
+                    <p className="text-xs text-[#8a7e75] font-bold">Đang tạo mã QR payOS...</p>
+                  </div>
+                )}
+
+                {!loadingPayos && payosData && (
+                  <div className="bg-[#f4f4f0] border border-[#e1e3df] rounded-2xl p-4 mb-4">
+                    <img
+                      src={`https://img.vietqr.io/image/${payosData.bin}-${payosData.accountNumber}-compact2.png?amount=${payosData.amount}&addInfo=${payosData.description}&accountName=${encodeURIComponent(payosData.accountName)}`}
+                      alt="QR thanh toán"
+                      className="w-52 h-52 mx-auto rounded-xl shadow-sm border border-stone-200"
+                    />
+                    <p className="text-[10px] font-black text-[#a43e24] uppercase tracking-wider mt-2">
+                      Quét VietQR để thanh toán
+                    </p>
+                    <p className="text-[10px] text-[#5d605c] mt-0.5 font-bold">
+                      Số tiền: {payosData.amount.toLocaleString('vi-VN')}đ
+                    </p>
+                    <a
+                      href={payosData.checkoutUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2.5 text-xs text-[#a43e24] hover:underline font-black block"
+                    >
+                      Mở cổng thanh toán payOS ↗
+                    </a>
+                  </div>
+                )}
+
+                {!loadingPayos && !payosData && (
+                  <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 mb-4 text-center">
+                    <p className="text-xs text-rose-700 font-bold">
+                      Không thể kết nối cổng thanh toán payOS. Vui lòng thanh toán lại sau trong Lịch sử đặt phòng.
+                    </p>
+                  </div>
+                )}
+
+                {payosData && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-left">
+                    <p className="text-xs font-bold text-amber-700">Nội dung chuyển khoản:</p>
+                    <p className="text-sm font-black text-amber-900 mt-1">{payosData.description}</p>
+                  </div>
+                )}
+
+                <p className="text-[10px] text-[#8a7e75] mb-4">
+                  Trang sẽ tự động cập nhật khi thanh toán được xác nhận.
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { stopPolling(); navigate('/my-bookings') }}
+                    className="flex-1 bg-[#a43e24] text-white py-3.5 rounded-full font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                  >
+                    Xem lịch sử đặt phòng <ArrowRight size={14} />
+                  </button>
+                </div>
+              </>
             )}
-
-            {payosData && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-left">
-                <p className="text-xs font-bold text-amber-700">Nội dung chuyển khoản:</p>
-                <p className="text-sm font-black text-amber-900 mt-1">{payosData.description}</p>
-              </div>
-            )}
-
-            <p className="text-[10px] text-[#8a7e75] mb-6">
-              Sau khi thanh toán, nhân viên sẽ xác nhận và gửi email trong vòng 15 phút.
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => navigate('/my-bookings')}
-                className="flex-1 bg-[#a43e24] text-white py-3.5 rounded-full font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-2"
-              >
-                Xem lịch sử đặt phòng <ArrowRight size={14} />
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -703,17 +871,28 @@ export const HotelDetailPage = () => {
               </div>
 
               <div className="relative h-80 md:h-[480px] rounded-3xl overflow-hidden shadow-lg group bg-stone-100">
-                <img 
-                  src={allImages[currentImageIndex]} 
-                  alt={`${hotelName} slide`} 
-                  className="w-full h-full object-cover transition-all duration-500"
-                />
+                {allImages.length > 0 ? (
+                  allImages.map((imgUrl, idx) => (
+                    <img 
+                      key={imgUrl + idx}
+                      src={imgUrl} 
+                      alt={`${hotelName} slide ${idx + 1}`} 
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+                        idx === currentImageIndex ? 'opacity-100 z-10 scale-[1.005]' : 'opacity-0 z-0 scale-100'
+                      }`}
+                    />
+                  ))
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-[#8a7e75] gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider">Chưa có ảnh cơ sở vật chất</span>
+                  </div>
+                )}
                 
                 {/* Prev Button */}
                 {allImages.length > 1 && (
                   <button 
                     onClick={handlePrevImage}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white text-[#303330] flex items-center justify-center shadow-md transition-all border border-[#e1e3df] hover:scale-105 active:scale-95"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white text-[#303330] flex items-center justify-center shadow-md transition-all border border-[#e1e3df] hover:scale-105 active:scale-95 z-20"
                   >
                     <ChevronLeft size={22} />
                   </button>
@@ -723,10 +902,27 @@ export const HotelDetailPage = () => {
                 {allImages.length > 1 && (
                   <button 
                     onClick={handleNextImage}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white text-[#303330] flex items-center justify-center shadow-md transition-all border border-[#e1e3df] hover:scale-105 active:scale-95"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white text-[#303330] flex items-center justify-center shadow-md transition-all border border-[#e1e3df] hover:scale-105 active:scale-95 z-20"
                   >
                     <ChevronRight size={22} />
                   </button>
+                )}
+
+                {/* Indicators */}
+                {allImages.length > 1 && (
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20 bg-black/25 px-4 py-2.5 rounded-full backdrop-blur-md">
+                    {allImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentImageIndex(idx)}
+                        className={`w-2 h-2 rounded-full transition-all cursor-pointer border-none outline-none ${
+                          idx === currentImageIndex 
+                            ? 'bg-white w-5 shadow-sm' 
+                            : 'bg-white/40 hover:bg-white/80'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -746,6 +942,7 @@ export const HotelDetailPage = () => {
                       <button
                         onClick={() => {
                           setEditDescriptionText(hotelDescriptionText || '')
+                          setEditAmenities(amenities)
                           setIsEditDescOpen(true)
                         }}
                         className="px-3.5 py-1.5 rounded-xl border border-[#e1e3df] text-xs font-black text-[#a43e24] hover:bg-[#a43e24]/10 transition-all flex items-center gap-1.5"
@@ -780,8 +977,11 @@ export const HotelDetailPage = () => {
                           <div className="space-y-2 mb-4">
                             <div className="flex justify-between items-start gap-4">
                               <h3 className="text-lg font-bold text-[#303330]">{room.name}</h3>
-                              <span className="text-[#a43e24] font-black text-base shrink-0">
-                                {room.pricePerNight.toLocaleString('vi-VN')} đ<span className="text-xs font-normal text-stone-500">/đêm</span>
+                              <span className="text-[#a43e24] font-black text-base shrink-0 flex flex-col items-end">
+                                <span>{room.pricePerNight.toLocaleString('vi-VN')} đ<span className="text-xs font-normal text-stone-500">/đêm</span></span>
+                                {room.dayRate !== undefined && room.dayRate !== null && (
+                                  <span className="text-xs text-stone-500 font-semibold mt-1">Gửi ngày: {room.dayRate.toLocaleString('vi-VN')} đ</span>
+                                )}
                               </span>
                             </div>
                             <span className="inline-block text-[9px] font-black text-[#2c4e24] bg-[#d0fac0] px-3 py-1 rounded-full uppercase tracking-wider">
@@ -789,16 +989,38 @@ export const HotelDetailPage = () => {
                             </span>
                             <p className="text-xs text-[#5d605c] leading-relaxed line-clamp-3">{room.description}</p>
                           </div>
-                          <button 
-                            onClick={() => {
-                              setSelectedRoomId(room.id)
-                              setShowBookingFlow(true)
-                              setStep(2) // Jump immediately to Step 2
-                            }}
-                            className="w-full py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-all bg-[#a43e24] text-white hover:bg-[#a43e24]/90 flex items-center justify-center gap-2"
-                          >
-                            Đặt ngay phòng này <ArrowRight size={14} />
-                          </button>
+                          {(() => {
+                            const avail = availabilityMap[room.id]
+                            const isFull = avail !== undefined && avail !== null && avail <= 0
+                            return (
+                              <>
+                                {avail != null && (
+                                  <p className={`text-xs font-bold mb-3 ${isFull ? 'text-rose-500' : 'text-emerald-600'}`}>
+                                    {isFull ? 'Hết phòng trong thời gian đã chọn' : `Còn ${avail} phòng trống`}
+                                  </p>
+                                )}
+                                <button
+                                  disabled={isFull}
+                                  onClick={() => {
+                                    if (!user) {
+                                      navigate('/login', { state: { from: `/hotels/${id}` } })
+                                    } else {
+                                      setSelectedRoomId(room.id)
+                                      setShowBookingFlow(true)
+                                      setStep(2)
+                                    }
+                                  }}
+                                  className={`w-full py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                                    isFull
+                                      ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                                      : 'bg-[#a43e24] text-white hover:bg-[#a43e24]/90'
+                                  }`}
+                                >
+                                  {isFull ? 'Hết phòng' : (<>Đặt ngay phòng này <ArrowRight size={14} /></>)}
+                                </button>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
                     ))}
@@ -911,8 +1133,12 @@ export const HotelDetailPage = () => {
 
                   <button 
                     onClick={() => {
-                      setShowBookingFlow(true)
-                      setStep(1) // Start from Step 1
+                      if (!user) {
+                        navigate('/login', { state: { from: `/hotels/${id}` } })
+                      } else {
+                        setShowBookingFlow(true)
+                        setStep(1) // Start from Step 1
+                      }
                     }}
                     className="w-full py-4 rounded-full bg-[#a43e24] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#a43e24]/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#a43e24]/10"
                   >
@@ -974,8 +1200,11 @@ export const HotelDetailPage = () => {
                         <div>
                           <div className="flex justify-between items-start gap-4">
                             <h3 className="text-xl font-bold text-[#303330]">{room.name}</h3>
-                            <span className="text-[#a43e24] font-black text-lg shrink-0">
-                              {room.pricePerNight.toLocaleString('vi-VN')} đ<span className="text-xs font-normal text-stone-500">/đêm</span>
+                            <span className="text-[#a43e24] font-black text-lg shrink-0 flex flex-col items-end">
+                              <span>{room.pricePerNight.toLocaleString('vi-VN')} đ<span className="text-xs font-normal text-stone-500">/đêm</span></span>
+                              {room.dayRate !== undefined && room.dayRate !== null && (
+                                <span className="text-xs text-stone-500 font-semibold mt-1">Gửi ngày: {room.dayRate.toLocaleString('vi-VN')} đ</span>
+                              )}
                             </span>
                           </div>
                           <span className="inline-block text-[9px] font-black text-[#2c4e24] bg-[#d0fac0] px-3 py-1 rounded-full mt-2 mb-3 uppercase tracking-wider">
@@ -1027,8 +1256,55 @@ export const HotelDetailPage = () => {
                 {/* Thời gian lưu trú */}
                 <div className="bg-white rounded-3xl p-6 border border-[#e1e3df] text-left">
                   <h3 className="text-sm font-bold text-[#303330] mb-4 flex items-center gap-2">
-                    <Calendar size={18} className="text-[#a43e24]" /> Thời gian lưu trú
+                    <Calendar size={18} className="text-[#a43e24]" /> Thời gian gửi
                   </h3>
+
+                  {/* Booking Type Selector */}
+                  <div className="mb-6">
+                    <label className="text-[10px] text-[#8a7e75] font-bold uppercase block mb-2">Hình thức gửi</label>
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-[#faf9f6] rounded-2xl border border-[#e1e3df]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBookingType('OVERNIGHT')
+                          if (checkOutDate && checkOutDate <= checkInDate) {
+                            setCheckOutDate('')
+                          }
+                        }}
+                        className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                          bookingType === 'OVERNIGHT'
+                            ? 'bg-[#a43e24] text-white shadow-md'
+                            : 'text-[#8a7e75] hover:text-[#a43e24]'
+                        }`}
+                      >
+                        Lưu trú qua đêm
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!activeRoom.dayRate}
+                        onClick={() => {
+                          if (activeRoom.dayRate) {
+                            setBookingType('DAYCARE')
+                          }
+                        }}
+                        className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all relative ${
+                          bookingType === 'DAYCARE'
+                            ? 'bg-[#a43e24] text-white shadow-md'
+                            : !activeRoom.dayRate
+                              ? 'opacity-40 cursor-not-allowed text-stone-400'
+                              : 'text-[#8a7e75] hover:text-[#a43e24]'
+                        }`}
+                      >
+                        Gửi ngày (Daycare)
+                        {!activeRoom.dayRate && (
+                          <span className="block text-[8px] font-bold text-rose-500 normal-case font-normal mt-0.5">
+                            Không hỗ trợ
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-[10px] text-[#8a7e75] font-bold uppercase block mb-1">Ngày nhận phòng</label>
@@ -1036,7 +1312,18 @@ export const HotelDetailPage = () => {
                         type="date"
                         value={checkInDate}
                         min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                        onChange={e => setCheckInDate(e.target.value)}
+                        onChange={e => {
+                          setCheckInDate(e.target.value)
+                          if (bookingType === 'OVERNIGHT') {
+                            if (checkOutDate && checkOutDate <= e.target.value) {
+                              setCheckOutDate('')
+                            }
+                          } else {
+                            if (checkOutDate && checkOutDate < e.target.value) {
+                              setCheckOutDate('')
+                            }
+                          }
+                        }}
                         className="w-full border border-[#e5d8d0] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
                       />
                     </div>
@@ -1045,25 +1332,47 @@ export const HotelDetailPage = () => {
                       <input
                         type="date"
                         value={checkOutDate}
-                        min={checkInDate || new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]}
+                        min={checkInDate
+                          ? (bookingType === 'OVERNIGHT'
+                            ? new Date(new Date(checkInDate).getTime() + 86400000).toISOString().split('T')[0]
+                            : checkInDate)
+                          : new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]}
                         onChange={e => setCheckOutDate(e.target.value)}
                         className="w-full border border-[#e5d8d0] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
                       />
                     </div>
                   </div>
 
-                  {nights === 0 && checkInDate && checkOutDate && (
+                  {checkInDate && checkOutDate && bookingType === 'OVERNIGHT' && nights === 0 && (
+                    <p className="mt-3 text-xs text-rose-600 font-bold">
+                      Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 đêm.
+                    </p>
+                  )}
+
+                  {bookingType === 'DAYCARE' && (
                     <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-[#e1e3df]">
                       <div>
-                        <label className="text-[10px] text-[#8a7e75] font-bold uppercase block mb-1">Giờ vào</label>
-                        <select value={entryTime} onChange={e => setEntryTime(e.target.value)} className="w-full border border-[#e5d8d0] rounded-xl px-3 py-2 text-xs bg-white outline-none">
-                          {["07:00", "08:00", "09:00", "10:00", "11:00", "12:00"].map(t => <option key={t} value={t}>{t}</option>)}
+                        <label className="text-[10px] text-[#8a7e75] font-bold uppercase block mb-1">Khung giờ gửi hàng ngày</label>
+                        <select
+                          value={entryTime}
+                          onChange={e => setEntryTime(e.target.value)}
+                          className="w-full border border-[#e5d8d0] rounded-xl px-3 py-2.5 text-xs bg-white outline-none font-bold text-[#303330]"
+                        >
+                          {["07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00"].map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
                         </select>
                       </div>
                       <div>
-                        <label className="text-[10px] text-[#8a7e75] font-bold uppercase block mb-1">Giờ ra</label>
-                        <select value={exitTime} onChange={e => setExitTime(e.target.value)} className="w-full border border-[#e5d8d0] rounded-xl px-3 py-2 text-xs bg-white outline-none">
-                          {["13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"].map(t => <option key={t} value={t}>{t}</option>)}
+                        <label className="text-[10px] text-[#8a7e75] font-bold uppercase block mb-1">Khung giờ đón hàng ngày</label>
+                        <select
+                          value={exitTime}
+                          onChange={e => setExitTime(e.target.value)}
+                          className="w-full border border-[#e5d8d0] rounded-xl px-3 py-2.5 text-xs bg-white outline-none font-bold text-[#303330]"
+                        >
+                          {["12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"].map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -1170,9 +1479,9 @@ export const HotelDetailPage = () => {
                   >
                     <ArrowLeft size={14} /> Quay lại
                   </button>
-                  <button 
+                  <button
                     onClick={() => setStep(3)}
-                    disabled={!checkInDate || !checkOutDate}
+                    disabled={!checkInDate || !checkOutDate || (bookingType === 'OVERNIGHT' ? nights < 1 : days < 1)}
                     className="flex-1 py-3.5 rounded-full bg-[#a43e24] text-white text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
                   >
                     Tiếp tục <ArrowRight size={14} />
@@ -1195,12 +1504,19 @@ export const HotelDetailPage = () => {
                   </div>
                   <div className="space-y-2 border-t border-[#e1e3df] pt-4 text-xs">
                     <div className="flex justify-between text-[#8a7e75]">
-                      <span>Giá mỗi đêm</span>
-                      <span className="font-bold text-[#303330]">{activeRoom.pricePerNight.toLocaleString('vi-VN')}đ</span>
+                      <span>{bookingType === 'DAYCARE' ? 'Giá gửi ngày' : 'Giá mỗi đêm'}</span>
+                      <span className="font-bold text-[#303330]">
+                        {bookingType === 'DAYCARE'
+                          ? `${(activeRoom.dayRate || 0).toLocaleString('vi-VN')}đ`
+                          : `${activeRoom.pricePerNight.toLocaleString('vi-VN')}đ`
+                        }
+                      </span>
                     </div>
                     <div className="flex justify-between text-[#8a7e75]">
-                      <span>Số đêm</span>
-                      <span className="font-bold text-[#303330]">{nights} đêm</span>
+                      <span>{bookingType === 'DAYCARE' ? 'Số ngày' : 'Số đêm'}</span>
+                      <span className="font-bold text-[#303330]">
+                        {bookingType === 'DAYCARE' ? `${days} ngày` : `${nights} đêm`}
+                      </span>
                     </div>
                     <div className="flex justify-between text-[#303330] font-black text-sm pt-2 border-t border-dashed border-[#e1e3df]">
                       <span>Tạm tính</span>
@@ -1391,6 +1707,18 @@ export const HotelDetailPage = () => {
                         <span className="text-[#8a7e75] block">Ngày trả</span>
                         <strong className="text-[#303330]">{checkOutDate}</strong>
                       </div>
+                      {bookingType === 'DAYCARE' && (
+                        <>
+                          <div>
+                            <span className="text-[#8a7e75] block">Giờ gửi (hàng ngày)</span>
+                            <strong className="text-[#303330]">{entryTime}</strong>
+                          </div>
+                          <div>
+                            <span className="text-[#8a7e75] block">Giờ đón (hàng ngày)</span>
+                            <strong className="text-[#303330]">{exitTime}</strong>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1456,7 +1784,7 @@ export const HotelDetailPage = () => {
                   <h3 className="text-lg font-black text-[#303330]">Tổng kết chi phí</h3>
                   <div className="space-y-3 text-xs border-b border-[#e1e3df] pb-4">
                     <div className="flex justify-between text-[#8a7e75]">
-                      <span>Tiền phòng ({nights} đêm)</span>
+                      <span>Tiền phòng ({bookingType === 'DAYCARE' ? `${days} ngày` : `${nights} đêm`})</span>
                       <span className="font-bold text-[#303330]">{roomCost.toLocaleString('vi-VN')}đ</span>
                     </div>
                     {selectedServicesList.length > 0 && (
@@ -1547,7 +1875,7 @@ export const HotelDetailPage = () => {
                     </div>
                     <div className="flex justify-between text-[#8a7e75]">
                       <span>Thời gian</span>
-                      <strong className="text-[#303330]">{nights} đêm | 1 thú cưng</strong>
+                      <strong className="text-[#303330]">{bookingType === 'DAYCARE' ? `${days} ngày` : `${nights} đêm`} | 1 thú cưng</strong>
                     </div>
                     <div className="flex justify-between text-[#8a7e75]">
                       <span>Tiền phòng</span>
@@ -1645,6 +1973,36 @@ export const HotelDetailPage = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <label className="text-[10px] text-[#8a7e75] font-bold uppercase block">Tiện ích / Tiện nghi bổ sung</label>
+              <div className="grid grid-cols-3 gap-3 p-4 bg-stone-50 rounded-2xl border border-[#e1e3df] text-xs">
+                {[
+                  { id: 'Private Garden', label: 'Sân vườn riêng' },
+                  { id: 'Điều hòa (AC)', label: 'Điều hòa nhiệt độ' },
+                  { id: 'Camera 24/7', label: 'Camera 24/7' }
+                ].map(item => {
+                  const isChecked = editAmenities.includes(item.id)
+                  return (
+                    <label key={item.id} className="flex items-center gap-2 cursor-pointer font-bold text-[#5d605c] hover:text-[#303330] transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isChecked) {
+                            setEditAmenities(editAmenities.filter(a => a !== item.id))
+                          } else {
+                            setEditAmenities([...editAmenities, item.id])
+                          }
+                        }}
+                        className="rounded text-[#a43e24] focus:ring-0"
+                      />
+                      <span>{item.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
             <div className="flex gap-3 justify-end pt-2">
               <button
                 type="button"
@@ -1656,7 +2014,7 @@ export const HotelDetailPage = () => {
               <button
                 type="button"
                 disabled={updating}
-                onClick={() => handleUpdateHotelDetail(editDescriptionText, logoUrl || '', frontUrls, roomsUrls, imageUrls)}
+                onClick={() => handleUpdateHotelDetail(editDescriptionText, logoUrl || '', frontUrls, roomsUrls, imageUrls, editAmenities)}
                 className="px-6 py-2.5 rounded-full bg-[#a43e24] text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
               >
                 {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
@@ -1830,7 +2188,7 @@ export const HotelDetailPage = () => {
                 type="button"
                 disabled={updating}
                 onClick={() => {
-                  handleUpdateHotelDetail(hotelDescriptionText || '', editLogoUrl, editFrontUrls, editRoomsUrls, editImageUrls)
+                  handleUpdateHotelDetail(hotelDescriptionText || '', editLogoUrl, editFrontUrls, editRoomsUrls, editImageUrls, amenities)
                 }}
                 className="px-6 py-2.5 rounded-full bg-[#a43e24] text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
               >

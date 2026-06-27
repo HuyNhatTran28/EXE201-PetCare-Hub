@@ -1,16 +1,22 @@
 package com.petcare_hub.dto.request;
 
 import com.petcare_hub.enums.PaymentMethod;
+import com.petcare_hub.enums.BookingType;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
 @Data
 public class BookingRequest {
+
+    private BookingType bookingType = BookingType.OVERNIGHT;
+    private LocalTime dropOffTime;
+    private LocalTime pickUpTime;
 
     @NotNull(message = "Loại phòng không được để trống")
     private UUID roomTypeId;

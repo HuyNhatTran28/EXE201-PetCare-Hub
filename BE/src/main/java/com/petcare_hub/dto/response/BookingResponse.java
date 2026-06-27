@@ -2,12 +2,14 @@ package com.petcare_hub.dto.response;
 
 import com.petcare_hub.enums.BookingStatus;
 import com.petcare_hub.enums.PaymentMethod;
+import com.petcare_hub.enums.BookingType;
 import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +28,8 @@ public class BookingResponse {
     private String hotelAddress;
     private UUID roomTypeId;
     private String roomTypeName;
+    private String hotelCheckInTime;
+    private String hotelCheckOutTime;
 
     // Thú cưng
     private List<PetInfo> pets;
@@ -34,6 +38,10 @@ public class BookingResponse {
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
     private Integer totalNights;
+    private BookingType bookingType;
+    private LocalTime dropOffTime;
+    private LocalTime pickUpTime;
+    private Integer totalDays;
 
     // Tài chính
     private BigDecimal totalAmount;

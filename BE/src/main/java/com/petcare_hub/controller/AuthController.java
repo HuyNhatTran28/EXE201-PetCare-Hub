@@ -29,12 +29,29 @@ public class AuthController {
 
     @Operation(summary = "Đăng ký tài khoản mới")
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(
+    public ResponseEntity<Map<String, String>> register(
             @Valid @RequestBody RegisterRequest request) {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(authService.register(request));
+    }
+
+    @Operation(summary = "Xác thực OTP đăng ký")
+    @PostMapping("/register/verify")
+    public ResponseEntity<AuthResponse> verifyRegisterOtp(
+            @Valid @RequestBody VerifyRegisterOtpRequest request) {
+        return ResponseEntity.ok(authService.verifyRegisterOtp(request));
+    }
+
+    @Operation(summary = "Gửi lại OTP đăng ký")
+    @PostMapping("/register/resend-otp")
+    public ResponseEntity<Map<String, String>> resendRegisterOtp(
+            @Valid @RequestBody ResendRegisterOtpRequest request) {
+        authService.resendRegisterOtp(request.getEmail());
+        return ResponseEntity.ok(Map.of(
+                "message", "Mã OTP mới đã được gửi về email của bạn"
+        ));
     }
 
 
@@ -128,5 +145,15 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
                 "message", "Đặt lại mật khẩu thành công."
         ));
+    }
+
+    @Operation(summary = "Đổi mật khẩu lần đầu (nhân viên mới — không cần OTP)")
+    @PostMapping("/force-change-password")
+    public ResponseEntity<Map<String, String>> forceChangePassword(
+            @Valid @RequestBody ForceChangePasswordRequest request,
+            Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        authService.forceChangePassword(userId, request);
+        return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công"));
     }
 }

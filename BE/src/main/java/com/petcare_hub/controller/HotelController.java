@@ -46,8 +46,13 @@ public class HotelController {
     // ── GET /api/hotels/{id} — Xem chi tiết KS ────────────────
     @Operation(summary = "Xem chi tiết khách sạn")
     @GetMapping("/{id}")
-    public ResponseEntity<HotelResponse> getHotel(@PathVariable UUID id) {
-        return ResponseEntity.ok(hotelService.getHotelById(id));
+    public ResponseEntity<HotelResponse> getHotel(
+            @PathVariable UUID id,
+            Authentication auth) {
+        UUID requesterId = (auth != null) ? (UUID) auth.getPrincipal() : null;
+        boolean isAdmin  = (auth != null) && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return ResponseEntity.ok(hotelService.getHotelById(id, requesterId, isAdmin));
     }
 
     // ── GET /api/hotels/my — Partner xem KS của mình ──────────
@@ -107,6 +112,17 @@ public class HotelController {
 
         UUID partnerId = (UUID) auth.getPrincipal();
         return ResponseEntity.ok(hotelService.toggleHotelStatus(id, partnerId));
+    }
+
+    // ── PATCH /api/hotels/{id}/resubmit — Partner gửi duyệt lại sau khi bị từ chối ──
+    @Operation(summary = "Partner gửi duyệt lại khách sạn bị từ chối")
+    @PatchMapping("/{id}/resubmit")
+    @PreAuthorize("hasRole('PARTNER')")
+    public ResponseEntity<HotelResponse> resubmitHotel(
+            @PathVariable UUID id,
+            Authentication auth) {
+        UUID partnerId = (UUID) auth.getPrincipal();
+        return ResponseEntity.ok(hotelService.resubmitHotel(id, partnerId));
     }
 
     // ── GET /api/hotels/nearby — Tìm KS gần GPS hoặc tất cả KS nếu không truyền tọa độ ──

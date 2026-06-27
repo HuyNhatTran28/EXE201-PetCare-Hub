@@ -6,6 +6,7 @@ import com.petcare_hub.entity.Booking;
 import com.petcare_hub.entity.Hotel;
 import com.petcare_hub.entity.Review;
 import com.petcare_hub.enums.BookingStatus;
+import com.petcare_hub.enums.HotelStatus;
 import com.petcare_hub.exception.AppException;
 import com.petcare_hub.repository.BookingRepository;
 import com.petcare_hub.repository.HotelRepository;
@@ -72,6 +73,11 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public Page<ReviewResponse> getHotelReviews(UUID hotelId, Pageable pageable) {
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new AppException("Không tìm thấy khách sạn", HttpStatus.NOT_FOUND));
+        if (hotel.getStatus() != HotelStatus.ACTIVE) {
+            throw new AppException("Cơ sở không khả dụng", HttpStatus.NOT_FOUND);
+        }
         return reviewRepository.findByHotelIdOrderByCreatedAtDesc(hotelId, pageable)
                 .map(this::toResponse);
     }

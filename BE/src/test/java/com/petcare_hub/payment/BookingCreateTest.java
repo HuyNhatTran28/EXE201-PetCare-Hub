@@ -19,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
@@ -90,10 +91,12 @@ class BookingCreateTest {
         when(hotelMock.getId()).thenReturn(HOTEL_ID);
         when(hotelMock.getName()).thenReturn("Test Hotel");
         when(hotelMock.getAddress()).thenReturn("123 Test St");
+        when(hotelMock.getStatus()).thenReturn(HotelStatus.ACTIVE);
         when(hotelRepository.findById(HOTEL_ID)).thenReturn(Optional.of(hotelMock));
 
         otherHotelMock = mock(Hotel.class);
         when(otherHotelMock.getId()).thenReturn(UUID.randomUUID()); // khác HOTEL_ID
+        when(otherHotelMock.getStatus()).thenReturn(HotelStatus.ACTIVE);
 
         RoomType roomType = mock(RoomType.class);
         when(roomType.getId()).thenReturn(ROOM_TYPE_ID);
@@ -307,5 +310,220 @@ class BookingCreateTest {
         assertThat(b.getTotalAmount())
                 .as("totalAmount = 540,000 (service charge 1 lần, không phải 3 lần)")
                 .isEqualByComparingTo(expectedTotal);
+    }
+
+    // ─── TEST X ───────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("[X] check-in = check-out (0 đêm) → AppException HTTP 400, booking không được tạo")
+    void X_checkInEqualsCheckOut_throwsException() {
+        BookingRequest req = new BookingRequest();
+        req.setHotelId(HOTEL_ID);
+        req.setRoomTypeId(ROOM_TYPE_ID);
+        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        req.setCheckInDate(tomorrow);
+        req.setCheckOutDate(tomorrow); // cùng ngày → 0 đêm
+        req.setPetIds(List.of(PET_ID));
+        req.setServiceIds(List.of());
+        req.setPaymentMethod(PaymentMethod.VIETQR);
+
+        assertThatThrownBy(() -> bookingService.createBooking(OWNER_ID, req))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining("ít nhất 1 đêm");
+
+        verify(bookingRepository, never()).save(any());
+    }
+
+    // ─── TEST Y ───────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("[Y] Đặt 2 đêm → roomTotal = pricePerNight × 2, không bị ép thành 1 đêm")
+    void Y_twoNights_roomTotalIsDoubled() {
+        // 2 đêm × 200,000 = 400,000; taxableBase = 400,000 (không dịch vụ)
+        // vatAmount(8%) = 32,000; totalAmount = 432,000
+        BookingRequest req = new BookingRequest();
+        req.setHotelId(HOTEL_ID);
+        req.setRoomTypeId(ROOM_TYPE_ID);
+        req.setCheckInDate(LocalDate.now().plusDays(1));
+        req.setCheckOutDate(LocalDate.now().plusDays(3)); // 2 đêm
+        req.setPetIds(List.of(PET_ID));
+        req.setServiceIds(List.of());
+        req.setPaymentMethod(PaymentMethod.VIETQR);
+
+        Booking[] captured = new Booking[1];
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            captured[0] = inv.getArgument(0);
+            return savedBookingMock();
+        });
+
+        bookingService.createBooking(OWNER_ID, req);
+
+        BigDecimal expectedRoomTotal = PRICE_PER_NIGHT.multiply(BigDecimal.valueOf(2)); // 400,000
+        BigDecimal expectedVat = expectedRoomTotal.multiply(BigDecimal.valueOf(0.08)).setScale(0, java.math.RoundingMode.HALF_UP); // 32,000
+        BigDecimal expectedTotal = expectedRoomTotal.add(expectedVat); // 432,000
+
+        assertThat(captured[0].getTotalAmount())
+                .as("2 đêm × 200,000 × 1.08 = 432,000 (roomTotal KHÔNG bị ép thành 1 đêm)")
+                .isEqualByComparingTo(expectedTotal);
+    }
+
+    // ─── DAYCARE TESTS ────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("Đặt Daycare cùng ngày (1 ngày) -> roomTotal = dayRate * 1")
+    void testCreateDaycareBookingSameDay() {
+        RoomType roomType = roomTypeRepository.findById(ROOM_TYPE_ID).orElseThrow();
+        when(roomType.getDayRate()).thenReturn(new BigDecimal("150000"));
+
+        BookingRequest req = new BookingRequest();
+        req.setHotelId(HOTEL_ID);
+        req.setRoomTypeId(ROOM_TYPE_ID);
+        req.setCheckInDate(LocalDate.now().plusDays(1));
+        req.setCheckOutDate(LocalDate.now().plusDays(1)); // Cùng ngày
+        req.setPetIds(List.of(PET_ID));
+        req.setServiceIds(List.of());
+        req.setPaymentMethod(PaymentMethod.VIETQR);
+        req.setBookingType(BookingType.DAYCARE);
+        req.setDropOffTime(LocalTime.of(8, 0));
+        req.setPickUpTime(LocalTime.of(18, 0));
+
+        Booking[] captured = new Booking[1];
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            captured[0] = inv.getArgument(0);
+            return savedBookingMock();
+        });
+
+        bookingService.createBooking(OWNER_ID, req);
+
+        Booking b = captured[0];
+        assertThat(b.getBookingType()).isEqualTo(BookingType.DAYCARE);
+        assertThat(b.getDropOffTime()).isEqualTo(LocalTime.of(8, 0));
+        assertThat(b.getPickUpTime()).isEqualTo(LocalTime.of(18, 0));
+
+        // roomTotal = 150.000 * 1 = 150.000
+        // VAT(8%) = 12.000
+        // totalAmount = 162.000
+        assertThat(b.getTotalAmount()).isEqualByComparingTo(new BigDecimal("162000"));
+    }
+
+    @Test
+    @DisplayName("Đặt Daycare nhiều ngày (3 ngày) -> roomTotal = dayRate * 3")
+    void testCreateDaycareBookingMultipleDays() {
+        RoomType roomType = roomTypeRepository.findById(ROOM_TYPE_ID).orElseThrow();
+        when(roomType.getDayRate()).thenReturn(new BigDecimal("150000"));
+
+        BookingRequest req = new BookingRequest();
+        req.setHotelId(HOTEL_ID);
+        req.setRoomTypeId(ROOM_TYPE_ID);
+        req.setCheckInDate(LocalDate.now().plusDays(1));
+        req.setCheckOutDate(LocalDate.now().plusDays(3)); // 3 ngày
+        req.setPetIds(List.of(PET_ID));
+        req.setServiceIds(List.of());
+        req.setPaymentMethod(PaymentMethod.VIETQR);
+        req.setBookingType(BookingType.DAYCARE);
+        req.setDropOffTime(LocalTime.of(8, 0));
+        req.setPickUpTime(LocalTime.of(18, 0));
+
+        Booking[] captured = new Booking[1];
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            captured[0] = inv.getArgument(0);
+            return savedBookingMock();
+        });
+
+        bookingService.createBooking(OWNER_ID, req);
+
+        Booking b = captured[0];
+        // roomTotal = 150.000 * 3 = 450.000
+        // VAT(8%) = 36.000
+        // totalAmount = 486.000
+        assertThat(b.getTotalAmount()).isEqualByComparingTo(new BigDecimal("486000"));
+    }
+
+    @Test
+    @DisplayName("Đặt Daycare ở phòng không hỗ trợ Daycare -> ném AppException")
+    void testCreateDaycareMissingDayRate() {
+        RoomType roomType = roomTypeRepository.findById(ROOM_TYPE_ID).orElseThrow();
+        when(roomType.getDayRate()).thenReturn(null); // Không có dayRate
+
+        BookingRequest req = new BookingRequest();
+        req.setHotelId(HOTEL_ID);
+        req.setRoomTypeId(ROOM_TYPE_ID);
+        req.setCheckInDate(LocalDate.now().plusDays(1));
+        req.setCheckOutDate(LocalDate.now().plusDays(1));
+        req.setPetIds(List.of(PET_ID));
+        req.setServiceIds(List.of());
+        req.setPaymentMethod(PaymentMethod.VIETQR);
+        req.setBookingType(BookingType.DAYCARE);
+        req.setDropOffTime(LocalTime.of(8, 0));
+        req.setPickUpTime(LocalTime.of(18, 0));
+
+        assertThatThrownBy(() -> bookingService.createBooking(OWNER_ID, req))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining("không hỗ trợ dịch vụ gửi ngày");
+
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Đặt Daycare có giờ nhận >= giờ trả -> ném AppException")
+    void testCreateDaycareInvalidTimes() {
+        RoomType roomType = roomTypeRepository.findById(ROOM_TYPE_ID).orElseThrow();
+        when(roomType.getDayRate()).thenReturn(new BigDecimal("150000"));
+
+        BookingRequest req = new BookingRequest();
+        req.setHotelId(HOTEL_ID);
+        req.setRoomTypeId(ROOM_TYPE_ID);
+        req.setCheckInDate(LocalDate.now().plusDays(1));
+        req.setCheckOutDate(LocalDate.now().plusDays(1));
+        req.setPetIds(List.of(PET_ID));
+        req.setServiceIds(List.of());
+        req.setPaymentMethod(PaymentMethod.VIETQR);
+        req.setBookingType(BookingType.DAYCARE);
+        req.setDropOffTime(LocalTime.of(17, 0));
+        req.setPickUpTime(LocalTime.of(8, 0)); // Nhận sau Trả!
+
+        assertThatThrownBy(() -> bookingService.createBooking(OWNER_ID, req))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining("Giờ nhận phải trước giờ trả");
+
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Đặt Daycare có dịch vụ đi kèm -> dịch vụ tính 1 lần duy nhất")
+    void testCreateDaycareWithServices() {
+        RoomType roomType = roomTypeRepository.findById(ROOM_TYPE_ID).orElseThrow();
+        when(roomType.getDayRate()).thenReturn(new BigDecimal("150000"));
+
+        mockService(SVC_ID_1, SVC1_PRICE, hotelMock); // 100.000
+
+        BookingRequest req = new BookingRequest();
+        req.setHotelId(HOTEL_ID);
+        req.setRoomTypeId(ROOM_TYPE_ID);
+        req.setCheckInDate(LocalDate.now().plusDays(1));
+        req.setCheckOutDate(LocalDate.now().plusDays(3)); // 3 ngày
+        req.setPetIds(List.of(PET_ID));
+        req.setServiceIds(List.of(SVC_ID_1));
+        req.setPaymentMethod(PaymentMethod.VIETQR);
+        req.setBookingType(BookingType.DAYCARE);
+        req.setDropOffTime(LocalTime.of(8, 0));
+        req.setPickUpTime(LocalTime.of(18, 0));
+
+        Booking[] captured = new Booking[1];
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            captured[0] = inv.getArgument(0);
+            return savedBookingMock();
+        });
+
+        bookingService.createBooking(OWNER_ID, req);
+
+        Booking b = captured[0];
+        // roomTotal = 150.000 * 3 = 450.000
+        // serviceTotal = 100.000 (tính 1 lần duy nhất)
+        // taxableBase = 550.000
+        // VAT(8%) = 44.000
+        // totalAmount = 594.000
+        assertThat(b.getTotalAmount()).isEqualByComparingTo(new BigDecimal("594000"));
+        assertThat(b.getServices()).hasSize(1);
     }
 }
