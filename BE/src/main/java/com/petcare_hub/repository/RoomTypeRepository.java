@@ -22,13 +22,12 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, UUID> {
     // Lấy tất cả phòng active kèm hotel (JOIN FETCH để tránh LazyInit khi đọc hotel.id ngoài transaction)
     @Query("SELECT r FROM RoomType r JOIN FETCH r.hotel WHERE r.isActive = true")
     List<RoomType> findAllActiveWithHotel();
-  
+
     // Lấy tất cả phòng active (của hotel ACTIVE) cho chó/mèo, sắp xếp theo giá giảm dần
     @Query(value = "SELECT r.* FROM room_types r " +
                    "JOIN hotels h ON r.hotel_id = h.id " +
                    "WHERE r.is_active = true " +
                    "AND h.status = 'ACTIVE' " +
-
                    "AND (r.allowed_pet_types @> CAST('[\"DOG\"]' AS jsonb) " +
                    "     OR r.allowed_pet_types @> CAST('[\"dog\"]' AS jsonb) " +
                    "     OR r.allowed_pet_types @> CAST('[\"CAT\"]' AS jsonb) " +

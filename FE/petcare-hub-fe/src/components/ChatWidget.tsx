@@ -7,7 +7,6 @@ import axiosInstance from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
 import { useChatSocket, type MessageResponse } from '@/hooks/useChatSocket'
 
-// ── AI types ──────────────────────────────────────────────────────────────────
 
 
 interface SuggestedRoom {
@@ -18,9 +17,7 @@ interface SuggestedRoom {
   hotelId: string
 }
 
-        
 interface AiMessage {
-
   role: 'user' | 'model'
   content: string
   suggestedRooms?: SuggestedRoom[]
@@ -35,8 +32,14 @@ interface ConversationItem {
   hotelName: string
   lastMessageAt: string | null
   lastMessageContent: string | null
-  unreadCount: number
+  petNames?: string
+  checkInDate?: string
+  checkOutDate?: string
+  bookingType?: 'OVERNIGHT' | 'DAYCARE'
+  unreadCount?: number
 }
+
+const FALLBACK_IMG = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600'
 
 // ── Tab ────────────────────────────────────────────────────────────────────────
 
@@ -46,7 +49,6 @@ type Tab = 'ai' | 'chat'
 
 const STORAGE_HISTORY = 'petcare_chat_history'
 const STORAGE_OPEN    = 'petcare_chat_open'
-const FALLBACK_IMG    = 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400'
 
 
 function readSession<T>(key: string, fallback: T): T {
@@ -259,6 +261,15 @@ export const ChatWidget = () => {
     }
   }
 
+  const handleDeleteConv = async (convId: string) => {
+    if (!confirm('Bạn có chắc muốn xóa cuộc trò chuyện này?')) return
+    try {
+      await axiosInstance.delete(`/api/conversations/${convId}`)
+      setConversations(prev => prev.filter(c => c.id !== convId))
+    } catch {
+      alert('Không thể xóa cuộc trò chuyện. Vui lòng thử lại.')
+    }
+  }
   const goBack = () => {
     setSelectedConv(null)
     setChatMessages([])
@@ -325,14 +336,19 @@ export const ChatWidget = () => {
                   <ChevronLeft size={18} />
                 </button>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate">{selectedConv.hotelName}</p>
+                  <p className="font-bold text-xs truncate leading-tight">{selectedConv.hotelName}</p>
+                  {selectedConv.petNames && (
+                    <p className="text-[9px] text-white/80 truncate leading-none mt-0.5">
+                      Bé: {selectedConv.petNames} • {selectedConv.bookingType === 'DAYCARE' ? 'Gửi ngày' : 'Gửi qua đêm'}
+                    </p>
+                  )}
                   <div className="flex items-center gap-1 mt-0.5">
                     {status === 'connected' ? (
-                      <><Wifi size={9} className="text-white/80" /><span className="text-[9px] text-white/80">Đã kết nối</span></>
+                      <><Wifi size={8} className="text-white/85" /><span className="text-[8px] text-white/85">Đã kết nối</span></>
                     ) : status === 'connecting' ? (
-                      <><Loader2 size={9} className="animate-spin text-white/80" /><span className="text-[9px] text-white/80">Đang kết nối...</span></>
+                      <><Loader2 size={8} className="animate-spin text-white/85" /><span className="text-[8px] text-white/85">Đang kết nối...</span></>
                     ) : (
-                      <><WifiOff size={9} className="text-white/60" /><span className="text-[9px] text-white/60">Mất kết nối</span></>
+                      <><WifiOff size={8} className="text-white/60" /><span className="text-[8px] text-white/60">Mất kết nối</span></>
                     )}
                   </div>
                 </div>
@@ -358,10 +374,10 @@ export const ChatWidget = () => {
           {/* Tab bar — ẩn khi đang trong cửa sổ chat cụ thể */}
           {!inConvView && (
             <div className="flex border-t border-white/20">
-              {([
-                { id: 'ai'   as Tab, icon: <Bot size={12}/>,            label: 'Trợ lý AI' },
-                { id: 'chat' as Tab, icon: <MessageCircle size={12}/>,  label: 'Nhắn khách sạn', authOnly: true },
-              ] as const).map(t => {
+              {[
+                { id: 'ai' as Tab, icon: <Bot size={12}/>, label: 'Trợ lý AI', authOnly: false },
+                { id: 'chat' as Tab, icon: <MessageCircle size={12}/>, label: 'Nhắn khách sạn', authOnly: true },
+              ].map(t => {
                 if (t.authOnly && !user) return null
                 return (
                   <button
@@ -436,28 +452,62 @@ export const ChatWidget = () => {
                   <button
                     key={conv.id}
                     onClick={() => openConversation(conv)}
-                    className="flex items-center gap-3 px-4 py-3.5 hover:bg-[#f5ede8] transition-colors border-b border-[#f0e4de] text-left"
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-[#f5ede8] transition-colors border-b border-[#f0e4de] text-left"
                   >
-                    {/* Avatar placeholder */}
-                    <div className="w-10 h-10 rounded-full bg-[#e5d8d0] flex items-center justify-center shrink-0">
-                      <MessageCircle size={16} className="text-[#a43e24]" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <p className="text-xs font-bold text-[#303330] truncate">{conv.hotelName}</p>
-                        <span className="text-[10px] text-[#8a7e75] shrink-0 ml-1">{fmtTime(conv.lastMessageAt)}</span>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* Avatar placeholder */}
+                      <div className="w-10 h-10 rounded-full bg-[#e5d8d0] flex items-center justify-center shrink-0">
+                        <MessageCircle size={16} className="text-[#a43e24]" />
                       </div>
-                      <p className="text-[11px] text-[#8a7e75] truncate">
-                        {conv.lastMessageContent ?? 'Bắt đầu cuộc trò chuyện...'}
-                      </p>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-[#303330] truncate mb-0.5">{conv.hotelName}</p>
+                        
+                        {/* Pet names and Stay dates */}
+                        {(conv.petNames || conv.checkInDate) && (
+                          <div className="flex flex-wrap gap-1 mb-1">
+                            {conv.petNames && (
+                              <span className="bg-[#feeadb] text-[#a43e24] text-[8px] font-bold px-1.5 py-0.5 rounded">
+                                Bé: {conv.petNames}
+                              </span>
+                            )}
+                            {conv.checkInDate && (
+                              <span className="bg-[#e2edd5] text-[#2c4e24] text-[8px] font-bold px-1.5 py-0.5 rounded">
+                                {conv.bookingType === 'DAYCARE'
+                                  ? `Gửi ngày: ${conv.checkInDate.split('-').reverse().slice(0, 2).join('/')}`
+                                  : `Gửi: ${conv.checkInDate.split('-').reverse().slice(0, 2).join('/')} - ${conv.checkOutDate?.split('-').reverse().slice(0, 2).join('/')}`}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        <p className="text-[11px] text-[#8a7e75] truncate">
+                          {conv.lastMessageContent ?? 'Bắt đầu cuộc trò chuyện...'}
+                        </p>
+                      </div>
                     </div>
 
-                    {(conv.unreadCount ?? 0) > 0 && (
-                      <span className="w-5 h-5 rounded-full bg-[#a43e24] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                        {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
-                      </span>
-                    )}
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <span className="text-[10px] text-[#8a7e75]">{fmtTime(conv.lastMessageAt)}</span>
+                      <div className="flex items-center gap-2">
+                        {(conv.unreadCount ?? 0) > 0 && (
+                          <span className="w-5 h-5 rounded-full bg-[#a43e24] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                            {(conv.unreadCount ?? 0) > 9 ? '9+' : conv.unreadCount}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteConv(conv.id)
+                          }}
+                          className="p-1 hover:bg-black/5 rounded-full text-stone-400 hover:text-rose-600 transition-colors shrink-0"
+                          title="Xóa cuộc trò chuyện"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
                   </button>
                 ))
               )}

@@ -16,6 +16,13 @@ import {
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
+import { cleanAddressDisplay } from '@/utils/cleanAddress'
+const formatNumberWithDots = (val: string | number | undefined | null) => {
+  if (val === undefined || val === null || val === '') return ''
+  const numStr = String(val).replace(/[^0-9]/g, '')
+  if (!numStr) return ''
+  return Number(numStr).toLocaleString('vi-VN')
+}
 
 interface RoomType {
   id: string
@@ -238,12 +245,12 @@ export const RoomManagePage = () => {
 
   const handleUpdateRoom = async () => {
     if (!editRoom) return
-    if (Number(editRoom.pricePerNight) < 0) {
-      alert('Giá thuê không được âm!')
+    if (Number(editRoom.pricePerNight) <= 0) {
+      alert('Giá thuê phải lớn hơn 0!')
       return
     }
-    if (editRoom.dayRate !== undefined && editRoom.dayRate !== null && Number(editRoom.dayRate) < 0) {
-      alert('Giá gửi ngày không được âm!')
+    if (editRoom.dayRate !== undefined && editRoom.dayRate !== null && String(editRoom.dayRate) !== '' && Number(editRoom.dayRate) <= 0) {
+      alert('Giá gửi ngày phải lớn hơn 0!')
       return
     }
     if (Number(editRoom.totalRooms) <= 0) {
@@ -279,16 +286,20 @@ export const RoomManagePage = () => {
 
   const handleCreateRoom = async () => {
     if (!form.name || !form.pricePerNight || !form.totalRooms) return
-    if (Number(form.pricePerNight) < 0) {
-      alert('Giá thuê không được âm!')
+    if (Number(form.pricePerNight) <= 0) {
+      alert('Giá thuê phải lớn hơn 0!')
       return
     }
-    if (form.dayRate && Number(form.dayRate) < 0) {
-      alert('Giá gửi ngày không được âm!')
+    if (form.dayRate && Number(form.dayRate) <= 0) {
+      alert('Giá gửi ngày phải lớn hơn 0!')
       return
     }
     if (Number(form.totalRooms) <= 0) {
       alert('Tổng số phòng phải lớn hơn 0!')
+      return
+    }
+    if (form.maxPets && Number(form.maxPets) <= 0) {
+      alert('Số lượng tối đa thú cưng phải lớn hơn 0!')
       return
     }
     setSubmitting(true)
@@ -402,7 +413,7 @@ export const RoomManagePage = () => {
                   </span>
                 </div>
                 <p className="text-xs text-[#8a7e75] flex items-center gap-1.5 leading-relaxed">
-                  <MapPin size={14} className="text-[#fa7150] shrink-0" /> {hotel.address}
+                  <MapPin size={14} className="text-[#fa7150] shrink-0" /> {cleanAddressDisplay(hotel.address)}
                 </p>
                 <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-[#5a5550]">
                   <span>🕒 Giờ mở cửa: <strong className="text-[#303330]">{hotel.checkInTime || '08:00'} - {hotel.checkOutTime || '20:00'}</strong></span>
@@ -494,8 +505,8 @@ export const RoomManagePage = () => {
                     <button
                       onClick={() => handleToggleRoomActive(room.id, room.isActive !== false)}
                       className={`p-2.5 rounded-2xl border transition-all cursor-pointer ${room.isActive !== false
-                          ? 'bg-rose-50 border-rose-100 text-rose-500 hover:bg-rose-100'
-                          : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
+                        ? 'bg-rose-50 border-rose-100 text-rose-500 hover:bg-rose-100'
+                        : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
                         }`}
                       title={room.isActive !== false ? "Tạm ngưng hoạt động" : "Kích hoạt lại"}
                     >
@@ -593,29 +604,21 @@ export const RoomManagePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá/đêm (đ) *</label>
                   <input
-                    type="number"
-                    min="0"
-                    value={form.pricePerNight}
-                    onKeyDown={e => {
-                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === '.') e.preventDefault()
-                    }}
+                    type="text"
+                    value={formatNumberWithDots(form.pricePerNight)}
                     onChange={e => {
                       const val = e.target.value.replace(/[^0-9]/g, '');
                       setForm({ ...form, pricePerNight: val })
                     }}
-                    placeholder="350000"
+                    placeholder="350.000"
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
                   />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá gửi ngày (đ)</label>
                   <input
-                    type="number"
-                    min="0"
-                    value={form.dayRate}
-                    onKeyDown={e => {
-                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === '.') e.preventDefault()
-                    }}
+                    type="text"
+                    value={formatNumberWithDots(form.dayRate)}
                     onChange={e => {
                       const val = e.target.value.replace(/[^0-9]/g, '');
                       setForm({ ...form, dayRate: val })
@@ -630,12 +633,8 @@ export const RoomManagePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Tổng phòng *</label>
                   <input
-                    type="number"
-                    min="1"
+                    type="text"
                     value={form.totalRooms}
-                    onKeyDown={e => {
-                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === '.') e.preventDefault()
-                    }}
                     onChange={e => {
                       const val = e.target.value.replace(/[^0-9]/g, '');
                       setForm({ ...form, totalRooms: val })
@@ -647,12 +646,8 @@ export const RoomManagePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Max thú cưng / phòng</label>
                   <input
-                    type="number"
-                    min="1"
+                    type="text"
                     value={form.maxPets}
-                    onKeyDown={e => {
-                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === '.') e.preventDefault()
-                    }}
                     onChange={e => {
                       const val = e.target.value.replace(/[^0-9]/g, '');
                       setForm({ ...form, maxPets: val })
@@ -680,8 +675,8 @@ export const RoomManagePage = () => {
                         })
                       }}
                       className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${form.allowedPetTypes.includes(type)
-                          ? 'bg-[#fa7150] text-white border-[#fa7150]'
-                          : 'border-[#e5d8d0] text-[#8a7e75]'
+                        ? 'bg-[#fa7150] text-white border-[#fa7150]'
+                        : 'border-[#e5d8d0] text-[#8a7e75]'
                         }`}
                     >
                       {type === 'DOG' ? 'Chó' : 'Mèo'}
@@ -723,8 +718,8 @@ export const RoomManagePage = () => {
 
                 {/* Input upload */}
                 <label className={`flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${uploadingImage
-                    ? 'border-[#ffac98] bg-[#fff7f4]'
-                    : 'border-[#e5d8d0] hover:border-[#fa7150] hover:bg-[#fff7f4]'
+                  ? 'border-[#ffac98] bg-[#fff7f4]'
+                  : 'border-[#e5d8d0] hover:border-[#fa7150] hover:bg-[#fff7f4]'
                   }`}>
                   <input
                     type="file"
@@ -798,12 +793,8 @@ export const RoomManagePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá/đêm</label>
                   <input
-                    type="number"
-                    min="0"
-                    value={editRoom.pricePerNight}
-                    onKeyDown={e => {
-                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === '.') e.preventDefault()
-                    }}
+                    type="text"
+                    value={formatNumberWithDots(editRoom.pricePerNight)}
                     onChange={e => {
                       const val = e.target.value.replace(/[^0-9]/g, '');
                       setEditRoom({ ...editRoom, pricePerNight: Number(val) })
@@ -814,12 +805,8 @@ export const RoomManagePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá gửi ngày (đ)</label>
                   <input
-                    type="number"
-                    min="0"
-                    value={editRoom.dayRate || ''}
-                    onKeyDown={e => {
-                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === '.') e.preventDefault()
-                    }}
+                    type="text"
+                    value={formatNumberWithDots(editRoom.dayRate)}
                     onChange={e => {
                       const val = e.target.value.replace(/[^0-9]/g, '');
                       setEditRoom({ ...editRoom, dayRate: val ? Number(val) : null })
@@ -834,12 +821,8 @@ export const RoomManagePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Tổng phòng</label>
                   <input
-                    type="number"
-                    min="1"
-                    value={editRoom.totalRooms}
-                    onKeyDown={e => {
-                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === '.') e.preventDefault()
-                    }}
+                    type="text"
+                    value={editRoom.totalRooms === 0 ? '' : editRoom.totalRooms}
                     onChange={e => {
                       const val = e.target.value.replace(/[^0-9]/g, '');
                       setEditRoom({ ...editRoom, totalRooms: Number(val) })
@@ -850,12 +833,8 @@ export const RoomManagePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Max thú cưng / phòng</label>
                   <input
-                    type="number"
-                    min="1"
-                    value={editRoom.maxPets}
-                    onKeyDown={e => {
-                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === '.') e.preventDefault()
-                    }}
+                    type="text"
+                    value={editRoom.maxPets === 0 ? '' : editRoom.maxPets}
                     onChange={e => {
                       const val = e.target.value.replace(/[^0-9]/g, '');
                       setEditRoom({ ...editRoom, maxPets: Number(val) })
@@ -882,8 +861,8 @@ export const RoomManagePage = () => {
                         })
                       }}
                       className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${editRoom.allowedPetTypes?.includes(type)
-                          ? 'bg-[#fa7150] text-white border-[#fa7150]'
-                          : 'border-[#e5d8d0] text-[#8a7e75]'
+                        ? 'bg-[#fa7150] text-white border-[#fa7150]'
+                        : 'border-[#e5d8d0] text-[#8a7e75]'
                         }`}
                     >
                       {type === 'DOG' ? 'Chó' : 'Mèo'}
@@ -925,8 +904,8 @@ export const RoomManagePage = () => {
 
                 {/* Input upload */}
                 <label className={`flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${uploadingImage
-                    ? 'border-[#ffac98] bg-[#fff7f4]'
-                    : 'border-[#e5d8d0] hover:border-[#fa7150] hover:bg-[#fff7f4]'
+                  ? 'border-[#ffac98] bg-[#fff7f4]'
+                  : 'border-[#e5d8d0] hover:border-[#fa7150] hover:bg-[#fff7f4]'
                   }`}>
                   <input
                     type="file"

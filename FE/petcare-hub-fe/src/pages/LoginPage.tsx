@@ -8,7 +8,7 @@ import axiosInstance from '@/lib/axios'
 
 export const LoginPage = () => {
     const [showPassword, setShowPassword] = useState(false)
-    const { mutate: login, isPending, isError } = useLogin()
+    const { mutate: login, isPending, isError, error } = useLogin()
 
     // States for Forgot Password Modal
     const [showForgotModal, setShowForgotModal] = useState(false)
@@ -269,7 +269,7 @@ export const LoginPage = () => {
                                     border: '1px solid #ffac98',
                                 }}
                             >
-                                Email hoặc mật khẩu không đúng. Vui lòng thử lại.
+                                {(error as any)?.response?.data?.message || 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.'}
                             </div>
                         )}
 

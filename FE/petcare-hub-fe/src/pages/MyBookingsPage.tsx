@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { cleanAddressDisplay } from '@/utils/cleanAddress'
 import { maskAccountNumber } from '@/utils/maskAccountNumber'
 import { useNavigate } from 'react-router-dom'
 import { Header } from '@/components/Header'
@@ -25,6 +26,11 @@ interface Booking {
   createdAt: string
   paymentMethod?: string
   isReviewed?: boolean
+  bookingType?: 'OVERNIGHT' | 'DAYCARE'
+  dropOffTime?: string
+  pickUpTime?: string
+  hotelCheckInTime?: string
+  hotelCheckOutTime?: string
 }
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
@@ -192,15 +198,21 @@ export const MyBookingsPage = () => {
                   {/* Header row */}
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <p className="text-[10px] font-black text-[#8a7e75] uppercase tracking-wider mb-1">
-                        #{booking.invoiceNumber}
+                      <p className="text-[10px] font-bold text-[#8a7e75] uppercase tracking-wider mb-1 flex flex-wrap items-center gap-1.5">
+                        <span>#{booking.invoiceNumber}</span>
+                        {booking.createdAt && (
+                          <>
+                            <span className="text-stone-300">•</span>
+                            <span className="text-[#a43e24]">Đặt lúc: {new Date(booking.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                          </>
+                        )}
                       </p>
                       <h3 className="text-lg font-black text-[#303330]">
                         {booking.hotelName}
                       </h3>
                       <p className="text-xs text-[#8a7e75] flex items-center gap-1 mt-0.5">
                         <MapPin size={11} className="text-[#a43e24]" />
-                        {booking.hotelAddress}
+                        {cleanAddressDisplay(booking.hotelAddress)}
                       </p>
                     </div>
                     <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border ${cfg.bg} ${cfg.text}`}>
@@ -219,8 +231,15 @@ export const MyBookingsPage = () => {
                       <p className="text-[10px] text-[#8a7e75] font-bold uppercase mb-1">Ngày lưu trú</p>
                       <p className="text-xs font-black text-[#303330] flex items-center gap-1">
                         {booking.checkInDate}
-                        <ArrowRight size={10} className="text-[#a43e24]" />
-                        {booking.checkOutDate}
+                        {booking.bookingType !== 'DAYCARE' && (
+                          <>
+                            <ArrowRight size={10} className="text-[#a43e24]" />
+                            {booking.checkOutDate}
+                          </>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-[#fa7150] font-bold mt-1.5 flex items-center gap-1">
+                        <span>🕒 {booking.bookingType === 'DAYCARE' ? `Giờ gửi: ${booking.dropOffTime?.substring(0, 5)} - ${booking.pickUpTime?.substring(0, 5)}` : `Nhận: ${booking.hotelCheckInTime || '08:00'} | Trả: ${booking.hotelCheckOutTime || '20:00'}`}</span>
                       </p>
                     </div>
                     <div>

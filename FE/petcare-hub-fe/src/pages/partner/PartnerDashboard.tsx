@@ -1,5 +1,6 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { cleanAddressDisplay } from '@/utils/cleanAddress'
 import { maskAccountNumber } from '@/utils/maskAccountNumber'
 import {
   PawPrint, Star,
@@ -20,7 +21,99 @@ interface HotelType {
   imageUrls?: string[]
   googleMapsUrl?: string
   description?: string
+  rejectionReason?: string
 }
+
+const normalizeAddressString = (str: string) => {
+  return str
+    .toLowerCase()
+    .replace(/^(phường\/xã|quận\/huyện|phường|xã|thị trấn|quận|huyện|thành phố|tỉnh|tp\.|tp|q\.|q|p\.|p)\s*/i, '')
+    .replace(/\s+/g, '')
+    .trim();
+};
+
+const getCleanStreet = (street: string, ward: string, district: string, province: string) => {
+  let clean = street.trim();
+  if (!clean) return '';
+
+  const normWard = normalizeAddressString(ward);
+  const normDistrict = normalizeAddressString(district);
+  const normProvince = normalizeAddressString(province);
+
+  const parts = clean.split(',').map(p => p.trim()).filter(Boolean);
+
+  while (parts.length > 0) {
+    const lastPart = normalizeAddressString(parts[parts.length - 1]);
+    if (
+      lastPart === normProvince ||
+      lastPart === normDistrict ||
+      lastPart === normWard ||
+      lastPart === 'hồchíminh' ||
+      lastPart === 'hcm' ||
+      lastPart === 'tphcm' ||
+      !lastPart
+    ) {
+      parts.pop();
+    } else {
+      break;
+    }
+  }
+
+  return parts.join(', ');
+};
+
+const formatAddressComponent = (val: string, prefixDefault: string) => {
+  let trimmed = val.trim();
+  if (!trimmed || trimmed === '—') return '';
+
+  // Clean bulky "Phường/Xã" or "Quận/Huyện" prefixes
+  trimmed = trimmed.replace(/^(phường\/xã|phường\/ xã|phường \/ xã)\s*/i, '');
+  trimmed = trimmed.replace(/^(quận\/huyện|quận\/ huyện|quận \/ huyện)\s*/i, '');
+  trimmed = trimmed.trim();
+
+  // Normalize shorthands & duplicates
+  if (prefixDefault === 'Quận') {
+    trimmed = trimmed.replace(/^quận\s+quận\s+/i, 'Quận ');
+    trimmed = trimmed.replace(/^quận\s+q\.?\s*(\d+)/i, 'Quận $1');
+    trimmed = trimmed.replace(/^q\.?\s*(\d+)/i, 'Quận $1');
+  } else if (prefixDefault === 'Phường') {
+    trimmed = trimmed.replace(/^phường\s+phường\s+/i, 'Phường ');
+    trimmed = trimmed.replace(/^phường\s+p\.?\s*(\d+)/i, 'Phường $1');
+    trimmed = trimmed.replace(/^p\.?\s*(\d+)/i, 'Phường $1');
+  }
+
+  const normalized = trimmed.toLowerCase();
+  const hasPrefix =
+    normalized.startsWith('phường ') ||
+    normalized.startsWith('p. ') ||
+    normalized.startsWith('p.') ||
+    normalized.startsWith('xã ') ||
+    normalized.startsWith('thị trấn ') ||
+    normalized.startsWith('quận ') ||
+    normalized.startsWith('q. ') ||
+    normalized.startsWith('q.') ||
+    normalized.startsWith('huyện ') ||
+    normalized.startsWith('thị xã ') ||
+    normalized.startsWith('thành phố ') ||
+    normalized.startsWith('tp. ') ||
+    normalized.startsWith('tp.');
+
+  if (hasPrefix) {
+    return trimmed;
+  }
+
+  return `${prefixDefault} ${trimmed}`;
+};
+
+const cleanFormalPrefixes = (str: string, pattern: RegExp) => {
+  let prev = '';
+  let current = str.trim();
+  while (current !== prev) {
+    prev = current;
+    current = current.replace(pattern, '').trim();
+  }
+  return current;
+};
 
 export const PartnerDashboard = () => {
   const { user } = useAuthStore()
@@ -114,45 +207,50 @@ export const PartnerDashboard = () => {
 
   // Đăng ký khách sạn mới qua API thật
   const [showAddHotelModal, setShowAddHotelModal] = useState(false)
-  
+
   // Step 1: Store Profile
   const [newHotelName, setNewHotelName] = useState('')
   const [hotelProvince, setHotelProvince] = useState('Thành phố Hồ Chí Minh')
   const [hotelDistrict, setHotelDistrict] = useState('')
   const [hotelWard, setHotelWard] = useState('')
   const [hotelStreet, setHotelStreet] = useState('')
-  
+
   const [serviceBoarding, setServiceBoarding] = useState(true)
   const [serviceGrooming, setServiceGrooming] = useState(false)
   const [serviceVet, setServiceVet] = useState(false)
   const [serviceShop, setServiceShop] = useState(false)
   const [serviceOther, setServiceOther] = useState(false)
-  
+
+  // Tiện nghi bổ sung
+  const [amenityGarden, setAmenityGarden] = useState(false)
+  const [amenityAC, setAmenityAC] = useState(false)
+  const [amenityCamera, setAmenityCamera] = useState(false)
+
   const [petTarget, setPetTarget] = useState<'DOG_ONLY' | 'CAT_ONLY' | 'BOTH'>('BOTH')
   const [openTime, setOpenTime] = useState('08:00')
   const [closeTime, setCloseTime] = useState('20:00')
-  
+
   const [logoUrl, setLogoUrl] = useState('')
   const [frontUrl, setFrontUrl] = useState('')
   const [roomsUrl, setRoomsUrl] = useState('')
   const [googleMapsUrl, setGoogleMapsUrl] = useState('')
   const [lat, setLat] = useState(10.7769)
   const [lng, setLng] = useState(106.7009)
-  
+
   // Step 2: KYC documents
   const [cccdNumber, setCccdNumber] = useState('')
   const [cccdFrontUrl, setCccdFrontUrl] = useState('')
   const [cccdBackUrl, setCccdBackUrl] = useState('')
   const [businessLicenseUrl, setBusinessLicenseUrl] = useState('')
   const [vetCertUrl, setVetCertUrl] = useState('')
-  
-  
+
+
   // Raw files for eKYC API
   const [cccdFrontFile, setCccdFrontFile] = useState<File | null>(null)
   const [cccdBackFile, setCccdBackFile] = useState<File | null>(null)
   const [selfieFile, setSelfieFile] = useState<File | null>(null)
   const [selfieUrl, setSelfieUrl] = useState('')
-  
+
   // eKYC verification states
   const [isKycVerified, setIsKycVerified] = useState(false)
   const [kycVerifying, setKycVerifying] = useState(false)
@@ -278,7 +376,7 @@ export const PartnerDashboard = () => {
         }
       })
       const url = res.data.url
-      
+
       switch (fieldKey) {
         case 'logo': setLogoUrl(url); break;
         case 'front': setFrontUrl(url); break;
@@ -371,7 +469,7 @@ export const PartnerDashboard = () => {
       })
       setCameraStream(stream)
       setShowCameraModal(true)
-      
+
       // Đợi video render rồi gán stream
       setTimeout(() => {
         const video = document.getElementById('webcam-video') as HTMLVideoElement
@@ -407,7 +505,7 @@ export const PartnerDashboard = () => {
       ctx.translate(canvas.width, 0)
       ctx.scale(-1, 1)
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-      
+
       canvas.toBlob(async (blob) => {
         if (!blob) return
         const file = new File([blob], 'selfie.png', { type: 'image/png' })
@@ -446,8 +544,16 @@ export const PartnerDashboard = () => {
 
     setIsAddingHotel(true)
     try {
-      const fullAddress = `${hotelStreet}, Phường/Xã ${hotelWard || '—'}, Quận/Huyện ${hotelDistrict}, ${hotelProvince}`
-      
+      const cleanStreet = getCleanStreet(hotelStreet, hotelWard, hotelDistrict, hotelProvince)
+      const formattedWard = formatAddressComponent(hotelWard, 'Phường')
+      const formattedDistrict = formatAddressComponent(hotelDistrict, 'Quận')
+      const fullAddress = [
+        cleanStreet,
+        formattedWard,
+        formattedDistrict,
+        hotelProvince
+      ].filter(Boolean).join(', ')
+
       // Compile selected services
       const selectedServices: string[] = []
       if (serviceBoarding) selectedServices.push('Pet Boarding')
@@ -456,6 +562,10 @@ export const PartnerDashboard = () => {
       if (serviceShop) selectedServices.push('Pet Shop')
       if (serviceOther) selectedServices.push('Other Services')
 
+      // Compile selected amenities
+      if (amenityGarden) selectedServices.push('Private Garden')
+      if (amenityAC) selectedServices.push('Điều hòa (AC)')
+      if (amenityCamera) selectedServices.push('Camera 24/7')
       // Compile description JSON (ảnh & thông tin cơ sở — pháp lý/ngân hàng không thu tại đây)
       const extraInfo = {
         petTarget,
@@ -482,9 +592,9 @@ export const PartnerDashboard = () => {
         alert('Cập nhật thông tin khách sạn thành công!')
       } else {
         await axiosInstance.post('/api/hotels', payload)
-        alert('Gửi hồ sơ đăng ký và thông tin xác thực (KYC) thành công! Vui lòng chờ Admin phê duyệt.')
+        alert('Gửi hồ sơ đăng ký khách sạn thành công, vui lòng chờ hệ thống phê duyệt.')
       }
-      
+
       // Reset state
       setNewHotelName('')
       setHotelStreet('')
@@ -505,6 +615,9 @@ export const PartnerDashboard = () => {
       setVetCertUrl('')
       setBankAccountNumber('')
       setBankAccountName('')
+      setAmenityGarden(false)
+      setAmenityAC(false)
+      setAmenityCamera(false)
       setShowAddHotelModal(false)
       setEditingHotelId(null)
       window.location.reload()
@@ -557,6 +670,9 @@ export const PartnerDashboard = () => {
     setVetCertUrl('')
     setBankAccountNumber('')
     setBankAccountName('')
+    setAmenityGarden(false)
+    setAmenityAC(false)
+    setAmenityCamera(false)
     setShowAddHotelModal(true)
   }
 
@@ -588,9 +704,12 @@ export const PartnerDashboard = () => {
       street = addrParts[0]
     }
 
-    // Clean formal prefixes "Phường/Xã ", "Quận/Huyện "
-    ward = ward.replace(/^(Phường\/Xã)\s+/, '').trim()
-    district = district.replace(/^(Quận\/Huyện)\s+/, '').trim()
+    // Clean formal prefixes "Phường/Xã ", "Quận/Huyện " recursively
+    ward = cleanFormalPrefixes(ward, /^(phường\/xã|phường\/ xã|phường \/ xã)\s*/i)
+    district = cleanFormalPrefixes(district, /^(quận\/huyện|quận\/ huyện|quận \/ huyện)\s*/i)
+
+    // Self-heal and clean street address if it contains duplicate trailing components
+    street = getCleanStreet(street, ward, district, province)
 
     setHotelStreet(street)
     setHotelWard(ward)
@@ -604,6 +723,11 @@ export const PartnerDashboard = () => {
     setServiceVet(am.includes('Veterinary'))
     setServiceShop(am.includes('Pet Shop'))
     setServiceOther(am.includes('Other Services'))
+
+    // Set amenities
+    setAmenityGarden(am.includes('Private Garden'))
+    setAmenityAC(am.includes('Điều hòa (AC)'))
+    setAmenityCamera(am.includes('Camera 24/7'))
 
     // Find fallback banking / KYC details from other hotels of this partner
     let fallbackCccd = ''
@@ -633,7 +757,7 @@ export const PartnerDashboard = () => {
             fallbackAccNum = parsed.banking.accountNumber
             fallbackAccName = parsed.banking.accountName || ''
           }
-        } catch {}
+        } catch { }
       }
     }
 
@@ -647,14 +771,14 @@ export const PartnerDashboard = () => {
         setRoomsUrl(Array.isArray(extra.roomsUrl) ? (extra.roomsUrl[0] || '') : (extra.roomsUrl || ''))
         setHotelImages(extra.imageUrls || [])
         setPetTarget(extra.petTarget || 'BOTH')
-        
+
         setCccdNumber(extra.cccd?.number || fallbackCccd)
         setCccdFrontUrl(extra.cccd?.frontUrl || fallbackCccdFront)
         setCccdBackUrl(extra.cccd?.backUrl || fallbackCccdBack)
-        
+
         setBusinessLicenseUrl(extra.legal?.businessLicenseUrl || fallbackLicense)
         setVetCertUrl(extra.legal?.vetCertUrl || fallbackVetCert)
-        
+
         setBankName(extra.banking?.bankName || fallbackBank)
         setBankAccountNumber(extra.banking?.accountNumber || fallbackAccNum)
         setBankAccountName(extra.banking?.accountName || fallbackAccName)
@@ -850,7 +974,7 @@ export const PartnerDashboard = () => {
         ])
         setRoomTypes(rtRes.data || [])
         setBookings(bRes.data.content || [])
-        
+
         // Auto-select first confirmed/checked-in booking for check-in/out tabs if not set
         const content = bRes.data.content || []
         const confirmed = content.filter((b: any) => b.status === 'CONFIRMED')
@@ -1212,17 +1336,17 @@ export const PartnerDashboard = () => {
             </div>
             <h1 className="text-4xl font-black tracking-tight text-[#303330]">
               {activeTab === 'bookings' ? 'Lịch Đặt phòng Tương tác' :
-               activeTab === 'paperless' ? 'Quy trình Không giấy tờ' :
-               activeTab === 'analytics' ? 'Phân tích & CRM' :
-               activeTab === 'settings' ? 'Cấu hình Hệ thống' :
-               `Chào buổi sáng, ${user?.fullName || 'Đối tác'}! 🐾`}
+                activeTab === 'paperless' ? 'Quy trình Không giấy tờ' :
+                  activeTab === 'analytics' ? 'Phân tích & CRM' :
+                    activeTab === 'settings' ? 'Cấu hình Hệ thống' :
+                      `Chào buổi sáng, ${user?.fullName || 'Đối tác'}! 🐾`}
             </h1>
             <p className="text-[#8a7e75] text-sm max-w-xl">
               {activeTab === 'bookings' ? 'Quản lý trạng thái phòng nghỉ và lịch trình đón thú cưng trong tuần này.' :
-               activeTab === 'paperless' ? 'Quản lý tiếp nhận check-in và thanh toán bàn giao check-out thú cưng chuyên nghiệp.' :
-               activeTab === 'analytics' ? 'Tổng quan hoạt động kinh doanh, doanh số và quản lý thông tin hồ sơ khách hàng.' :
-               activeTab === 'settings' ? 'Cài đặt truyền thông, chương trình khách hàng thân thiết và quy tắc hệ thống.' :
-               'Hôm nay là một ngày tuyệt vời để quản lý các thiên đường nghỉ dưỡng thú cưng của bạn.'}
+                activeTab === 'paperless' ? 'Quản lý tiếp nhận check-in và thanh toán bàn giao check-out thú cưng chuyên nghiệp.' :
+                  activeTab === 'analytics' ? 'Tổng quan hoạt động kinh doanh, doanh số và quản lý thông tin hồ sơ khách hàng.' :
+                    activeTab === 'settings' ? 'Cài đặt truyền thông, chương trình khách hàng thân thiết và quy tắc hệ thống.' :
+                      'Hôm nay là một ngày tuyệt vời để quản lý các thiên đường nghỉ dưỡng thú cưng của bạn.'}
             </p>
           </div>
 
@@ -1242,8 +1366,8 @@ export const PartnerDashboard = () => {
             <div className="flex items-center gap-2.5">
               <Building size={18} className="text-[#fa7150]" />
               <span className="text-xs font-black text-[#8a7e75] uppercase tracking-wider">Chọn cơ sở quản lý:</span>
-              <select 
-                value={selectedHotelId || ''} 
+              <select
+                value={selectedHotelId || ''}
                 onChange={(e) => setSelectedHotelId(e.target.value)}
                 className="bg-transparent border-none text-sm font-black text-[#303330] focus:outline-none cursor-pointer hover:text-[#fa7150] transition-colors"
               >
@@ -1323,16 +1447,16 @@ export const PartnerDashboard = () => {
                 {hotels.map((hotel) => {
                   const isActive = hotel.status === 'ACTIVE';
                   return (
-                    <div 
-                      key={hotel.id} 
+                    <div
+                      key={hotel.id}
                       className="bg-[#faf9f6]/40 border border-[#e5d8d0] rounded-3xl p-6 relative group overflow-hidden transition-all duration-300 hover:border-[#fa7150]/40 hover:bg-white hover:shadow-xl hover:shadow-[#fa7150]/2 flex flex-col md:flex-row gap-6"
                     >
                       {/* Bìa/Ảnh Khách Sạn Bên Trái */}
                       <div className="relative w-full md:w-56 h-40 shrink-0 overflow-hidden rounded-2xl bg-gray-50 border border-[#e5d8d0]/60">
                         {hotel.imageUrls && hotel.imageUrls.length > 0 ? (
-                          <img 
-                            src={hotel.imageUrls[0]} 
-                            alt={hotel.name} 
+                          <img
+                            src={hotel.imageUrls[0]}
+                            alt={hotel.name}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                           />
                         ) : (
@@ -1342,7 +1466,7 @@ export const PartnerDashboard = () => {
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Nội dung chi tiết bên phải */}
                       <div className="flex-1 flex flex-col justify-between text-left">
                         <div>
@@ -1352,27 +1476,26 @@ export const PartnerDashboard = () => {
                               {hotel.name}
                             </h4>
                             <span
-                              className={`text-[9px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm border ${
-                                isActive
+                              className={`text-[9px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm border ${isActive
                                   ? 'bg-[#e3f4e1] text-[#2c4e24] border-[#d0fac0]'
                                   : hotel.status === 'PENDING'
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : hotel.status === 'REJECTED'
-                                  ? 'bg-red-100 text-red-700 border-red-300'
-                                  : 'bg-rose-50 text-rose-700 border-rose-200'
-                              }`}
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : hotel.status === 'REJECTED'
+                                      ? 'bg-red-100 text-red-700 border-red-300'
+                                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                                }`}
                             >
                               {isActive ? 'Đang hoạt động'
                                 : hotel.status === 'PENDING' ? 'Chờ duyệt'
-                                : hotel.status === 'REJECTED' ? 'Bị từ chối'
-                                : 'Tạm ngưng'}
+                                  : hotel.status === 'REJECTED' ? 'Bị từ chối'
+                                    : 'Tạm ngưng'}
                             </span>
                           </div>
-                          
+
                           {/* Địa chỉ */}
                           <p className="text-xs text-[#8a7e75] flex items-center gap-1.5 mb-3 leading-relaxed">
                             <MapPin size={13} className="text-[#fa7150] shrink-0" />
-                            <span className="line-clamp-2">{hotel.address}</span>
+                            <span className="line-clamp-2">{cleanAddressDisplay(hotel.address)}</span>
                           </p>
 
                           {/* Lý do từ chối */}
@@ -1390,9 +1513,9 @@ export const PartnerDashboard = () => {
                               <span className="text-[#303330]">{hotel.averageRating || 5.0}</span>
                             </div>
                             {hotel.googleMapsUrl ? (
-                              <a 
-                                href={hotel.googleMapsUrl} 
-                                target="_blank" 
+                              <a
+                                href={hotel.googleMapsUrl}
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs text-[#fa7150] hover:underline flex items-center gap-1.5 font-bold"
                               >
@@ -1408,14 +1531,14 @@ export const PartnerDashboard = () => {
 
                         {/* Nút thao tác dưới cùng */}
                         <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-[#e5d8d0]/60">
-                          <Link 
-                            to={`/partner/hotels/${hotel.id}/rooms`} 
+                          <Link
+                            to={`/partner/hotels/${hotel.id}/rooms`}
                             className="bg-white border border-[#e5d8d0] px-4 py-2.5 rounded-xl text-center font-bold text-xs hover:border-[#fa7150] hover:text-[#fa7150] hover:shadow-sm transition-all flex items-center gap-1.5"
                           >
                             <Settings size={13} /> Cài đặt phòng
                           </Link>
-                          <Link 
-                            to={`/partner/hotels/${hotel.id}/services`} 
+                          <Link
+                            to={`/partner/hotels/${hotel.id}/services`}
                             className="bg-white border border-[#e5d8d0] px-4 py-2.5 rounded-xl text-center font-bold text-xs hover:border-[#fa7150] hover:text-[#fa7150] hover:shadow-sm transition-all flex items-center gap-1.5"
                           >
                             <ListOrdered size={13} /> Danh mục dịch vụ
@@ -1440,11 +1563,10 @@ export const PartnerDashboard = () => {
                             <button
                               type="button"
                               onClick={() => handleToggleHotelStatus(hotel.id)}
-                              className={`px-4 py-2.5 rounded-xl text-center font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer border ${
-                                isActive
+                              className={`px-4 py-2.5 rounded-xl text-center font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer border ${isActive
                                   ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'
                                   : 'bg-[#e3f4e1] border-[#d0fac0] text-[#2c4e24] hover:bg-[#d0fac0]/20'
-                              }`}
+                                }`}
                             >
                               {isActive ? 'Tạm Ngưng' : 'Kích Hoạt'}
                             </button>
@@ -1469,16 +1591,15 @@ export const PartnerDashboard = () => {
                   <button
                     key={stat}
                     onClick={() => setBookingFilter(stat)}
-                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
-                      bookingFilter === stat
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${bookingFilter === stat
                         ? 'bg-white text-[#303330] shadow-sm'
                         : 'text-[#8a7e75] hover:text-[#303330]'
-                    }`}
+                      }`}
                   >
                     {stat === 'ALL' ? 'Tất cả' :
-                     stat === 'PENDING' ? 'Chờ xác nhận' :
-                     stat === 'CONFIRMED' ? 'Đã xác nhận' :
-                     stat === 'CHECKED_IN' ? 'Đang lưu trú' : 'Đã hoàn thành'}
+                      stat === 'PENDING' ? 'Chờ xác nhận' :
+                        stat === 'CONFIRMED' ? 'Đã xác nhận' :
+                          stat === 'CHECKED_IN' ? 'Đang lưu trú' : 'Đã hoàn thành'}
                   </button>
                 ))}
               </div>
@@ -1494,12 +1615,12 @@ export const PartnerDashboard = () => {
             {/* Grid Table */}
             <div className="bg-white rounded-[2rem] border border-[#e5d8d0] overflow-hidden" style={cardShadow}>
               <div className="p-6 border-b border-[#e5d8d0]/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[#faf9f6]/30">
-                
+
                 {/* Hotel Selector */}
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-black text-[#8a7e75] uppercase tracking-wider">Cơ sở:</span>
-                  <select 
-                    value={selectedHotelId || ''} 
+                  <select
+                    value={selectedHotelId || ''}
                     onChange={(e) => setSelectedHotelId(e.target.value)}
                     className="bg-white border border-[#e5d8d0] rounded-xl px-3.5 py-2 text-xs font-bold text-[#303330] focus:outline-none focus:border-[#fa7150]"
                   >
@@ -1511,13 +1632,13 @@ export const PartnerDashboard = () => {
 
                 {/* Week Navigation */}
                 <div className="flex items-center gap-3">
-                  <button 
-                    onClick={handlePrevWeek} 
+                  <button
+                    onClick={handlePrevWeek}
                     className="px-3 py-2 border border-[#e5d8d0] bg-white rounded-xl text-xs font-bold text-[#8a7e75] hover:text-[#fa7150] hover:border-[#fa7150] transition-colors"
                   >
                     Tuần trước
                   </button>
-                  
+
                   <span className="text-xs font-black text-[#303330] uppercase tracking-wider px-1">
                     {selectedWeekStart.getDate()}/{selectedWeekStart.getMonth() + 1} - {(() => {
                       const end = new Date(selectedWeekStart)
@@ -1526,15 +1647,15 @@ export const PartnerDashboard = () => {
                     })()}
                   </span>
 
-                  <button 
-                    onClick={handleNextWeek} 
+                  <button
+                    onClick={handleNextWeek}
                     className="px-3 py-2 border border-[#e5d8d0] bg-white rounded-xl text-xs font-bold text-[#8a7e75] hover:text-[#fa7150] hover:border-[#fa7150] transition-colors"
                   >
                     Tuần sau
                   </button>
-                  
-                  <button 
-                    onClick={handleCurrentWeek} 
+
+                  <button
+                    onClick={handleCurrentWeek}
                     className="px-3 py-2 border border-[#fa7150]/20 bg-[#fa7150]/5 text-[#fa7150] rounded-xl text-xs font-bold hover:bg-[#fa7150]/10 transition-colors"
                   >
                     Hôm nay
@@ -1592,7 +1713,7 @@ export const PartnerDashboard = () => {
                         return roomTypes.flatMap((rt) => {
                           const rtBookings = activeBookings.filter(b => b.roomTypeId === rt.id)
                           const totalRooms = rt.totalRooms || 1
-                          
+
                           // Initialize rows for this RoomType
                           const rows = Array.from({ length: totalRooms }, (_, i) => ({
                             rowIndex: i,
@@ -1626,7 +1747,7 @@ export const PartnerDashboard = () => {
                               <tr key={`${rt.id}-${row.rowIndex}`} className="h-20">
                                 {/* Room Label cell */}
                                 {rowIdx === 0 ? (
-                                  <td 
+                                  <td
                                     className="p-4 pl-6 font-bold text-[#303330] border-r border-[#e5d8d0]/50 bg-[#faf9f6]/10"
                                     rowSpan={rows.length}
                                     style={{ width: '220px', minWidth: '200px' }}
@@ -1685,13 +1806,13 @@ export const PartnerDashboard = () => {
 
                                     return (
                                       <td key={colIndex} className="p-2 border-r border-[#e5d8d0]/50" colSpan={span}>
-                                        <div 
+                                        <div
                                           onClick={() => navigate(`/partner/bookings?id=${activeBooking.id}`)}
                                           className={`border p-2.5 rounded-2xl flex items-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all ${bgStyle}`}
                                         >
-                                          <img 
-                                            src={getPetAvatar(activeBooking.pets?.[0]?.species)} 
-                                            className="w-7 h-7 rounded-full object-cover border border-white/40 shrink-0" 
+                                          <img
+                                            src={getPetAvatar(activeBooking.pets?.[0]?.species)}
+                                            className="w-7 h-7 rounded-full object-cover border border-white/40 shrink-0"
                                           />
                                           <div className="text-left leading-tight overflow-hidden">
                                             <span className="font-black block text-[10px] truncate">{petsText} ({ownerText})</span>
@@ -1756,9 +1877,9 @@ export const PartnerDashboard = () => {
 
             {/* Quick Actions Footer */}
             <div className="grid grid-cols-3 gap-6 pt-4">
-              <div 
+              <div
                 onClick={() => setActiveTab('paperless')}
-                className="bg-white p-4 rounded-2xl border border-[#e5d8d0] flex items-center gap-3 cursor-pointer hover:border-[#fa7150] transition-colors" 
+                className="bg-white p-4 rounded-2xl border border-[#e5d8d0] flex items-center gap-3 cursor-pointer hover:border-[#fa7150] transition-colors"
                 style={cardShadow}
               >
                 <QrCode className="text-[#fa7150]" size={20} />
@@ -1789,10 +1910,10 @@ export const PartnerDashboard = () => {
         {activeTab === 'paperless' && (() => {
           const confirmedBookings = bookings.filter((b: any) => b.status === 'CONFIRMED')
           const checkedInBookings = bookings.filter((b: any) => b.status === 'CHECKED_IN')
-          
+
           const currentCheckInBooking = bookings.find((b: any) => b.id === selectedCheckInBookingId)
           const currentCheckOutBooking = bookings.find((b: any) => b.id === selectedCheckOutBookingId)
-          
+
           const selectedBookingForInvoice = currentCheckOutBooking || currentCheckInBooking || (bookings.length > 0 ? bookings[0] : null)
 
           // Determine banking details for VietQR
@@ -1819,10 +1940,10 @@ export const PartnerDashboard = () => {
             }
           }
 
-          const checkoutRoomAmount = currentCheckOutBooking 
+          const checkoutRoomAmount = currentCheckOutBooking
             ? (currentCheckOutBooking.totalAmount - (currentCheckOutBooking.vatAmount || 0) - (currentCheckOutBooking.convenienceFee || 0) + (currentCheckOutBooking.voucherDiscountAmount || 0))
             : 0
-          
+
           const finalCheckoutAmount = currentCheckOutBooking
             ? (usePoints ? Math.max(0, currentCheckOutBooking.totalAmount - 50000) : currentCheckOutBooking.totalAmount)
             : 0
@@ -1921,10 +2042,10 @@ export const PartnerDashboard = () => {
                         <div>
                           <label className="block text-[10px] font-black uppercase text-[#8a7e75] tracking-wider mb-2">Ảnh khi nhận thú cưng</label>
                           <label className="cursor-pointer h-40 bg-[#faf9f6]/60 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-3xl flex flex-col items-center justify-center gap-2 text-[#8a7e75] transition-colors relative overflow-hidden">
-                            <input 
-                              type="file" 
-                              accept="image/*" 
-                              className="hidden" 
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
                               disabled={!!uploadingField}
                               onChange={handleCheckInPhotoUpload}
                             />
@@ -2032,7 +2153,7 @@ export const PartnerDashboard = () => {
                             <span>Phòng {currentCheckOutBooking.roomTypeName} ({currentCheckOutBooking.totalNights} đêm)</span>
                             <span className="font-black text-[#303330]">{checkoutRoomAmount.toLocaleString('vi-VN')}đ</span>
                           </div>
-                          
+
                           {currentCheckOutBooking.voucherDiscountAmount > 0 && (
                             <div className="flex justify-between items-center text-xs font-bold text-rose-700">
                               <span>Voucher giảm giá</span>
@@ -2079,7 +2200,7 @@ export const PartnerDashboard = () => {
                             <span className="text-[8px] font-black text-[#8a7e75] uppercase block">TỔNG THANH TOÁN THỰC TẾ</span>
                             <span className="text-2xl font-black text-[#303330]">{finalCheckoutAmount.toLocaleString('vi-VN')}đ</span>
                           </div>
-                          
+
                           <div className="relative">
                             <button
                               type="button"
@@ -2092,9 +2213,9 @@ export const PartnerDashboard = () => {
                             {showQrPay && (
                               <div className="absolute right-0 bottom-14 bg-white border border-[#e5d8d0] p-4 rounded-2.5xl shadow-2xl w-48 text-center animate-in fade-in zoom-in duration-200 z-10">
                                 <span className="text-[9px] font-black uppercase text-[#8a7e75] block mb-2">Mã QR Chuyển khoản</span>
-                                <img 
-                                  src={`https://img.vietqr.io/image/${bankNameCode}-${bankAccountNo}-compact2.png?amount=${finalCheckoutAmount}&addInfo=${currentCheckOutBooking.invoiceNumber}&accountName=${encodeURIComponent(bankAccountNameText)}`} 
-                                  className="w-32 h-32 mx-auto mb-2 border border-gray-100 rounded-lg" 
+                                <img
+                                  src={`https://img.vietqr.io/image/${bankNameCode}-${bankAccountNo}-compact2.png?amount=${finalCheckoutAmount}&addInfo=${currentCheckOutBooking.invoiceNumber}&accountName=${encodeURIComponent(bankAccountNameText)}`}
+                                  className="w-32 h-32 mx-auto mb-2 border border-gray-100 rounded-lg"
                                 />
                                 <span className="text-[9px] font-bold text-gray-500 block mb-0.5">{bankNameCode} - {maskAccountNumber(bankAccountNo)}</span>
                                 <span className="text-[10px] font-black text-[#a43e24] block">{finalCheckoutAmount.toLocaleString('vi-VN')}đ</span>
@@ -2163,13 +2284,13 @@ export const PartnerDashboard = () => {
 
                 {selectedBookingForInvoice && (
                   <div className="pt-6 border-t border-[#e5d8d0]/60 mt-6 flex gap-3">
-                    <button 
+                    <button
                       onClick={() => alert('Đang tạo tệp PDF tải xuống...')}
                       className="flex-1 py-3 bg-[#f0ece9] text-[#5a5550] rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-[#e5d8d0] transition-colors cursor-pointer"
                     >
                       <Download size={14} /> PDF
                     </button>
-                    <button 
+                    <button
                       onClick={handlePrintInvoice}
                       className="flex-1 py-3 bg-[#303330] text-white rounded-full font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-black transition-colors cursor-pointer"
                     >
@@ -2248,13 +2369,12 @@ export const PartnerDashboard = () => {
                       { month: 'Th10', val: 85, active: true }
                     ].map((m, i) => (
                       <div key={i} className="flex flex-col items-center gap-2 group cursor-pointer">
-                        <div 
+                        <div
                           style={{ height: `${m.val * 1.3}px` }}
-                          className={`w-7 sm:w-9 rounded-t-lg transition-all duration-300 ${
-                            m.active 
-                              ? 'bg-[#a43e24] shadow-sm shadow-[#a43e24]/10' 
+                          className={`w-7 sm:w-9 rounded-t-lg transition-all duration-300 ${m.active
+                              ? 'bg-[#a43e24] shadow-sm shadow-[#a43e24]/10'
                               : 'bg-[#a43e24]/40 group-hover:bg-[#a43e24]/60'
-                          }`}
+                            }`}
                         />
                         <span className="text-[10px] font-bold text-[#8a7e75]">{m.month}</span>
                       </div>
@@ -2300,19 +2420,18 @@ export const PartnerDashboard = () => {
                     {crmPets.map((pet) => {
                       const isSelected = selectedPet?.id === pet.id
                       return (
-                        <div 
-                          key={pet.id} 
-                          className={`p-4 border rounded-2xl flex items-center justify-between cursor-pointer transition-all ${
-                            isSelected 
-                              ? 'bg-[#fa7150]/5 border-[#fa7150] shadow-sm shadow-[#fa7150]/10' 
+                        <div
+                          key={pet.id}
+                          className={`p-4 border rounded-2xl flex items-center justify-between cursor-pointer transition-all ${isSelected
+                              ? 'bg-[#fa7150]/5 border-[#fa7150] shadow-sm shadow-[#fa7150]/10'
                               : 'bg-[#faf9f6] border-[#e5d8d0]/60 hover:border-[#fa7150]/40'
-                          }`}
+                            }`}
                           onClick={() => handleSelectCrmPet(pet)}
                         >
                           <div className="flex items-center gap-4">
-                            <img 
-                              src={pet.avatarUrl || getPetAvatar(pet.species)} 
-                              className="w-11 h-11 rounded-full object-cover border border-[#e5d8d0] shrink-0" 
+                            <img
+                              src={pet.avatarUrl || getPetAvatar(pet.species)}
+                              className="w-11 h-11 rounded-full object-cover border border-[#e5d8d0] shrink-0"
                             />
                             <div className="text-left leading-tight">
                               <span className="font-black text-sm text-[#303330] block">{pet.name}</span>
@@ -2325,11 +2444,10 @@ export const PartnerDashboard = () => {
                             </div>
                           </div>
                           <div className="text-right flex flex-col gap-1 items-end">
-                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
-                              pet.isVaccinated 
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${pet.isVaccinated
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : 'bg-amber-50 text-amber-700 border border-amber-200'
-                            }`}>
+                              }`}>
                               {pet.isVaccinated ? 'Đã tiêm phòng' : 'Chưa tiêm phòng'}
                             </span>
                             <span className="text-[9px] text-[#8a7e75] font-mono block">
@@ -2350,16 +2468,15 @@ export const PartnerDashboard = () => {
                 <div className="space-y-6">
                   {/* Pet Photo */}
                   <div className="relative rounded-2xl overflow-hidden h-40 bg-gray-50 border border-[#e5d8d0]/60">
-                    <img 
-                      src={selectedPet.avatarUrl || getPetAvatar(selectedPet.species)} 
-                      alt={selectedPet.name} 
-                      className="w-full h-full object-cover" 
+                    <img
+                      src={selectedPet.avatarUrl || getPetAvatar(selectedPet.species)}
+                      alt={selectedPet.name}
+                      className="w-full h-full object-cover"
                     />
-                    <span className={`absolute top-3 right-3 border text-[9px] font-black uppercase px-3 py-1 rounded-full ${
-                      selectedPet.isVaccinated 
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                    <span className={`absolute top-3 right-3 border text-[9px] font-black uppercase px-3 py-1 rounded-full ${selectedPet.isVaccinated
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                         : 'bg-amber-50 text-amber-800 border-amber-200'
-                    }`}>
+                      }`}>
                       {selectedPet.isVaccinated ? 'Đầy đủ vaccine' : 'Thiếu vaccine'}
                     </span>
                   </div>
@@ -2384,7 +2501,7 @@ export const PartnerDashboard = () => {
                   {/* Special Care Rules */}
                   <div className="space-y-4 text-xs font-bold text-[#5a5550] text-left">
                     <span className="text-[9px] font-black uppercase text-[#8a7e75] tracking-wider block">Hướng dẫn Chăm sóc</span>
-                    
+
                     <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 rounded-2xl flex gap-2 items-start">
                       <ShieldAlert size={16} className="shrink-0 mt-0.5 text-rose-600" />
                       <div>
@@ -2455,7 +2572,7 @@ export const PartnerDashboard = () => {
                   </div>
                 </div>
 
-                <button 
+                <button
                   type="button"
                   onClick={() => alert(`Đang cập nhật hồ sơ cho bé ${selectedPet.name}. Vui lòng thực hiện trên ứng dụng Khách hàng hoặc liên hệ Admin nếu cần chỉnh sửa đặc tính sinh học.`)}
                   className="w-full py-3.5 bg-[#303330] hover:bg-black text-white text-xs font-black uppercase rounded-full tracking-wider mt-6 flex items-center justify-center gap-1.5 cursor-pointer"
@@ -2476,41 +2593,36 @@ export const PartnerDashboard = () => {
               <div className="flex gap-2 border-b border-[#e5d8d0]/60 pb-3">
                 <button
                   onClick={() => setSettingsSubTab('channels')}
-                  className={`pb-2 px-3 text-xs font-black relative ${
-                    settingsSubTab === 'channels' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
-                  }`}
+                  className={`pb-2 px-3 text-xs font-black relative ${settingsSubTab === 'channels' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
+                    }`}
                 >
                   Kênh Liên lạc
                 </button>
                 <button
                   onClick={() => setSettingsSubTab('loyalty')}
-                  className={`pb-2 px-3 text-xs font-black relative ${
-                    settingsSubTab === 'loyalty' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
-                  }`}
+                  className={`pb-2 px-3 text-xs font-black relative ${settingsSubTab === 'loyalty' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
+                    }`}
                 >
                   Khách hàng Thân thiết
                 </button>
                 <button
                   onClick={() => setSettingsSubTab('general')}
-                  className={`pb-2 px-3 text-xs font-black relative ${
-                    settingsSubTab === 'general' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
-                  }`}
+                  className={`pb-2 px-3 text-xs font-black relative ${settingsSubTab === 'general' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
+                    }`}
                 >
                   Thông số Chung
                 </button>
                 <button
                   onClick={() => setSettingsSubTab('staff')}
-                  className={`pb-2 px-3 text-xs font-black relative ${
-                    settingsSubTab === 'staff' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
-                  }`}
+                  className={`pb-2 px-3 text-xs font-black relative ${settingsSubTab === 'staff' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
+                    }`}
                 >
                   Nhân sự
                 </button>
                 <button
                   onClick={() => setSettingsSubTab('equipment')}
-                  className={`pb-2 px-3 text-xs font-black relative ${
-                    settingsSubTab === 'equipment' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
-                  }`}
+                  className={`pb-2 px-3 text-xs font-black relative ${settingsSubTab === 'equipment' ? 'text-[#fa7150] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#fa7150]' : 'text-[#8a7e75]'
+                    }`}
                 >
                   Trang thiết bị
                 </button>
@@ -2739,13 +2851,12 @@ export const PartnerDashboard = () => {
                               <td className="p-4 text-[#8a7e75] font-mono">{st.email}</td>
                               <td className="p-4 text-[#303330]">{st.jobPosition}</td>
                               <td className="p-4">
-                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                  st.shiftStatus === 'ACTIVE'
+                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${st.shiftStatus === 'ACTIVE'
                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                     : st.shiftStatus === 'OFF_DUTY'
-                                    ? 'bg-gray-100 text-gray-700 border border-gray-200'
-                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                }`}>
+                                      ? 'bg-gray-100 text-gray-700 border border-gray-200'
+                                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  }`}>
                                   {st.shiftStatus === 'ACTIVE' ? 'Đang làm việc' : st.shiftStatus === 'OFF_DUTY' ? 'Nghỉ ca' : 'Nghỉ phép'}
                                 </span>
                               </td>
@@ -2830,13 +2941,12 @@ export const PartnerDashboard = () => {
                               <td className="p-4 pl-6 text-[#303330]">{eq.name}</td>
                               <td className="p-4 text-center text-[#303330] font-black">{eq.quantity}</td>
                               <td className="p-4">
-                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                  eq.status === 'GOOD'
+                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${eq.status === 'GOOD'
                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                     : eq.status === 'MAINTENANCE'
-                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                    : 'bg-rose-50 text-rose-700 border border-rose-200'
-                                }`}>
+                                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                      : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  }`}>
                                   {eq.status === 'GOOD' ? 'Tốt (Sẵn sàng)' : eq.status === 'MAINTENANCE' ? 'Đang bảo trì' : 'Hỏng hóc'}
                                 </span>
                               </td>
@@ -2878,7 +2988,7 @@ export const PartnerDashboard = () => {
                   <MessageSquare size={18} className="text-[#fa7150]" />
                   Mẫu Thông báo
                 </h3>
-                
+
                 {/* Pills */}
                 <div className="flex gap-2 flex-wrap">
                   {['Xác nhận nhận phòng', 'Chúc mừng sinh nhật', 'Nhắc lịch tiêm chủng'].map((t, idx) => (
@@ -2939,162 +3049,161 @@ export const PartnerDashboard = () => {
           </div>
         )}
 
-          {/*  TAB 6: QUẢN LÝ TÀI CHÍNH (FINANCE)  */}
-          {activeTab === 'finance' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left animate-fadeIn">
-              {/* Column 1 & 2: Wallet and Request Form */}
-              <div className="lg:col-span-2 space-y-8">
-                {/* Wallet Balance Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {/* Active Balance */}
-                  <div className="bg-white rounded-3xl border border-[#e5d8d0] p-6 shadow-sm flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-black tracking-wider text-[#8a7e75] block mb-1">Số dư Khả dụng</span>
-                      <span className="text-2xl font-black text-[#303330]">{wallet.balance.toLocaleString('vi-VN')} VNĐ</span>
-                    </div>
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                      <DollarSign size={24} />
-                    </div>
+        {/*  TAB 6: QUẢN LÝ TÀI CHÍNH (FINANCE)  */}
+        {activeTab === 'finance' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left animate-fadeIn">
+            {/* Column 1 & 2: Wallet and Request Form */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Wallet Balance Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Active Balance */}
+                <div className="bg-white rounded-3xl border border-[#e5d8d0] p-6 shadow-sm flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-black tracking-wider text-[#8a7e75] block mb-1">Số dư Khả dụng</span>
+                    <span className="text-2xl font-black text-[#303330]">{wallet.balance.toLocaleString('vi-VN')} VNĐ</span>
                   </div>
-
-                  {/* Pending Balance */}
-                  <div className="bg-white rounded-3xl border border-[#e5d8d0] p-6 shadow-sm flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-black tracking-wider text-[#8a7e75] block mb-1">Doanh thu Chờ đối soát</span>
-                      <span className="text-2xl font-black text-amber-600">{wallet.pendingBalance.toLocaleString('vi-VN')} VNĐ</span>
-                      <span className="text-[9px] text-[#8a7e75] block mt-1">(Cộng khi khách check-out thành công)</span>
-                    </div>
-                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                      <TrendingUp size={24} />
-                    </div>
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <DollarSign size={24} />
                   </div>
                 </div>
 
-                {/* Withdrawal Form */}
-                <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-8 space-y-6">
-                  <div className="border-b border-[#e5d8d0]/60 pb-4">
-                    <h3 className="text-lg font-black text-[#303330]">Yêu cầu Rút Tiền</h3>
-                    <p className="text-xs text-[#8a7e75]">Rút tiền từ số dư khả dụng về tài khoản ngân hàng của bạn.</p>
+                {/* Pending Balance */}
+                <div className="bg-white rounded-3xl border border-[#e5d8d0] p-6 shadow-sm flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-black tracking-wider text-[#8a7e75] block mb-1">Doanh thu Chờ đối soát</span>
+                    <span className="text-2xl font-black text-amber-600">{wallet.pendingBalance.toLocaleString('vi-VN')} VNĐ</span>
+                    <span className="text-[9px] text-[#8a7e75] block mt-1">(Cộng khi khách check-out thành công)</span>
                   </div>
-
-                  <form onSubmit={handleWithdrawSubmit} className="space-y-4 text-xs font-bold">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Ngân hàng</label>
-                        <select
-                          required
-                          value={withdrawBank}
-                          onChange={e => setWithdrawBank(e.target.value)}
-                          className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
-                        >
-                          <option value="">-- Chọn ngân hàng --</option>
-                          {banks.map((b: any) => (
-                            <option key={b.code || b.bin} value={b.code || b.shortName || b.name}>
-                              {b.shortName || b.name} ({b.code || b.bin})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Số tài khoản</label>
-                        <input
-                          type="text"
-                          required
-                          value={withdrawAccountNumber}
-                          onChange={e => setWithdrawAccountNumber(e.target.value)}
-                          placeholder="Nhập số tài khoản ngân hàng"
-                          className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Tên chủ tài khoản</label>
-                        <input
-                          type="text"
-                          required
-                          value={withdrawAccountName}
-                          onChange={e => setWithdrawAccountName(e.target.value)}
-                          placeholder="VIẾT HOA KHÔNG DẤU"
-                          className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Số tiền rút (VNĐ)</label>
-                        <input
-                          type="number"
-                          required
-                          min={50000}
-                          value={withdrawAmount}
-                          onChange={e => setWithdrawAmount(e.target.value)}
-                          placeholder="Ví dụ: 500000"
-                          className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isWithdrawing}
-                      style={{ background: 'linear-gradient(135deg, #fa7150 0%, #a43e24 100%)' }}
-                      className="w-full py-3 text-white rounded-full font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      {isWithdrawing ? 'Đang gửi yêu cầu...' : 'Gửi yêu cầu rút tiền'}
-                    </button>
-                  </form>
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <TrendingUp size={24} />
+                  </div>
                 </div>
               </div>
 
-              {/* Column 3: History Logs */}
+              {/* Withdrawal Form */}
               <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-8 space-y-6">
                 <div className="border-b border-[#e5d8d0]/60 pb-4">
-                  <h3 className="text-lg font-black text-[#303330]">Lịch sử Rút Tiền</h3>
-                  <p className="text-xs text-[#8a7e75]">Danh sách các giao dịch rút tiền của bạn.</p>
+                  <h3 className="text-lg font-black text-[#303330]">Yêu cầu Rút Tiền</h3>
+                  <p className="text-xs text-[#8a7e75]">Rút tiền từ số dư khả dụng về tài khoản ngân hàng của bạn.</p>
                 </div>
 
-                <div className="space-y-4 max-h-[450px] overflow-y-auto pr-1">
-                  {withdrawals.length === 0 ? (
-                    <p className="text-center text-xs text-[#8a7e75] py-8">Chưa có giao dịch rút tiền nào.</p>
-                  ) : (
-                    withdrawals.map((w: any) => (
-                      <div key={w.id} className="p-4 bg-[#faf9f6] border border-[#e5d8d0]/60 rounded-2xl space-y-2 text-xs">
-                        <div className="flex justify-between items-center">
-                          <span className="font-black text-[#fa7150]">{w.amount.toLocaleString('vi-VN')}đ</span>
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                            w.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                            w.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                            'bg-rose-50 text-rose-700 border border-rose-100'
-                          }`}>
-                            {w.status === 'PENDING' ? 'Chờ duyệt' :
-                             w.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}
-                          </span>
-                        </div>
-                        <div className="text-[#8a7e75] leading-normal font-semibold space-y-0.5">
-                          <div>Ngân hàng: <span className="text-[#303330]">{w.bankName}</span></div>
-                          <div>Số tài khoản: <span className="text-[#303330]">{maskAccountNumber(w.bankAccountNumber)}</span></div>
-                          <div>Chủ tài khoản: <span className="text-[#303330]">{w.bankAccountName}</span></div>
-                          <div className="text-[10px] text-gray-400 mt-1">Yêu cầu lúc: {new Date(w.createdAt).toLocaleString('vi-VN')}</div>
-                        </div>
-                        {w.receiptImageUrl && (
-                          <a
-                            href={w.receiptImageUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-2 block w-full py-1.5 bg-[#fdfaf8] border border-[#e5d8d0] hover:border-[#fa7150] text-[#fa7150] text-center rounded-lg font-black text-[10px] uppercase transition-colors"
-                          >
-                            Xem biên lai chuyển tiền
-                          </a>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
+                <form onSubmit={handleWithdrawSubmit} className="space-y-4 text-xs font-bold">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Ngân hàng</label>
+                      <select
+                        required
+                        value={withdrawBank}
+                        onChange={e => setWithdrawBank(e.target.value)}
+                        className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
+                      >
+                        <option value="">-- Chọn ngân hàng --</option>
+                        {banks.map((b: any) => (
+                          <option key={b.code || b.bin} value={b.code || b.shortName || b.name}>
+                            {b.shortName || b.name} ({b.code || b.bin})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Số tài khoản</label>
+                      <input
+                        type="text"
+                        required
+                        value={withdrawAccountNumber}
+                        onChange={e => setWithdrawAccountNumber(e.target.value)}
+                        placeholder="Nhập số tài khoản ngân hàng"
+                        className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Tên chủ tài khoản</label>
+                      <input
+                        type="text"
+                        required
+                        value={withdrawAccountName}
+                        onChange={e => setWithdrawAccountName(e.target.value)}
+                        placeholder="VIẾT HOA KHÔNG DẤU"
+                        className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Số tiền rút (VNĐ)</label>
+                      <input
+                        type="number"
+                        required
+                        min={50000}
+                        value={withdrawAmount}
+                        onChange={e => setWithdrawAmount(e.target.value)}
+                        placeholder="Ví dụ: 500000"
+                        className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isWithdrawing}
+                    style={{ background: 'linear-gradient(135deg, #fa7150 0%, #a43e24 100%)' }}
+                    className="w-full py-3 text-white rounded-full font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {isWithdrawing ? 'Đang gửi yêu cầu...' : 'Gửi yêu cầu rút tiền'}
+                  </button>
+                </form>
               </div>
             </div>
-          )}
+
+            {/* Column 3: History Logs */}
+            <div className="bg-white rounded-[2rem] border border-[#e5d8d0] p-8 space-y-6">
+              <div className="border-b border-[#e5d8d0]/60 pb-4">
+                <h3 className="text-lg font-black text-[#303330]">Lịch sử Rút Tiền</h3>
+                <p className="text-xs text-[#8a7e75]">Danh sách các giao dịch rút tiền của bạn.</p>
+              </div>
+
+              <div className="space-y-4 max-h-[450px] overflow-y-auto pr-1">
+                {withdrawals.length === 0 ? (
+                  <p className="text-center text-xs text-[#8a7e75] py-8">Chưa có giao dịch rút tiền nào.</p>
+                ) : (
+                  withdrawals.map((w: any) => (
+                    <div key={w.id} className="p-4 bg-[#faf9f6] border border-[#e5d8d0]/60 rounded-2xl space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="font-black text-[#fa7150]">{w.amount.toLocaleString('vi-VN')}đ</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${w.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                            w.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                              'bg-rose-50 text-rose-700 border border-rose-100'
+                          }`}>
+                          {w.status === 'PENDING' ? 'Chờ duyệt' :
+                            w.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}
+                        </span>
+                      </div>
+                      <div className="text-[#8a7e75] leading-normal font-semibold space-y-0.5">
+                        <div>Ngân hàng: <span className="text-[#303330]">{w.bankName}</span></div>
+                        <div>Số tài khoản: <span className="text-[#303330]">{maskAccountNumber(w.bankAccountNumber)}</span></div>
+                        <div>Chủ tài khoản: <span className="text-[#303330]">{w.bankAccountName}</span></div>
+                        <div className="text-[10px] text-gray-400 mt-1">Yêu cầu lúc: {new Date(w.createdAt).toLocaleString('vi-VN')}</div>
+                      </div>
+                      {w.receiptImageUrl && (
+                        <a
+                          href={w.receiptImageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 block w-full py-1.5 bg-[#fdfaf8] border border-[#e5d8d0] hover:border-[#fa7150] text-[#fa7150] text-center rounded-lg font-black text-[10px] uppercase transition-colors"
+                        >
+                          Xem biên lai chuyển tiền
+                        </a>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
       </main>
 
@@ -3102,7 +3211,7 @@ export const PartnerDashboard = () => {
       {showAddHotelModal && (
         <div className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl border border-[#e5d8d0] animate-in fade-in zoom-in duration-200 text-left my-8">
-            
+
             {/* Tiêu đề Modal & Stepper */}
             <div className="border-b border-[#e5d8d0]/60 pb-5 mb-6">
               <h3 className="text-2xl font-black text-[#303330]">{editingHotelId ? 'Cập nhật Thông tin Cơ sở' : 'Đăng ký Đối tác & Cơ sở mới'}</h3>
@@ -3110,355 +3219,374 @@ export const PartnerDashboard = () => {
             </div>
 
             <form onSubmit={handleAddHotel} className="space-y-6 text-xs font-bold">
-              
+
               {/* ── BƯỚC 1: HỒ SƠ CỬA HÀNG ── */}
-                <div className="space-y-4 animate-in fade-in duration-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Tên thương hiệu / Cửa hàng</label>
-                      <input
-                        type="text"
-                        required
-                        value={newHotelName}
-                        onChange={e => setNewHotelName(e.target.value)}
-                        placeholder="Ví dụ: Miu Miu Pet Hotel"
-                        className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none focus:border-[#fa7150]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Đối tượng thú cưng tiếp nhận</label>
-                      <select
-                        value={petTarget}
-                        onChange={e => setPetTarget(e.target.value as any)}
-                        className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
-                      >
-                        <option value="BOTH">Nhận cả Chó và Mèo</option>
-                        <option value="DOG_ONLY">Chỉ nhận Chó</option>
-                        <option value="CAT_ONLY">Chỉ nhận Mèo</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Địa chỉ phân cấp */}
-                  <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 space-y-4">
-                    <span className="text-[10px] text-[#fa7150] uppercase tracking-wider block mb-1">Địa chỉ cửa hàng</span>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Tỉnh / Thành phố</label>
-                        <select
-                          value={hotelProvince}
-                          onChange={e => setHotelProvince(e.target.value)}
-                          className="w-full p-2.5 bg-white border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
-                        >
-                          <option value="Thành phố Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                          <option value="Hà Nội">Hà Nội</option>
-                          <option value="Đà Nẵng">Đà Nẵng</option>
-                          <option value="Bình Dương">Bình Dương</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Quận / Huyện</label>
-                        <input
-                          type="text"
-                          required
-                          value={hotelDistrict}
-                          onChange={e => setHotelDistrict(e.target.value)}
-                          placeholder="Ví dụ: Quận 1"
-                          className="w-full p-2.5 bg-white border border-[#e5d8d0] rounded-xl outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Phường / Xã</label>
-                        <input
-                          type="text"
-                          required
-                          value={hotelWard}
-                          onChange={e => setHotelWard(e.target.value)}
-                          placeholder="Ví dụ: Phường Bến Nghé"
-                          className="w-full p-2.5 bg-white border border-[#e5d8d0] rounded-xl outline-none"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Địa chỉ chi tiết (Số nhà, tên đường)</label>
-                      <input
-                        type="text"
-                        required
-                        value={hotelStreet}
-                        onChange={e => setHotelStreet(e.target.value)}
-                        placeholder="Ví dụ: 123 Nguyễn Huệ"
-                        className="w-full p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Bản đồ Leaflet & Link Google Maps */}
-                  <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 space-y-4">
-                    <span className="text-[10px] text-[#fa7150] uppercase tracking-wider block mb-1">Định vị & Bản đồ</span>
-                    <div>
-                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Link Google Maps (Hệ thống tự động nhận diện tọa độ)</label>
-                      <input
-                        type="url"
-                        value={googleMapsUrl}
-                        onChange={async e => {
-                          const val = e.target.value
-                          setGoogleMapsUrl(val)
-                          
-                          // 1. Thử phân tích cục bộ
-                          let parsedLocally = false
-                          try {
-                            if (val.includes('@')) {
-                              const parts = val.split('@')[1].split(',')
-                              if (parts.length >= 2) {
-                                const parsedLat = parseFloat(parts[0])
-                                const parsedLng = parseFloat(parts[1])
-                                if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
-                                  setLat(parsedLat)
-                                  setLng(parsedLng)
-                                  parsedLocally = true
-                                }
-                              }
-                            } else if (val.includes('q=')) {
-                              let sub = val.split('q=')[1]
-                              if (sub.includes('&')) {
-                                sub = sub.split('&')[0]
-                              }
-                              const parts = sub.split(',')
-                              if (parts.length >= 2) {
-                                const parsedLat = parseFloat(parts[0])
-                                const parsedLng = parseFloat(parts[1])
-                                if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
-                                  setLat(parsedLat)
-                                  setLng(parsedLng)
-                                  parsedLocally = true
-                                }
-                              }
-                            }
-                          } catch (err) {
-                            console.error('Lỗi parse tọa độ local:', err)
-                          }
-
-                          // 2. Nếu không parse được cục bộ và là link Google Maps hợp lệ, gọi backend resolve
-                          if (!parsedLocally && val.startsWith('http') && (val.includes('maps') || val.includes('goo.gl'))) {
-                            try {
-                              const res = await axiosInstance.get('/api/hotels/resolve-coords', {
-                                params: { url: val }
-                              })
-                              if (res.data && res.data.lat && res.data.lng) {
-                                setLat(res.data.lat)
-                                setLng(res.data.lng)
-                              }
-                            } catch (err) {
-                              console.error('Lỗi gọi API resolve tọa độ:', err)
-                            }
-                          }
-                        }}
-                        placeholder="Ví dụ: https://www.google.com/maps/place/.../@10.7769,106.7009,17z/..."
-                        className="w-full p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none text-xs"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <span className="text-[10px] text-[#8a7e75] block">Hoặc kéo marker/ghim trên bản đồ để chọn tọa độ chính xác:</span>
-                      <Map lat={lat} lng={lng} onChange={(newLat, newLng) => {
-                        setLat(newLat)
-                        setLng(newLng)
-                      }} />
-                      <div className="flex gap-4 text-[10px] text-[#8a7e75] font-mono">
-                        <span>Vĩ độ (Lat): <strong className="text-[#303330]">{lat.toFixed(6)}</strong></span>
-                        <span>Kinh độ (Lng): <strong className="text-[#303330]">{lng.toFixed(6)}</strong></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Loại hình dịch vụ */}
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[#8a7e75] mb-2 uppercase">Loại hình dịch vụ cung cấp</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60">
-                      <label className="flex items-center gap-2 cursor-pointer font-bold">
-                        <input type="checkbox" checked={serviceBoarding} onChange={e => setServiceBoarding(e.target.checked)} className="rounded text-[#fa7150]" />
-                        <span>Khách sạn lưu trú</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer font-bold">
-                        <input type="checkbox" checked={serviceGrooming} onChange={e => setServiceGrooming(e.target.checked)} className="rounded text-[#fa7150]" />
-                        <span>Tắm & Grooming</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer font-bold">
-                        <input type="checkbox" checked={serviceVet} onChange={e => setServiceVet(e.target.checked)} className="rounded text-[#fa7150]" />
-                        <span>Thú y & Bệnh viện</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer font-bold">
-                        <input type="checkbox" checked={serviceShop} onChange={e => setServiceShop(e.target.checked)} className="rounded text-[#fa7150]" />
-                        <span>Pet Shop / Phụ kiện</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer font-bold">
-                        <input type="checkbox" checked={serviceOther} onChange={e => setServiceOther(e.target.checked)} className="rounded text-[#fa7150]" />
-                        <span>Dịch vụ khác</span>
-                      </label>
-                    </div>
+                    <label className="block text-[#8a7e75] mb-1.5 uppercase">Tên thương hiệu / Cửa hàng</label>
+                    <input
+                      type="text"
+                      required
+                      value={newHotelName}
+                      onChange={e => setNewHotelName(e.target.value)}
+                      placeholder="Ví dụ: Miu Miu Pet Hotel"
+                      className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none focus:border-[#fa7150]"
+                    />
                   </div>
-
-                  {/* Khung giờ hoạt động & Hình ảnh */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Giờ mở cửa</label>
-                        <input type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} className="w-full p-2.5 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-[#8a7e75] mb-1.5 uppercase">Giờ đóng cửa</label>
-                        <input type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} className="w-full p-2.5 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <span className="block text-[#8a7e75] uppercase">Tải hình ảnh cửa hàng</span>
-                      <div className="flex gap-3">
-                        {/* Logo upload */}
-                        {/* Logo upload */}
-                        <div className="flex-1 text-center">
-                          {logoUrl ? (
-                            <div className="relative group aspect-video rounded-xl overflow-hidden border border-[#e5d8d0] bg-[#faf9f6]">
-                              <img src={logoUrl} className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => setLogoUrl('')}
-                                className="absolute top-1.5 right-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-30 animate-fade-in"
-                              >
-                                <Trash2 size={10} />
-                              </button>
-                              <div className="absolute bottom-0 inset-x-0 bg-[#303330]/65 text-white text-[8px] uppercase font-bold py-1 text-center tracking-wider">Logo</div>
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer bg-[#faf9f6]/40 hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-xl flex flex-col items-center justify-center aspect-video transition-all relative overflow-hidden">
-                              <input type="file" accept="image/*" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'logo')} />
-                              {uploadingField === 'logo' && (
-                                <div className="absolute inset-0 bg-[#faf9f6]/95 flex flex-col items-center justify-center z-20">
-                                  <span className="w-4 h-4 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
-                                </div>
-                              )}
-                              <Upload size={14} className="text-[#fa7150] mb-0.5" />
-                              <span className="text-[8px] uppercase font-black text-[#8a7e75]">Tải Logo</span>
-                            </label>
-                          )}
-                        </div>
-                        {/* Front upload */}
-                        <div className="flex-1 text-center">
-                          {frontUrl ? (
-                            <div className="relative group aspect-video rounded-xl overflow-hidden border border-[#e5d8d0] bg-[#faf9f6]">
-                              <img src={frontUrl} className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => setFrontUrl('')}
-                                className="absolute top-1.5 right-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-30 animate-fade-in"
-                              >
-                                <Trash2 size={10} />
-                              </button>
-                              <div className="absolute bottom-0 inset-x-0 bg-[#303330]/65 text-white text-[8px] uppercase font-bold py-1 text-center tracking-wider">Mặt tiền</div>
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer bg-[#faf9f6]/40 hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-xl flex flex-col items-center justify-center aspect-video transition-all relative overflow-hidden">
-                              <input type="file" accept="image/*" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'front')} />
-                              {uploadingField === 'front' && (
-                                <div className="absolute inset-0 bg-[#faf9f6]/95 flex flex-col items-center justify-center z-20">
-                                  <span className="w-4 h-4 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
-                                </div>
-                              )}
-                              <Upload size={14} className="text-[#fa7150] mb-0.5" />
-                              <span className="text-[8px] uppercase font-black text-[#8a7e75]">Mặt tiền</span>
-                            </label>
-                          )}
-                        </div>
-                        {/* Rooms upload */}
-                        <div className="flex-1 text-center">
-                          {roomsUrl ? (
-                            <div className="relative group aspect-video rounded-xl overflow-hidden border border-[#e5d8d0] bg-[#faf9f6]">
-                              <img src={roomsUrl} className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => setRoomsUrl('')}
-                                className="absolute top-1.5 right-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-30 animate-fade-in"
-                              >
-                                <Trash2 size={10} />
-                              </button>
-                              <div className="absolute bottom-0 inset-x-0 bg-[#303330]/65 text-white text-[8px] uppercase font-bold py-1 text-center tracking-wider">Cơ sở vật chất</div>
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer bg-[#faf9f6]/40 hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-xl flex flex-col items-center justify-center aspect-video transition-all relative overflow-hidden">
-                              <input type="file" accept="image/*" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'rooms')} />
-                              {uploadingField === 'rooms' && (
-                                <div className="absolute inset-0 bg-[#faf9f6]/95 flex flex-col items-center justify-center z-20">
-                                  <span className="w-4 h-4 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
-                                </div>
-                              )}
-                              <Upload size={14} className="text-[#fa7150] mb-0.5" />
-                              <span className="text-[8px] uppercase font-black text-[#8a7e75]">Cơ sở vật chất</span>
-                            </label>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Album ảnh bổ sung */}
-                      <div className="mt-4 pt-3 border-t border-[#e5d8d0]/40 text-left">
-                        <span className="block text-[#8a7e75] uppercase text-[10px] tracking-wider mb-2">Album ảnh bổ sung ({hotelImages.length} ảnh)</span>
-                        <div className="grid grid-cols-4 gap-2">
-                          {hotelImages.map((imgUrl, idx) => (
-                            <div key={idx} className="relative group aspect-video rounded-xl overflow-hidden border border-[#e5d8d0]">
-                              <img src={imgUrl} className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => setHotelImages(prev => prev.filter((_, i) => i !== idx))}
-                                className="absolute top-1 right-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                              >
-                                <Trash2 size={10} />
-                              </button>
-                            </div>
-                          ))}
-                          
-                          {/* Upload button card */}
-                          <label className="cursor-pointer bg-[#faf9f6]/40 hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-xl flex flex-col items-center justify-center aspect-video transition-all">
-                            <input 
-                              type="file" 
-                              accept="image/*" 
-                              disabled={!!uploadingField} 
-                              className="hidden" 
-                              onChange={e => handleFileUpload(e, 'hotelGallery')} 
-                            />
-                            <Upload size={14} className="text-[#fa7150] mb-0.5" />
-                            <span className="text-[8px] uppercase font-black">Thêm ảnh</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      {uploadingField && <p className="text-[9px] text-[#fa7150] font-bold animate-pulse text-right">Đang tải tệp tin lên hệ thống...</p>}
-                    </div>
-                  </div>
-
-                  {!editingHotelId && (
-                    <div className="flex items-start gap-2.5 pt-4 border-t border-[#e5d8d0]/60">
-                      <input
-                        type="checkbox"
-                        id="agree-terms"
-                        checked={agreeTerms}
-                        onChange={e => setAgreeTerms(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 accent-[#fa7150] cursor-pointer shrink-0"
-                      />
-                      <label htmlFor="agree-terms" className="text-[11px] text-[#8a7e75] font-normal cursor-pointer leading-relaxed">
-                        Tôi đồng ý với <span className="text-[#fa7150] font-bold">Điều khoản hợp tác</span> của PetCare Hub. Hợp đồng chính thức sẽ được ký qua email sau khi hồ sơ được duyệt.
-                      </label>
-                    </div>
-                  )}
-                  <div className="flex justify-end gap-3 pt-4 border-t border-[#e5d8d0]/60">
-                    <button type="button" onClick={() => { setShowAddHotelModal(false); setEditingHotelId(null); }} className="px-5 py-3 bg-[#f5ede8] hover:bg-[#e5d8d0] rounded-xl cursor-pointer">Hủy bỏ</button>
-                    <button
-                      type="submit"
-                      disabled={isAddingHotel || (!editingHotelId && !agreeTerms)}
-                      className="px-6 py-3 bg-[#fa7150] text-white rounded-xl cursor-pointer shadow-md hover:opacity-95 disabled:opacity-50 flex items-center gap-2 transition-all"
+                  <div>
+                    <label className="block text-[#8a7e75] mb-1.5 uppercase">Đối tượng thú cưng tiếp nhận</label>
+                    <select
+                      value={petTarget}
+                      onChange={e => setPetTarget(e.target.value as any)}
+                      className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
                     >
-                      {isAddingHotel ? (editingHotelId ? 'Đang lưu...' : 'Đang gửi hồ sơ...') : (editingHotelId ? 'Lưu thay đổi' : 'Hoàn tất & Gửi duyệt')}
-                    </button>
+                      <option value="BOTH">Nhận cả Chó và Mèo</option>
+                      <option value="DOG_ONLY">Chỉ nhận Chó</option>
+                      <option value="CAT_ONLY">Chỉ nhận Mèo</option>
+                    </select>
                   </div>
                 </div>
+
+                {/* Địa chỉ phân cấp */}
+                <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 space-y-4">
+                  <span className="text-[10px] text-[#fa7150] uppercase tracking-wider block mb-1">Địa chỉ cửa hàng</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Tỉnh / Thành phố</label>
+                      <select
+                        value={hotelProvince}
+                        onChange={e => setHotelProvince(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
+                      >
+                        <option value="Thành phố Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                        <option value="Hà Nội">Hà Nội</option>
+                        <option value="Đà Nẵng">Đà Nẵng</option>
+                        <option value="Bình Dương">Bình Dương</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Quận / Huyện</label>
+                      <input
+                        type="text"
+                        required
+                        value={hotelDistrict}
+                        onChange={e => setHotelDistrict(e.target.value)}
+                        placeholder="Ví dụ: Quận 1"
+                        className="w-full p-2.5 bg-white border border-[#e5d8d0] rounded-xl outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Phường / Xã</label>
+                      <input
+                        type="text"
+                        required
+                        value={hotelWard}
+                        onChange={e => setHotelWard(e.target.value)}
+                        placeholder="Ví dụ: Phường Bến Nghé"
+                        className="w-full p-2.5 bg-white border border-[#e5d8d0] rounded-xl outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[#8a7e75] mb-1.5 uppercase">Địa chỉ chi tiết (Số nhà, tên đường)</label>
+                    <input
+                      type="text"
+                      required
+                      value={hotelStreet}
+                      onChange={e => setHotelStreet(e.target.value)}
+                      placeholder="Ví dụ: 123 Nguyễn Huệ"
+                      className="w-full p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Bản đồ Leaflet & Link Google Maps */}
+                <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 space-y-4">
+                  <span className="text-[10px] text-[#fa7150] uppercase tracking-wider block mb-1">Định vị & Bản đồ</span>
+                  <div>
+                    <label className="block text-[#8a7e75] mb-1.5 uppercase">Link Google Maps (Hệ thống tự động nhận diện tọa độ)</label>
+                    <input
+                      type="url"
+                      value={googleMapsUrl}
+                      onChange={async e => {
+                        const val = e.target.value
+                        setGoogleMapsUrl(val)
+
+                        // 1. Thử phân tích cục bộ
+                        let parsedLocally = false
+                        try {
+                          if (val.includes('@')) {
+                            const parts = val.split('@')[1].split(',')
+                            if (parts.length >= 2) {
+                              const parsedLat = parseFloat(parts[0])
+                              const parsedLng = parseFloat(parts[1])
+                              if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+                                setLat(parsedLat)
+                                setLng(parsedLng)
+                                parsedLocally = true
+                              }
+                            }
+                          } else if (val.includes('q=')) {
+                            let sub = val.split('q=')[1]
+                            if (sub.includes('&')) {
+                              sub = sub.split('&')[0]
+                            }
+                            const parts = sub.split(',')
+                            if (parts.length >= 2) {
+                              const parsedLat = parseFloat(parts[0])
+                              const parsedLng = parseFloat(parts[1])
+                              if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+                                setLat(parsedLat)
+                                setLng(parsedLng)
+                                parsedLocally = true
+                              }
+                            }
+                          }
+                        } catch (err) {
+                          console.error('Lỗi parse tọa độ local:', err)
+                        }
+
+                        // 2. Nếu không parse được cục bộ và là link Google Maps hợp lệ, gọi backend resolve
+                        if (!parsedLocally && val.startsWith('http') && (val.includes('maps') || val.includes('goo.gl'))) {
+                          try {
+                            const res = await axiosInstance.get('/api/hotels/resolve-coords', {
+                              params: { url: val }
+                            })
+                            if (res.data && res.data.lat && res.data.lng) {
+                              setLat(res.data.lat)
+                              setLng(res.data.lng)
+                            }
+                          } catch (err) {
+                            console.error('Lỗi gọi API resolve tọa độ:', err)
+                          }
+                        }
+                      }}
+                      placeholder="Ví dụ: https://www.google.com/maps/place/.../@10.7769,106.7009,17z/..."
+                      className="w-full p-3 bg-white border border-[#e5d8d0] rounded-xl outline-none text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-[10px] text-[#8a7e75] block">Hoặc kéo marker/ghim trên bản đồ để chọn tọa độ chính xác:</span>
+                    <Map lat={lat} lng={lng} onChange={(newLat, newLng) => {
+                      setLat(newLat)
+                      setLng(newLng)
+                    }} />
+                    <div className="flex gap-4 text-[10px] text-[#8a7e75] font-mono">
+                      <span>Vĩ độ (Lat): <strong className="text-[#303330]">{lat.toFixed(6)}</strong></span>
+                      <span>Kinh độ (Lng): <strong className="text-[#303330]">{lng.toFixed(6)}</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Loại hình dịch vụ */}
+                <div>
+                  <label className="block text-[#8a7e75] mb-2 uppercase">Loại hình dịch vụ cung cấp</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60">
+                    <label className="flex items-center gap-2 cursor-pointer font-bold">
+                      <input type="checkbox" checked={serviceBoarding} onChange={e => setServiceBoarding(e.target.checked)} className="rounded text-[#fa7150]" />
+                      <span>Khách sạn lưu trú</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer font-bold">
+                      <input type="checkbox" checked={serviceGrooming} onChange={e => setServiceGrooming(e.target.checked)} className="rounded text-[#fa7150]" />
+                      <span>Tắm & Grooming</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer font-bold">
+                      <input type="checkbox" checked={serviceVet} onChange={e => setServiceVet(e.target.checked)} className="rounded text-[#fa7150]" />
+                      <span>Thú y & Bệnh viện</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer font-bold">
+                      <input type="checkbox" checked={serviceShop} onChange={e => setServiceShop(e.target.checked)} className="rounded text-[#fa7150]" />
+                      <span>Pet Shop / Phụ kiện</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer font-bold">
+                      <input type="checkbox" checked={serviceOther} onChange={e => setServiceOther(e.target.checked)} className="rounded text-[#fa7150]" />
+                      <span>Dịch vụ khác</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Tiện nghi bổ sung */}
+                <div>
+                  <label className="block text-[#8a7e75] mb-2 uppercase">Tiện nghi bổ sung</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60">
+                    <label className="flex items-center gap-2 cursor-pointer font-bold">
+                      <input type="checkbox" checked={amenityGarden} onChange={e => setAmenityGarden(e.target.checked)} className="rounded text-[#fa7150]" />
+                      <span>Sân vườn riêng</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer font-bold">
+                      <input type="checkbox" checked={amenityAC} onChange={e => setAmenityAC(e.target.checked)} className="rounded text-[#fa7150]" />
+                      <span>Điều hòa nhiệt độ</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer font-bold">
+                      <input type="checkbox" checked={amenityCamera} onChange={e => setAmenityCamera(e.target.checked)} className="rounded text-[#fa7150]" />
+                      <span>Camera 24/7</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Khung giờ hoạt động & Hình ảnh */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Giờ mở cửa</label>
+                      <input type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} className="w-full p-2.5 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-[#8a7e75] mb-1.5 uppercase">Giờ đóng cửa</label>
+                      <input type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} className="w-full p-2.5 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <span className="block text-[#8a7e75] uppercase">Tải hình ảnh cửa hàng</span>
+                    <div className="flex gap-3">
+                      {/* Logo upload */}
+                      {/* Logo upload */}
+                      <div className="flex-1 text-center">
+                        {logoUrl ? (
+                          <div className="relative group aspect-video rounded-xl overflow-hidden border border-[#e5d8d0] bg-[#faf9f6]">
+                            <img src={logoUrl} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setLogoUrl('')}
+                              className="absolute top-1.5 right-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-30 animate-fade-in"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                            <div className="absolute bottom-0 inset-x-0 bg-[#303330]/65 text-white text-[8px] uppercase font-bold py-1 text-center tracking-wider">Logo</div>
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer bg-[#faf9f6]/40 hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-xl flex flex-col items-center justify-center aspect-video transition-all relative overflow-hidden">
+                            <input type="file" accept="image/*" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'logo')} />
+                            {uploadingField === 'logo' && (
+                              <div className="absolute inset-0 bg-[#faf9f6]/95 flex flex-col items-center justify-center z-20">
+                                <span className="w-4 h-4 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
+                              </div>
+                            )}
+                            <Upload size={14} className="text-[#fa7150] mb-0.5" />
+                            <span className="text-[8px] uppercase font-black text-[#8a7e75]">Tải Logo</span>
+                          </label>
+                        )}
+                      </div>
+                      {/* Front upload */}
+                      <div className="flex-1 text-center">
+                        {frontUrl ? (
+                          <div className="relative group aspect-video rounded-xl overflow-hidden border border-[#e5d8d0] bg-[#faf9f6]">
+                            <img src={frontUrl} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setFrontUrl('')}
+                              className="absolute top-1.5 right-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-30 animate-fade-in"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                            <div className="absolute bottom-0 inset-x-0 bg-[#303330]/65 text-white text-[8px] uppercase font-bold py-1 text-center tracking-wider">Mặt tiền</div>
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer bg-[#faf9f6]/40 hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-xl flex flex-col items-center justify-center aspect-video transition-all relative overflow-hidden">
+                            <input type="file" accept="image/*" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'front')} />
+                            {uploadingField === 'front' && (
+                              <div className="absolute inset-0 bg-[#faf9f6]/95 flex flex-col items-center justify-center z-20">
+                                <span className="w-4 h-4 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
+                              </div>
+                            )}
+                            <Upload size={14} className="text-[#fa7150] mb-0.5" />
+                            <span className="text-[8px] uppercase font-black text-[#8a7e75]">Mặt tiền</span>
+                          </label>
+                        )}
+                      </div>
+                      {/* Rooms upload */}
+                      <div className="flex-1 text-center">
+                        {roomsUrl ? (
+                          <div className="relative group aspect-video rounded-xl overflow-hidden border border-[#e5d8d0] bg-[#faf9f6]">
+                            <img src={roomsUrl} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setRoomsUrl('')}
+                              className="absolute top-1.5 right-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-30 animate-fade-in"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                            <div className="absolute bottom-0 inset-x-0 bg-[#303330]/65 text-white text-[8px] uppercase font-bold py-1 text-center tracking-wider">Cơ sở vật chất</div>
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer bg-[#faf9f6]/40 hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-xl flex flex-col items-center justify-center aspect-video transition-all relative overflow-hidden">
+                            <input type="file" accept="image/*" disabled={!!uploadingField} className="hidden" onChange={e => handleFileUpload(e, 'rooms')} />
+                            {uploadingField === 'rooms' && (
+                              <div className="absolute inset-0 bg-[#faf9f6]/95 flex flex-col items-center justify-center z-20">
+                                <span className="w-4 h-4 border-2 border-[#fa7150]/30 border-t-[#fa7150] rounded-full animate-spin"></span>
+                              </div>
+                            )}
+                            <Upload size={14} className="text-[#fa7150] mb-0.5" />
+                            <span className="text-[8px] uppercase font-black text-[#8a7e75]">Cơ sở vật chất</span>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Album ảnh bổ sung */}
+                    <div className="mt-4 pt-3 border-t border-[#e5d8d0]/40 text-left">
+                      <span className="block text-[#8a7e75] uppercase text-[10px] tracking-wider mb-2">Album ảnh bổ sung ({hotelImages.length} ảnh)</span>
+                      <div className="grid grid-cols-4 gap-2">
+                        {hotelImages.map((imgUrl, idx) => (
+                          <div key={idx} className="relative group aspect-video rounded-xl overflow-hidden border border-[#e5d8d0]">
+                            <img src={imgUrl} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setHotelImages(prev => prev.filter((_, i) => i !== idx))}
+                              className="absolute top-1 right-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          </div>
+                        ))}
+
+                        {/* Upload button card */}
+                        <label className="cursor-pointer bg-[#faf9f6]/40 hover:bg-[#fa7150]/5 border-2 border-dashed border-[#e5d8d0] hover:border-[#fa7150] rounded-xl flex flex-col items-center justify-center aspect-video transition-all">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={!!uploadingField}
+                            className="hidden"
+                            onChange={e => handleFileUpload(e, 'hotelGallery')}
+                          />
+                          <Upload size={14} className="text-[#fa7150] mb-0.5" />
+                          <span className="text-[8px] uppercase font-black">Thêm ảnh</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {uploadingField && <p className="text-[9px] text-[#fa7150] font-bold animate-pulse text-right">Đang tải tệp tin lên hệ thống...</p>}
+                  </div>
+                </div>
+
+                {!editingHotelId && (
+                  <div className="flex items-start gap-2.5 pt-4 border-t border-[#e5d8d0]/60">
+                    <input
+                      type="checkbox"
+                      id="agree-terms"
+                      checked={agreeTerms}
+                      onChange={e => setAgreeTerms(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 accent-[#fa7150] cursor-pointer shrink-0"
+                    />
+                    <label htmlFor="agree-terms" className="text-[11px] text-[#8a7e75] font-normal cursor-pointer leading-relaxed">
+                      Tôi đồng ý với <span className="text-[#fa7150] font-bold">Điều khoản hợp tác</span> của PetCare Hub. Hợp đồng chính thức sẽ được ký qua email sau khi hồ sơ được duyệt.
+                    </label>
+                  </div>
+                )}
+                <div className="flex justify-end gap-3 pt-4 border-t border-[#e5d8d0]/60">
+                  <button type="button" onClick={() => { setShowAddHotelModal(false); setEditingHotelId(null); }} className="px-5 py-3 bg-[#f5ede8] hover:bg-[#e5d8d0] rounded-xl cursor-pointer">Hủy bỏ</button>
+                  <button
+                    type="submit"
+                    disabled={isAddingHotel || (!editingHotelId && !agreeTerms)}
+                    className="px-6 py-3 bg-[#fa7150] text-white rounded-xl cursor-pointer shadow-md hover:opacity-95 disabled:opacity-50 flex items-center gap-2 transition-all"
+                  >
+                    {isAddingHotel ? (editingHotelId ? 'Đang lưu...' : 'Đang gửi hồ sơ...') : (editingHotelId ? 'Lưu thay đổi' : 'Hoàn tất & Gửi duyệt')}
+                  </button>
+                </div>
+              </div>
 
 
             </form>
@@ -3471,7 +3599,7 @@ export const PartnerDashboard = () => {
         <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] p-6 max-w-sm w-full shadow-2xl border border-[#e5d8d0] animate-in fade-in zoom-in duration-200 text-center">
             <h4 className="text-sm font-black text-[#303330] mb-4 uppercase tracking-wider">Chụp ảnh Selfie xác thực</h4>
-            
+
             {/* Viewport */}
             <div className="relative rounded-2xl overflow-hidden bg-black aspect-video mb-6 border border-[#e5d8d0]">
               <video
@@ -3665,7 +3793,7 @@ export const PartnerDashboard = () => {
               Giả lập Gửi Thông báo & Live Preview
             </h3>
             <p className="text-xs text-[#8a7e75] mb-6">Trải nghiệm cách khách hàng nhận thông báo theo mẫu cấu hình của bạn.</p>
-            
+
             {/* Channel selection */}
             <div className="flex gap-2 p-1 bg-[#f0ece9]/60 rounded-xl mb-6 font-bold">
               {(['SMS', 'Zalo', 'Email'] as const).map(channel => (
@@ -3673,11 +3801,10 @@ export const PartnerDashboard = () => {
                   key={channel}
                   type="button"
                   onClick={() => setSandboxChannel(channel)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-black transition-all ${
-                    sandboxChannel === channel
+                  className={`flex-1 py-2 rounded-lg text-xs font-black transition-all ${sandboxChannel === channel
                       ? 'bg-white text-[#303330] shadow-sm'
                       : 'text-[#8a7e75] hover:text-[#303330]'
-                  }`}
+                    }`}
                 >
                   {channel}
                 </button>
@@ -3687,7 +3814,7 @@ export const PartnerDashboard = () => {
             {/* Simulated Live Preview */}
             <div className="bg-[#faf9f6] border border-[#e5d8d0] rounded-2xl p-6 mb-6">
               <span className="text-[9px] font-black text-[#8a7e75] uppercase block mb-3">Xem trước nội dung (Live Preview)</span>
-              
+
               {sandboxChannel === 'Zalo' && (
                 <div className="bg-white border border-[#e5d8d0] rounded-xl overflow-hidden shadow-sm max-w-sm mx-auto">
                   {/* Zalo Header */}

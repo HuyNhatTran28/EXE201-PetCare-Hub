@@ -4,7 +4,15 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
-const PARTNER_NAV_ITEMS = [
+interface NavItem {
+  icon: React.ReactNode
+  label: string
+  path: string
+  matchTab?: string
+  matchPath?: string
+}
+
+const PARTNER_NAV_ITEMS: NavItem[] = [
   { icon: <Building size={18} />, label: 'Quản Lý Khách Sạn', path: '/partner/dashboard?tab=hotels', matchTab: 'hotels' },
   { icon: <Calendar size={18} />, label: 'Đặt Chỗ & Lịch Trình', path: '/partner/dashboard?tab=bookings', matchTab: 'bookings' },
   { icon: <Sparkles size={18} />, label: 'Quy trình Không giấy tờ', path: '/partner/dashboard?tab=paperless', matchTab: 'paperless' },
@@ -16,7 +24,7 @@ const PARTNER_NAV_ITEMS = [
   { icon: <Calendar size={18} />, label: 'Danh sách Bookings', path: '/partner/bookings' },
 ]
 
-const STAFF_NAV_ITEMS = [
+const STAFF_NAV_ITEMS: NavItem[] = [
   { icon: <MessageCircle size={18} />, label: 'Tin Nhắn', path: '/partner/messages', matchPath: '/partner/messages' },
 ]
 
@@ -32,8 +40,8 @@ export const PartnerLayout = () => {
 
   const orangeGradient = { background: 'linear-gradient(135deg, #fa7150 0%, #a43e24 100%)' }
 
-  const isActive = (item: typeof NAV_ITEMS[0]) => {
-    if ('matchPath' in item && item.matchPath) {
+  const isActive = (item: NavItem) => {
+    if (item.matchPath) {
       return location.pathname === item.matchPath
     }
     if (item.path.startsWith('/partner/dashboard')) {

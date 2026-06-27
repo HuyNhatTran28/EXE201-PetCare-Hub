@@ -65,11 +65,18 @@ public class ConversationController {
     @GetMapping("/{id}/messages")
     public ResponseEntity<ApiResponse<List<MessageResponse>>> getMessages(
             @PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.success(
-            conversationService.getMessages(id, currentUserId())));
-    }
+         return ResponseEntity.ok(ApiResponse.success(
+             conversationService.getMessages(id, currentUserId())));
+     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
+     // ── DELETE /api/conversations/{id} ──────────────────────────────────────────
+     @DeleteMapping("/{id}")
+     public ResponseEntity<ApiResponse<Void>> deleteConversation(@PathVariable UUID id) {
+         conversationService.deleteConversation(id, currentUserId());
+         return ResponseEntity.ok(ApiResponse.success("Đã xóa cuộc hội thoại"));
+     }
+
+     // ── Helper ────────────────────────────────────────────────────────────────
 
     private UUID currentUserId() {
         return (UUID) SecurityContextHolder.getContext()

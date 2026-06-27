@@ -11,6 +11,7 @@ interface UserInfo {
   avatarUrl: string | null
   role: Role
   mustChangePassword?: boolean
+  address?: string | null
 }
 
 interface AuthState {

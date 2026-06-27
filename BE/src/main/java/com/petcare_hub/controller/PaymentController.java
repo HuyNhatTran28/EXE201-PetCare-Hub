@@ -10,6 +10,7 @@ import com.petcare_hub.repository.BookingRepository;
 import com.petcare_hub.repository.PaymentRepository;
 import com.petcare_hub.repository.PartnerWalletRepository;
 import com.petcare_hub.exception.AppException;
+import com.petcare_hub.service.AsyncEmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +44,7 @@ public class PaymentController {
     private final PaymentRepository paymentRepository;
     private final PartnerWalletRepository partnerWalletRepository;
     private final PayOS payOS;
+    private final AsyncEmailService asyncEmailService;
 
     @Value("${frontend.base-url:http://localhost:5173}")
     private String frontendBaseUrl;
@@ -150,6 +152,17 @@ public class PaymentController {
                     if (booking.getStatus() == BookingStatus.PENDING) {
                         booking.setStatus(BookingStatus.CONFIRMED);
                         bookingRepository.save(booking);
+
+                        asyncEmailService.sendConfirmEmailAsync(
+                            booking.getInvoiceNumber(),
+                            booking.getOwner().getEmail(),
+                            booking.getOwner().getFullName(),
+                            booking.getHotel().getName(),
+                            booking.getRoomType().getName(),
+                            booking.getCheckInDate(),
+                            booking.getCheckOutDate(),
+                            booking.getTotalAmount()
+                        );
 
                         BigDecimal totalAmount = booking.getTotalAmount();
                         BigDecimal commissionFee = totalAmount
@@ -271,6 +284,17 @@ public class PaymentController {
                     if (bookedItem.getStatus() == BookingStatus.PENDING) {
                         bookedItem.setStatus(BookingStatus.CONFIRMED);
                         bookingRepository.save(bookedItem);
+
+                        asyncEmailService.sendConfirmEmailAsync(
+                            bookedItem.getInvoiceNumber(),
+                            bookedItem.getOwner().getEmail(),
+                            bookedItem.getOwner().getFullName(),
+                            bookedItem.getHotel().getName(),
+                            bookedItem.getRoomType().getName(),
+                            bookedItem.getCheckInDate(),
+                            bookedItem.getCheckOutDate(),
+                            bookedItem.getTotalAmount()
+                        );
 
                         BigDecimal totalAmount = bookedItem.getTotalAmount();
                         BigDecimal commissionFee = totalAmount

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { Header } from '@/components/Header'
+import { cleanAddressDisplay } from '@/utils/cleanAddress'
 
 
 interface HotelType {
@@ -329,7 +330,7 @@ export const HotelListPage = () => {
                               {hotel.name}
                             </h3>
                             <p className="text-[10px] text-[#8a7e75] flex items-center gap-1 mt-0.5 font-bold">
-                              <MapPin size={10} className="text-[#a43e24]" /> {hotel.address}
+                              <MapPin size={10} className="text-[#a43e24]" /> {cleanAddressDisplay(hotel.address)}
                             </p>
                           </div>
                           {hotel.isPopular && (

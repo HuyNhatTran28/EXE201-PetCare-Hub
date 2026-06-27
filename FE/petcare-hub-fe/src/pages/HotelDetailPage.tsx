@@ -21,11 +21,14 @@ import {
   Upload,
   Trash2,
   Loader2,
-  Plus
+  Plus,
+  AlertCircle,
+  AlertTriangle
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { Header } from '@/components/Header'
 import { useAuthStore } from '@/store/authStore'
+import { cleanAddressDisplay } from '@/utils/cleanAddress'
 
 
 
@@ -207,6 +210,13 @@ export const HotelDetailPage = () => {
   const [currentBookingId, setCurrentBookingId] = useState<string | null>(null)
   const [paymentConfirmed, setPaymentConfirmed] = useState(false)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Custom Toast notification state
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
+  
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'error') => {
+    setToast({ type, message })
+  }
   const pollStartRef = useRef<number | null>(null)
   const POLL_INTERVAL_MS = 4000
   const POLL_MAX_MS = 15 * 60 * 1000 // 15 phút
@@ -249,7 +259,7 @@ export const HotelDetailPage = () => {
         const hotelRes = await axiosInstance.get(`/api/hotels/${id}`)
         if (hotelRes.data) {
           setHotelName(hotelRes.data.name)
-          setHotelAddress(hotelRes.data.address || 'Hồ Chí Minh, Việt Nam')
+          setHotelAddress(cleanAddressDisplay(hotelRes.data.address || 'Hồ Chí Minh, Việt Nam'))
           setLocationLat(hotelRes.data.locationLat)
           setLocationLong(hotelRes.data.locationLong)
           setGoogleMapsUrl(hotelRes.data.googleMapsUrl)
@@ -495,7 +505,7 @@ export const HotelDetailPage = () => {
 
     const validation = validateImageFile(file)
     if (!validation.isValid) {
-      alert(validation.message)
+      showToast(validation.message, 'error')
       e.target.value = ''
       return
     }
@@ -522,7 +532,7 @@ export const HotelDetailPage = () => {
       }
     } catch (err) {
       console.error('File upload failed', err)
-      alert('Không thể tải ảnh lên. Vui lòng thử lại.')
+      showToast('Không thể tải ảnh lên. Vui lòng thử lại.', 'error')
     } finally {
       setUploadingField(null)
       e.target.value = ''
@@ -566,11 +576,11 @@ export const HotelDetailPage = () => {
         
         setIsEditDescOpen(false)
         setIsEditImagesOpen(false)
-        alert('Cập nhật thông tin khách sạn thành công!')
+        showToast('Cập nhật thông tin khách sạn thành công!', 'success')
       }
     } catch (error: any) {
       console.error('Failed to update hotel details', error)
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật thông tin khách sạn. Hãy chắc chắn bạn đã điền đầy đủ và đúng định dạng.')
+      showToast(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật thông tin khách sạn. Hãy chắc chắn bạn đã điền đầy đủ và đúng định dạng.', 'error')
     } finally {
       setUpdating(false)
     }
@@ -578,7 +588,7 @@ export const HotelDetailPage = () => {
 
   const handleCreateBooking = async () => {
     if (!selectedPetId && !petNameInput) {
-      alert('Bạn phải điền thông tin thú cưng trước khi đặt phòng!')
+      showToast('Bạn phải điền thông tin thú cưng trước khi đặt phòng!', 'info')
       return
     }
 
@@ -620,7 +630,7 @@ export const HotelDetailPage = () => {
     } catch (error: any) {
       console.error('Failed to create booking', error)
       const msg = error.response?.data?.message || 'Có lỗi xảy ra khi đặt phòng. Vui lòng kiểm tra lại vai trò của bạn.'
-      alert(msg)
+      showToast(msg, 'error')
       if (error.response?.status === 409) {
         // Phòng hết chỗ — cập nhật ngay map để nút bị disable
         setAvailabilityMap(prev => ({ ...prev, [selectedRoomId]: 0 }))
@@ -2194,6 +2204,43 @@ export const HotelDetailPage = () => {
                 {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed inset-0 z-[9999] bg-[#303330]/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full text-center shadow-2xl border border-[#e1e3df] animate-in fade-in zoom-in-95 duration-300">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${
+              toast.type === 'success' ? 'bg-[#d0fac0] text-[#44683b]' :
+              toast.type === 'error' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+              'bg-amber-50 text-amber-600 border border-amber-100'
+            }`}>
+              {toast.type === 'success' ? <CheckCircle size={32} /> :
+               toast.type === 'error' ? <AlertCircle size={32} /> :
+               <AlertTriangle size={32} />}
+            </div>
+            
+            <h3 className="text-xl font-black text-[#303330] mb-2">
+              {toast.type === 'success' ? 'Thành công!' :
+               toast.type === 'error' ? 'Thông báo lỗi' :
+               'Lưu ý'}
+            </h3>
+            
+            <p className="text-xs text-[#5d605c] leading-relaxed mb-6 font-semibold">
+              {toast.message}
+            </p>
+            
+            <button
+              onClick={() => setToast(null)}
+              className={`w-full py-3.5 rounded-full font-bold text-xs uppercase tracking-wider text-white transition-all shadow-md cursor-pointer ${
+                toast.type === 'success' ? 'bg-[#44683b] shadow-[#44683b]/20 hover:opacity-95' :
+                toast.type === 'error' ? 'bg-[#a43e24] shadow-[#a43e24]/20 hover:opacity-95' :
+                'bg-[#fa7150] shadow-[#fa7150]/20 hover:opacity-95'
+              }`}
+            >
+              Đồng ý
+            </button>
           </div>
         </div>
       )}

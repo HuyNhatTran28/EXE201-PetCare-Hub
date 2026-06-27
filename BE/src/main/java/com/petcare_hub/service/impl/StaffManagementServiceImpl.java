@@ -73,6 +73,7 @@ public class StaffManagementServiceImpl implements StaffManagementService {
                 .fullName(request.getFullName().trim())
                 .phone(request.getPhone())
                 .role(Role.STAFF)
+                .isVerified(true)
                 .mustChangePassword(true)
                 .build();
         staffUser = userRepository.save(staffUser);

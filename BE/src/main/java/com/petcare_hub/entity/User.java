@@ -63,8 +63,4 @@ public class User extends BaseEntity {
 
     @Column(name = "zalo_id")
     private String zaloId;
-
-    @Column(name = "must_change_password")
-    @Builder.Default
-    private Boolean mustChangePassword = false;
 }

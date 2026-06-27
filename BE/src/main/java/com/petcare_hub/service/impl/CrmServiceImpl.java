@@ -96,6 +96,8 @@ public class CrmServiceImpl implements CrmService {
                 .hotelAddress(b.getHotel().getAddress())
                 .roomTypeId(b.getRoomType().getId())
                 .roomTypeName(b.getRoomType().getName())
+                .hotelCheckInTime(b.getHotel().getCheckInTime())
+                .hotelCheckOutTime(b.getHotel().getCheckOutTime())
                 .pets(petInfos)
                 .checkInDate(b.getCheckInDate())
                 .checkOutDate(b.getCheckOutDate())

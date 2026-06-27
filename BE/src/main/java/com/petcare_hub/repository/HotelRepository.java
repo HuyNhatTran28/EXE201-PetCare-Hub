@@ -84,6 +84,4 @@ public interface HotelRepository extends
                                      @Param("radiusInMeters") Double radiusInMeters);
 
     long countByStatus(HotelStatus status);
-
-    Optional<Hotel> findByIdAndPartnerId(UUID hotelId, UUID partnerId);
 }

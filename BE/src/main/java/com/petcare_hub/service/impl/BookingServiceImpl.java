@@ -7,7 +7,6 @@ import com.petcare_hub.enums.BookingStatus;
 import com.petcare_hub.enums.BookingType;
 import com.petcare_hub.enums.DiscountType;
 import com.petcare_hub.enums.HotelStatus;
-import com.petcare_hub.enums.BookingType;
 import java.time.LocalTime;
 import com.petcare_hub.exception.AppException;
 import com.petcare_hub.repository.*;
@@ -341,7 +340,8 @@ public class BookingServiceImpl implements BookingService {
         }
 
         booking.setStatus(BookingStatus.COMPLETED);
-        log.info("Booking {} đã COMPLETED", bookingId);
+        booking.setCheckOutDate(LocalDate.now());
+        log.info("Booking {} đã COMPLETED tại ngày thực tế: {}", bookingId, LocalDate.now());
 
         // partnerShare = totalAmount − commissionFee, đọc rate từ snapshot
         BigDecimal totalAmount = booking.getTotalAmount();
@@ -468,6 +468,8 @@ public class BookingServiceImpl implements BookingService {
                 .hotelAddress(b.getHotel().getAddress())
                 .roomTypeId(b.getRoomType().getId())
                 .roomTypeName(b.getRoomType().getName())
+                .hotelCheckInTime(b.getHotel().getCheckInTime())
+                .hotelCheckOutTime(b.getHotel().getCheckOutTime())
                 .pets(petInfos)
                 .checkInDate(b.getCheckInDate())
                 .checkOutDate(b.getCheckOutDate())

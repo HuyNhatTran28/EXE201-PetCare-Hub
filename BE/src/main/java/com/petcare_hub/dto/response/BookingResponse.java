@@ -28,6 +28,8 @@ public class BookingResponse {
     private String hotelAddress;
     private UUID roomTypeId;
     private String roomTypeName;
+    private String hotelCheckInTime;
+    private String hotelCheckOutTime;
 
     // Thú cưng
     private List<PetInfo> pets;

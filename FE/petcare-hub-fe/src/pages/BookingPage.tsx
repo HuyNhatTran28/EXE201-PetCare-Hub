@@ -3,9 +3,18 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   CheckCircle,
   ArrowRight,
+  QrCode,
+  PlusCircle,
+  Building,
+  ShieldCheck,
 } from 'lucide-react'
 
 import { Header } from '@/components/Header'
+
+const USER_PETS = [
+  { id: '1', name: 'Mimi', breed: 'Mèo Anh Lông Ngắn', image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200' },
+  { id: '2', name: 'Bông', breed: 'Chó Samoyed', image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=200' },
+]
 
 export const BookingPage = () => {
   const navigate = useNavigate()
@@ -13,8 +22,11 @@ export const BookingPage = () => {
 
   const nights = Number(searchParams.get('nights')) || 1
   const initialTotal = Number(searchParams.get('total')) || 0
+  const roomPrice = Number(searchParams.get('price')) || 350000
 
   const [isSuccess, setIsSuccess] = useState(false)
+  const [selectedPetId, setSelectedPetId] = useState('1')
+  const [paymentMethod, setPaymentMethod] = useState<'MOMO' | 'VNPAY'>('MOMO')
 
   const handleCompleteBooking = (e: React.FormEvent) => {
     e.preventDefault()

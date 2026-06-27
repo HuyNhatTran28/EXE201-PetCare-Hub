@@ -4,6 +4,7 @@ import com.petcare_hub.controller.PaymentController;
 import com.petcare_hub.entity.*;
 import com.petcare_hub.enums.*;
 import com.petcare_hub.repository.*;
+import com.petcare_hub.service.AsyncEmailService;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
@@ -53,6 +54,7 @@ class PaymentWebhookTest {
     @Mock private BookingRepository bookingRepository;
     @Mock private PaymentRepository paymentRepository;
     @Mock private PartnerWalletRepository partnerWalletRepository;
+    @Mock private AsyncEmailService asyncEmailService;
 
     @InjectMocks
     private PaymentController controller;
@@ -76,8 +78,16 @@ class PaymentWebhookTest {
         when(partner.getId()).thenReturn(PARTNER_ID);
         when(partner.getEmail()).thenReturn("partner@test.com");
 
+        User owner = mock(User.class);
+        when(owner.getEmail()).thenReturn("owner@test.com");
+        when(owner.getFullName()).thenReturn("Owner Test");
+
         Hotel hotel = mock(Hotel.class);
         when(hotel.getPartner()).thenReturn(partner);
+        when(hotel.getName()).thenReturn("Hotel Test");
+
+        RoomType roomType = mock(RoomType.class);
+        when(roomType.getName()).thenReturn("Room Test");
 
         Booking b = mock(Booking.class);
         when(b.getId()).thenReturn(BOOKING_ID);
@@ -85,6 +95,11 @@ class PaymentWebhookTest {
         when(b.getTotalAmount()).thenReturn(TOTAL);
         when(b.getCommissionRate()).thenReturn(commissionRate);
         when(b.getHotel()).thenReturn(hotel);
+        when(b.getOwner()).thenReturn(owner);
+        when(b.getRoomType()).thenReturn(roomType);
+        when(b.getInvoiceNumber()).thenReturn("INV-123456789");
+        when(b.getCheckInDate()).thenReturn(java.time.LocalDate.now());
+        when(b.getCheckOutDate()).thenReturn(java.time.LocalDate.now().plusDays(2));
         return b;
     }
 
