@@ -24,6 +24,27 @@ export const HotelApprovePage = () => {
   const [selectedHotel, setSelectedHotel] = useState<any | null>(null)
   const [rejectTarget, setRejectTarget] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [roomTypes, setRoomTypes] = useState<any[]>([])
+  const [loadingRooms, setLoadingRooms] = useState(false)
+
+  useEffect(() => {
+    if (selectedHotel) {
+      setLoadingRooms(true)
+      axiosInstance.get(`/api/room-types/hotel/${selectedHotel.id}?activeOnly=false`)
+        .then(res => {
+          setRoomTypes(res.data || [])
+        })
+        .catch(err => {
+          console.error("Failed to load room types for approval:", err)
+          setRoomTypes([])
+        })
+        .finally(() => {
+          setLoadingRooms(false)
+        })
+    } else {
+      setRoomTypes([])
+    }
+  }, [selectedHotel])
 
   const parseDescription = (desc: string) => {
     if (!desc) return null
@@ -56,6 +77,17 @@ export const HotelApprovePage = () => {
   useEffect(() => {
     fetchHotels()
   }, [activeTab])
+
+  useEffect(() => {
+    if (selectedHotel || rejectTarget) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [selectedHotel, rejectTarget])
 
   const handleApprove = async (hotelId: string) => {
     if (!confirm('Xác nhận duyệt khách sạn này?')) return
@@ -579,6 +611,60 @@ export const HotelApprovePage = () => {
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                {/* Room Types Section */}
+                <div className="border-t border-[#e5d8d0] pt-6 mt-6">
+                  <div className="bg-[#faf9f6] p-6 rounded-3xl border border-[#e5d8d0]/60 space-y-4">
+                    <div className="flex justify-between items-center border-b border-[#e5d8d0] pb-2">
+                      <h3 className="text-xs font-black text-[#fa7150] uppercase tracking-wider">
+                        Danh sách loại phòng đã thiết lập ({roomTypes.length})
+                      </h3>
+                      {loadingRooms && <span className="text-[10px] text-stone-400 italic">Đang tải thông tin phòng...</span>}
+                    </div>
+
+                    {roomTypes.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                        {roomTypes.map((room: any, idx: number) => (
+                          <div key={idx} className="bg-white p-4 rounded-2xl border border-[#e5d8d0] shadow-sm flex flex-col md:flex-row gap-4">
+                            {/* Room image */}
+                            <div className="w-24 h-24 md:w-28 md:h-20 rounded-xl overflow-hidden bg-stone-100 shrink-0 border border-stone-200">
+                              {room.images && room.images.length > 0 ? (
+                                <img src={room.images[0]} alt={room.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[10px] text-stone-400 italic">Không có ảnh</div>
+                              )}
+                            </div>
+                            
+                            {/* Room info */}
+                            <div className="flex-1 space-y-1 text-[11px]">
+                              <p className="font-bold text-stone-800 text-xs">{room.name}</p>
+                              <p className="text-stone-600 line-clamp-2" title={room.description}>{room.description || 'Chưa có mô tả'}</p>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-semibold text-stone-500 pt-1">
+                                <span>Giá đêm: <strong className="text-[#fa7150]">{(room.pricePerNight || 0).toLocaleString('vi-VN')} đ</strong></span>
+                                {room.dayRate !== null && room.dayRate !== undefined && (
+                                  <span>Giá ngày: <strong className="text-[#fa7150]">{(room.dayRate).toLocaleString('vi-VN')} đ</strong></span>
+                                )}
+                                <span>Số phòng: <strong>{room.totalRooms}</strong></span>
+                                <span>Pet tối đa: <strong>{room.maxPets}</strong></span>
+                              </div>
+                              {room.allowedPetTypes && room.allowedPetTypes.length > 0 && (
+                                <div className="flex gap-1 pt-1.5">
+                                  {room.allowedPetTypes.map((t: string, i: number) => (
+                                    <span key={i} className="px-1.5 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[9px] font-black uppercase">
+                                      {t === 'DOG' ? 'Chó' : t === 'CAT' ? 'Mèo' : t}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      !loadingRooms && <p className="text-stone-400 italic text-[11px] text-left">Cơ sở này chưa thiết lập loại phòng nào.</p>
+                    )}
                   </div>
                 </div>
               </div>

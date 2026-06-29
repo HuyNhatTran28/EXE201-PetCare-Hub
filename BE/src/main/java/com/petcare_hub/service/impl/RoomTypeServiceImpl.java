@@ -62,7 +62,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     public List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId, Boolean activeOnly) {
         Hotel hotel = hotelRepository.findById(hotelId)
                 .orElseThrow(() -> new AppException("Không tìm thấy khách sạn", HttpStatus.NOT_FOUND));
-        if (hotel.getStatus() != HotelStatus.ACTIVE) {
+        if ((activeOnly == null || activeOnly) && hotel.getStatus() != HotelStatus.ACTIVE) {
             throw new AppException("Cơ sở không khả dụng", HttpStatus.NOT_FOUND);
         }
         List<RoomType> roomTypes = (activeOnly == null || activeOnly)

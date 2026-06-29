@@ -243,6 +243,18 @@ export const RoomManagePage = () => {
     }
   }
 
+  const handleDeleteRoom = async (roomId: string) => {
+    if (!confirm('Bạn có chắc muốn xóa loại phòng này? LƯU Ý: Thao tác này sẽ ẩn và ngưng hoạt động loại phòng này.')) return
+    try {
+      await axiosInstance.delete(`/api/room-types/${roomId}`)
+      const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
+      setRooms(res.data || [])
+    } catch (err: any) {
+      console.error('Failed to delete room', err)
+      alert(err.response?.data?.message || 'Không thể xóa loại phòng')
+    }
+  }
+
   const handleUpdateRoom = async () => {
     if (!editRoom) return
     if (Number(editRoom.pricePerNight) <= 0) {
@@ -366,6 +378,17 @@ export const RoomManagePage = () => {
     fetchRoomsAndHotel()
   }, [hotelId])
 
+  useEffect(() => {
+    if (showEditHotelModal || showModal || editRoom) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showEditHotelModal, showModal, editRoom])
+
   // Design Tokens
   const cardShadow = { boxShadow: '0 20px 40px rgba(164, 62, 36, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02)' }
 
@@ -412,31 +435,41 @@ export const RoomManagePage = () => {
                     {hotel.status === 'ACTIVE' ? 'Đang hoạt động' : 'Chờ duyệt'}
                   </span>
                 </div>
-                <p className="text-xs text-[#8a7e75] flex items-center gap-1.5 leading-relaxed">
-                  <MapPin size={14} className="text-[#fa7150] shrink-0" /> {cleanAddressDisplay(hotel.address)}
+                <p className="text-xs text-[#8a7e75] leading-relaxed">
+                  Địa chỉ: {cleanAddressDisplay(hotel.address)}
                 </p>
                 <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-[#5a5550]">
-                  <span>🕒 Giờ mở cửa: <strong className="text-[#303330]">{hotel.checkInTime || '08:00'} - {hotel.checkOutTime || '20:00'}</strong></span>
+                  <span>Giờ mở cửa: <strong className="text-[#303330]">{hotel.checkInTime || '08:00'} - {hotel.checkOutTime || '20:00'}</strong></span>
                   {hotel.googleMapsUrl && (
                     <a href={hotel.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-[#fa7150] hover:underline">
-                      🗺️ Bản đồ Google Maps ↗
+                      Bản đồ Google Maps
                     </a>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {hotel.amenities?.map((am: string, idx: number) => (
-                    <span key={idx} className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-0.5 rounded-full text-[10px]">
-                      {am}
-                    </span>
-                  ))}
+                  {hotel.amenities?.map((am: string, idx: number) => {
+                    const dict: Record<string, string> = {
+                      'Pet Boarding': 'Lưu trú thú cưng',
+                      'Other Services': 'Dịch vụ khác',
+                      'Private Garden': 'Sân vườn riêng',
+                      'Điều hòa (AC)': 'Điều hòa (AC)',
+                      'Camera 24/7': 'Camera 24/7'
+                    }
+                    const displayName = dict[am] || am
+                    return (
+                      <span key={idx} className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                        {displayName}
+                      </span>
+                    )
+                  })}
                 </div>
               </div>
             </div>
             <button
               onClick={handleStartEditHotel}
-              className="bg-white border border-[#e5d8d0] px-5 py-3 rounded-full font-bold text-xs hover:border-[#fa7150] hover:text-[#fa7150] hover:shadow-sm transition-all flex items-center gap-2 cursor-pointer w-full md:w-auto justify-center"
+              className="bg-white border border-[#e5d8d0] px-5 py-3 rounded-full font-bold text-xs hover:border-[#fa7150] hover:text-[#fa7150] hover:shadow-sm transition-all cursor-pointer w-full md:w-auto text-center"
             >
-              <Edit3 size={14} /> Chỉnh sửa thông tin cơ sở
+              Chỉnh sửa thông tin cơ sở
             </button>
           </div>
         )}
@@ -449,7 +482,7 @@ export const RoomManagePage = () => {
 
           <button
             onClick={() => setShowModal(true)}
-            className="bg-[#fa7150] text-white px-6 py-3.5 rounded-full font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-[#fa7150]/20 hover:scale-[1.02] active:scale-95 transition-transform cursor-pointer w-fit"
+            className="bg-[#fa7150] text-white px-6 py-3.5 rounded-full font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-[#fa7150]/20 hover:scale-[1.02] active:scale-95 transition-transform cursor-pointer w-fit text-center"
           >
             <PlusCircle size={16} /> Thêm loại phòng mới
           </button>
@@ -462,9 +495,6 @@ export const RoomManagePage = () => {
           </div>
         ) : rooms.length === 0 ? (
           <div className="py-20 text-center border border-[#e5d8d0] bg-white rounded-[32px] p-8">
-            <div className="w-16 h-16 rounded-full bg-[#fa7150]/10 flex items-center justify-center text-[#fa7150] mx-auto mb-4">
-              <Building size={28} />
-            </div>
             <p className="text-[#8a7e75] font-black text-sm mb-4">Chưa có hạng phòng nào được thiết lập cho cơ sở này.</p>
           </div>
         ) : (
@@ -511,6 +541,13 @@ export const RoomManagePage = () => {
                       title={room.isActive !== false ? "Tạm ngưng hoạt động" : "Kích hoạt lại"}
                     >
                       {room.isActive !== false ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteRoom(room.id)}
+                      className="p-2.5 rounded-2xl bg-red-50 border border-red-100 text-red-500 hover:bg-red-100 transition-all cursor-pointer"
+                      title="Xóa loại phòng"
+                    >
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -574,8 +611,8 @@ export const RoomManagePage = () => {
 
       {/* ── MODAL TẠO PHÒNG ── */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl text-left">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl text-left max-h-[90vh] overflow-y-auto my-8">
             <h3 className="text-xl font-black text-[#303330] mb-6">Thêm loại phòng mới</h3>
 
             <div className="space-y-4">
@@ -765,8 +802,8 @@ export const RoomManagePage = () => {
 
       {/* ── MODAL SỬA PHÒNG ── */}
       {editRoom && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl text-left">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl text-left max-h-[90vh] overflow-y-auto my-8">
             <h3 className="text-xl font-black text-[#303330] mb-6">Chỉnh sửa loại phòng</h3>
 
             <div className="space-y-4">

@@ -75,6 +75,17 @@ export const MyBookingsPage = () => {
     fetch()
   }, [])
 
+  useEffect(() => {
+    if (payingBooking || selectedReviewBooking || chatState) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [payingBooking, selectedReviewBooking, chatState])
+
   const handleCancel = async (bookingId: string) => {
     if (!confirm('Bạn có chắc muốn hủy booking này?')) return
     setCancelling(bookingId)

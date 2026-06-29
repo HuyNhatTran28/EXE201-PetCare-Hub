@@ -90,6 +90,17 @@ export const ProfilePage = () => {
     return () => clearInterval(timer)
   }, [otpCountdown])
 
+  useEffect(() => {
+    if (showAddHotelModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showAddHotelModal])
+
   // State Nhân viên (STAFF) — không dùng mock
   const [diaryNotes, setDiaryNotes] = useState('')
 

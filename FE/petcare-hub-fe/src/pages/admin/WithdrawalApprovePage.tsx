@@ -17,6 +17,17 @@ export const WithdrawalApprovePage = () => {
     fetchWithdrawalRequests()
   }, [])
 
+  useEffect(() => {
+    if (selectedRequest) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [selectedRequest])
+
   const fetchWithdrawalRequests = async () => {
     setLoading(true)
     try {
