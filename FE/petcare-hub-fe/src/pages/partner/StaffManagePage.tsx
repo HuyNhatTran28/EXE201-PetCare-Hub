@@ -62,6 +62,17 @@ export const StaffManagePage = () => {
 
   useEffect(() => { fetchStaff() }, [fetchStaff])
 
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showModal])
+
   const handleToggle = async (staffId: string) => {
     try {
       const res = await axiosInstance.patch(`/api/staff/${staffId}/toggle-active`)

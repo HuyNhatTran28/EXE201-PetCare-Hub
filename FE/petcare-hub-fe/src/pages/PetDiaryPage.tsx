@@ -54,6 +54,17 @@ export const PetDiaryPage = () => {
   const [loadingDiaries, setLoadingDiaries] = useState(false)
   const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null) // Lightbox
 
+  useEffect(() => {
+    if (activeMediaUrl) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [activeMediaUrl])
+
   // Fetch all pets owned by owner
   useEffect(() => {
     const fetchPets = async () => {

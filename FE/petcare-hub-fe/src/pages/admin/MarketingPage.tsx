@@ -29,6 +29,17 @@ export const MarketingPage = () => {
 
   useEffect(() => { fetchVouchers() }, [])
 
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showModal])
+
   const handleCreate = async () => {
     if (!form.voucherCode || !form.discountValue) return
     setSubmitting(true)

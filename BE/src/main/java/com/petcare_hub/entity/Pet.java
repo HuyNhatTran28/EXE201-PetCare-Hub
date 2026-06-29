@@ -30,6 +30,7 @@ public class Pet extends BaseEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> vaccineBookUrls;
 
+    @Column(columnDefinition = "TEXT")
     private String specialNotes;
     private String avatarUrl;
     private String foodType;

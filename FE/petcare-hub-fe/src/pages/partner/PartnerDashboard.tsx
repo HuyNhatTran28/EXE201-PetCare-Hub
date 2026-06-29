@@ -894,6 +894,29 @@ export const PartnerDashboard = () => {
   const [sandboxChannel, setSandboxChannel] = useState<'SMS' | 'Zalo' | 'Email'>('Zalo')
 
   useEffect(() => {
+    if (
+      showAddHotelModal ||
+      showCameraModal ||
+      showAddStaffModal ||
+      showAddEquipmentModal ||
+      showNotificationSandboxModal
+    ) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [
+    showAddHotelModal,
+    showCameraModal,
+    showAddStaffModal,
+    showAddEquipmentModal,
+    showNotificationSandboxModal
+  ])
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const hotelRes = await axiosInstance.get('/api/hotels/my', {

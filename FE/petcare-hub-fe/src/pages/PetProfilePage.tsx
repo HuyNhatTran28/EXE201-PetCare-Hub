@@ -13,7 +13,13 @@ import {
   AlertCircle,
   Plus,
   Compass,
-  ChevronRight
+  ChevronRight,
+  Upload,
+  Trash2,
+  AlertTriangle,
+  Activity,
+  BookOpen,
+  FileHeart
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 
@@ -42,6 +48,15 @@ interface PetType {
   vaccineBookUrls?: string[]
   isIndoorOnly?: boolean
   hasSpecialDiet?: boolean
+  medicalRecord?: any
+}
+
+const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
+  PENDING:    { label: 'Chờ thanh toán', bg: 'bg-amber-50 border-amber-200/80',   text: 'text-amber-700',  dot: 'bg-amber-500'  },
+  CONFIRMED:  { label: 'Đã xác nhận',   bg: 'bg-blue-50 border-blue-200/80',    text: 'text-blue-700',   dot: 'bg-blue-500'   },
+  CHECKED_IN: { label: 'Đang lưu trú',  bg: 'bg-purple-50 border-purple-200/80',  text: 'text-purple-700', dot: 'bg-purple-500' },
+  COMPLETED:  { label: 'Hoàn tất',      bg: 'bg-emerald-50 border-emerald-200/80', text: 'text-emerald-700',dot: 'bg-emerald-500'},
+  CANCELLED:  { label: 'Đã hủy',        bg: 'bg-rose-50 border-rose-200/80',    text: 'text-rose-700',   dot: 'bg-rose-500'   },
 }
 
 export const PetProfilePage = () => {
@@ -49,6 +64,7 @@ export const PetProfilePage = () => {
   const [selectedPetId, setSelectedPetId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'health' | 'habits' | 'bookings'>('health')
+  const [userBookings, setUserBookings] = useState<any[]>([])
 
   // CRUD States
   const [showModal, setShowModal] = useState(false)
@@ -76,6 +92,8 @@ export const PetProfilePage = () => {
 
   // Popup/Modal States
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [showMedicalModal, setShowMedicalModal] = useState(false)
+  const [medForm, setMedForm] = useState<any>(null)
   const [alertModal, setAlertModal] = useState<{
     show: boolean
     title: string
@@ -101,17 +119,43 @@ export const PetProfilePage = () => {
     if (p.hasSpecialDiet && !displayTags.includes('Ăn kiêng đặc biệt')) {
       displayTags.push('Ăn kiêng đặc biệt')
     }
+
+    let medicalRecord = {
+      gender: '',
+      dob: '',
+      furColor: '',
+      ownerName: '',
+      ownerPhone: '',
+      ownerAddress: '',
+      vaccines: [] as any[],
+      parasites: { internal: '', external: '' },
+      clinicalHistory: [] as any[],
+      labResults: { bloodTest: '', imaging: '' },
+      surgeries: [] as any[],
+      allergies: '',
+      specialNotes: p.specialNotes || ''
+    }
+
+    if (p.specialNotes && p.specialNotes.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(p.specialNotes)
+        medicalRecord = { ...medicalRecord, ...parsed }
+      } catch (err) {
+        console.error('Failed to parse medical record JSON:', err)
+      }
+    } else {
+      medicalRecord.specialNotes = p.specialNotes || ''
+    }
+
     return {
       ...p,
       status: p.status || 'Tại nhà',
-      personalityTags: displayTags.length > 0 ? displayTags : ['Thân thiện', 'Năng động'],
-      specialNotes: p.specialNotes || 'Chưa có ghi chú nào.',
-      feedingSchedule: p.feedingSchedule || 'Hai bữa chính lúc 8:00 và 18:00.',
-      foodType: p.foodType || 'Thức ăn hạt tiêu chuẩn.',
-      vaccines: p.vaccines || [
-        { name: 'Tiêm nhắc lại Dại', doctor: 'BS. Aris Thorne', status: 'COMPLETED', date: '14/08/2025', nextDate: '14/08/2026' },
-        { name: 'Bạch cầu mèo (FeLV)', doctor: 'BS. Nguyễn Minh', status: 'WARNING', date: '01/05/2026', nextDate: '15/06/2026' }
-      ]
+      personalityTags: displayTags,
+      medicalRecord,
+      specialNotes: medicalRecord.specialNotes || '',
+      feedingSchedule: p.feedingSchedule || '',
+      foodType: p.foodType || '',
+      vaccines: medicalRecord.vaccines && medicalRecord.vaccines.length > 0 ? medicalRecord.vaccines : []
     }
   })
 
@@ -130,9 +174,32 @@ export const PetProfilePage = () => {
     }
   }
 
+  const fetchBookings = async () => {
+    try {
+      const res = await axiosInstance.get('/api/bookings/my', {
+        params: { page: 0, size: 50, sort: [] }
+      })
+      setUserBookings(res.data.content || [])
+    } catch (err) {
+      console.error('Failed to fetch user bookings:', err)
+    }
+  }
+
   useEffect(() => {
     fetchPets()
+    fetchBookings()
   }, [])
+
+  useEffect(() => {
+    if (showModal || editPet || showMedicalModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showModal, editPet, showMedicalModal])
 
   const handleUploadAvatar = async (file: File, isEdit = false) => {
     setUploadingAvatar(true)
@@ -172,6 +239,26 @@ export const PetProfilePage = () => {
       }
     } catch (err) {
       showAlert('Lỗi tải ảnh', 'Tải ảnh sổ tiêm phòng thất bại. Vui lòng thử lại.')
+    } finally {
+      setUploadingVaccine(false)
+    }
+  }
+
+  const handleUploadMedicalPhoto = async (file: File) => {
+    setUploadingVaccine(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await axiosInstance.post('/api/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      const url = res.data.url
+      setMedForm((prev: any) => ({
+        ...prev,
+        vaccineBookUrls: [...(prev.vaccineBookUrls || []), url]
+      }))
+    } catch (err) {
+      showAlert('Lỗi tải ảnh', 'Tải ảnh hồ sơ thất bại. Vui lòng thử lại.')
     } finally {
       setUploadingVaccine(false)
     }
@@ -282,6 +369,42 @@ export const PetProfilePage = () => {
     }
   }
 
+  const handleUpdateMedicalRecord = async () => {
+    if (!activePet || !medForm) return
+    setSubmitting(true)
+    try {
+      const updatedNotesJson = JSON.stringify(medForm)
+      await axiosInstance.put(`/api/pets/${activePet.id}`, {
+        name: activePet.name,
+        species: activePet.species || '',
+        breed: activePet.breed,
+        ageYears: activePet.ageYears,
+        weightKg: activePet.weightKg,
+        foodType: activePet.foodType,
+        avatarUrl: activePet.avatarUrl,
+        isVaccinated: activePet.isVaccinated || (medForm.vaccineBookUrls && medForm.vaccineBookUrls.length > 0) || false,
+        vaccineBookUrls: medForm.vaccineBookUrls || [],
+        microchipId: activePet.microchipId || null,
+        feedingSchedule: activePet.feedingSchedule || null,
+        isIndoorOnly: activePet.isIndoorOnly || false,
+        hasSpecialDiet: activePet.hasSpecialDiet || false,
+        personalityTags: activePet.personalityTags || [],
+        specialNotes: updatedNotesJson
+      })
+      const response = await axiosInstance.get('/api/pets/my')
+      const fetchedPets = mapPets(response.data)
+      setPets(fetchedPets)
+      setShowMedicalModal(false)
+      showAlert('Thành công', 'Đã cập nhật hồ sơ y tế thành công!', 'success')
+    } catch (err: any) {
+      console.error('Failed to update medical record:', err)
+      const errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể cập nhật hồ sơ y tế';
+      showAlert('Không thể cập nhật', typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg, 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const handleDelete = (petId: string) => {
     setDeleteConfirmId(petId)
   }
@@ -314,6 +437,7 @@ export const PetProfilePage = () => {
 
   // Lấy bé đang được chọn
   const activePet = pets.find(p => p.id === selectedPetId)
+  const petBookings = activePet ? userBookings.filter(b => b.pets?.some((p: any) => p.id === activePet.id)) : []
 
   // Style helpers
   const sunlightShadow = { boxShadow: '0 20px 40px rgba(48, 51, 48, 0.06)' }
@@ -326,368 +450,574 @@ export const PetProfilePage = () => {
       <Header />
 
       {/* ── MAIN CONTENT ── */}
-      <main className="max-w-7xl mx-auto px-8 pt-12 pb-24">
+      <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
         
-        {/* Header & Add Action */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 text-left">
-          <div className="space-y-2">
-            <span className="text-[#44683b] font-semibold tracking-wider uppercase text-xs">Bảng điều khiển thành viên</span>
-            <h1 className="text-5xl font-extrabold tracking-tight text-[#303330]">Gia đình Thú cưng</h1>
-            <p className="text-[#5d605c] text-lg max-w-lg">Quản lý hồ sơ, lịch sử y tế và lịch chăm sóc cá nhân hóa cho những người bạn đồng hành yêu quý của bạn.</p>
-          </div>
-          <button 
-            onClick={() => setShowModal(true)}
-            style={primaryGlow}
-            className="text-[#fff7f6] px-8 py-4 rounded-full font-bold flex items-center gap-3 hover:scale-105 transition-transform shadow-lg shadow-[#a43e24]/10 cursor-pointer"
-          >
-            <PlusCircle size={20} />
-            Thêm Thú cưng mới
-          </button>
-        </header>
-
-        {/* Bento Grid: Pet Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-20">
+        {/* Horizontal Pet Selector Bar */}
+        <div className="flex items-center gap-3 overflow-x-auto pb-6 mb-10 border-b border-[#e5d8d0]/50 scrollbar-hide text-left">
           {loading ? (
-            <div className="col-span-full py-12 text-center text-stone-500 font-bold">Đang tải danh sách thú cưng...</div>
+            <div className="text-xs font-bold text-stone-500 py-2">Đang tải danh sách...</div>
           ) : (
             pets.map((pet) => {
               const isSelected = selectedPetId === pet.id
-              const borderAccentColor = pet.breed.toLowerCase().includes('mèo') ? 'border-[#c2ebb2]' : 'border-[#ffac98]'
               return (
-                <div 
+                <button
                   key={pet.id}
                   onClick={() => setSelectedPetId(pet.id)}
-                  className={`bg-white rounded-2xl p-6 transition-all cursor-pointer border-2 relative flex flex-col text-left ${
-                    isSelected 
-                      ? 'border-[#a43e24] ring-2 ring-[#a43e24]/10' 
-                      : 'border-transparent hover:border-[#a43e24]/10'
+                  className={`flex items-center gap-3 px-5 py-2.5 rounded-full border transition-all shrink-0 cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#a43e24] text-white border-[#a43e24] shadow-md shadow-[#a43e24]/15'
+                      : 'bg-white border-[#e5d8d0] text-[#5d605c] hover:border-[#a43e24]'
                   }`}
-                  style={sunlightShadow}
                 >
-                  <div className="relative mb-6">
-                    <div className={`aspect-square rounded-xl overflow-hidden relative border-4 ${borderAccentColor} bg-[#faf9f6]`}>
-                      {pet.avatarUrl ? (
-                        <img 
-                          alt={pet.name} 
-                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" 
-                          src={pet.avatarUrl}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-[#8a7e75] gap-1.5 bg-[#f5f3ef]/60">
-                          <PawPrint size={36} className="text-[#a43e24]/40" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-[#e5d8d0]/40 px-2 py-0.5 rounded">
-                            {pet.species === 'CAT' ? 'Mèo cưng' : 'Cún cưng'}
-                          </span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-[#a43e24]/5 opacity-0 hover:opacity-100 transition-opacity"></div>
-                    </div>
-                    {isSelected && (
-                      <span className="absolute -bottom-3 -right-3 bg-[#ffac98] text-[#751c05] text-xs font-bold px-4 py-1.5 rounded-full shadow-sm">
-                        Đang chọn
-                      </span>
+                  <div className="w-6 h-6 rounded-full overflow-hidden bg-stone-100 flex items-center justify-center shrink-0 border border-stone-200">
+                    {pet.avatarUrl ? (
+                      <img src={pet.avatarUrl} alt={pet.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] font-bold text-stone-400">{pet.name.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
-                  <h3 className="text-2xl font-bold text-[#303330] font-headline">{pet.name}</h3>
-                  <p className="text-[#5d605c] font-medium flex items-center gap-2 mb-2 mt-1">
-                    <PawPrint size={14} className="text-[#a43e24]" />
-                    {pet.breed}
-                  </p>
-                  <p className="text-xs font-bold text-[#395c30] bg-[#d0fac0]/50 px-2 py-1 rounded inline-block uppercase w-max">
-                    {pet.ageYears} Tuổi
-                  </p>
+                  <span className="text-xs font-black">{pet.name}</span>
+                </button>
+              )
+            })
+          )}
+          
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-dashed border-[#b1b2af] text-[#a43e24] bg-white hover:bg-stone-50 transition-all shrink-0 cursor-pointer text-xs font-black"
+          >
+            Thêm thú cưng mới
+          </button>
+        </div>
 
-                  {/* Edit/Delete buttons */}
-                  <div className="flex gap-2 mt-4 pt-4 border-t border-dashed border-[#e5d8d0]" onClick={e => e.stopPropagation()}>
-                    <button
-                      onClick={() => setEditPet(pet)}
-                      className="flex-1 py-1.5 rounded-xl border border-[#e5d8d0] text-xs font-bold text-[#8a7e75] hover:border-[#a43e24] hover:text-[#a43e24] transition-all"
+        {/* Detailed View */}
+        {activePet ? (
+          <div className="space-y-16">
+            
+            {/* Hero Profile Section */}
+            <section className="relative text-left">
+              <div className="h-[180px] md:h-[260px] w-full rounded-2xl md:rounded-3xl relative shadow-sm bg-gradient-to-r from-stone-200 to-stone-100 border border-stone-200/40">
+                <div className="absolute inset-0 bg-gradient-to-t from-[#faf9f6] via-transparent to-transparent"></div>
+              </div>
+              
+              <div className="mt-[-80px] md:mt-[-110px] px-4 md:px-12 flex flex-col md:flex-row items-end gap-6 relative z-10">
+                <div className="relative group shrink-0">
+                  <div className="w-36 h-36 md:w-48 md:h-48 rounded-full overflow-hidden border-[10px] border-[#faf9f6] bg-stone-200 shadow-xl flex items-center justify-center relative" style={{ borderRadius: '60% 40% 70% 30% / 40% 50% 60% 50%' }}>
+                    {activePet.avatarUrl ? (
+                      <img 
+                        alt={activePet.name} 
+                        className="w-full h-full object-cover scale-105 group-hover:scale-100 transition-all duration-700" 
+                        src={activePet.avatarUrl}
+                      />
+                    ) : (
+                      <span className="text-3xl font-headline font-black text-stone-400">{activePet.name.charAt(0).toUpperCase()}</span>
+                    )}
+                    
+                    {/* Quick upload overlay -> opens edit modal */}
+                    <div 
+                      onClick={() => setEditPet(activePet)}
+                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                     >
-                      Sửa
+                      <span className="text-white text-[11px] font-black flex flex-col items-center gap-1">
+                        Thay ảnh
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex-1 pb-4 text-center md:text-left">
+                  <h1 className="font-headline text-4xl md:text-6xl font-extrabold text-[#303330] tracking-tight mb-2">{activePet.name}</h1>
+                  <div className="flex flex-col md:flex-row items-center gap-3">
+                    <p className="font-headline text-[#44683b] font-bold text-base">
+                      {activePet.species === 'CAT' ? 'Mèo cưng' : 'Cún cưng'} • Giống {activePet.breed}
+                    </p>
+                    <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-stone-300"></div>
+                    <div className="flex gap-2">
+                      <span className="px-3 py-1 rounded-full bg-[#d0fac0] text-[#2c4e24] text-xs font-black">
+                        Cân nặng: {activePet.weightKg}kg
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-black ${
+                        activePet.isVaccinated 
+                          ? 'bg-[#d0fac0] text-[#2c4e24]'
+                          : 'bg-[#ffac98]/40 text-[#a43e24]'
+                      }`}>
+                        {activePet.isVaccinated ? 'Đã tiêm phòng đầy đủ' : 'Chưa tiêm phòng đầy đủ'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pb-4 w-full md:w-auto">
+                  <Link 
+                    to="/hotels"
+                    style={primaryGlow}
+                    className="block w-full md:w-auto text-center text-white px-8 py-3.5 rounded-full font-bold text-sm shadow-lg shadow-[#a43e24]/10 hover:translate-y-[-2px] transition-transform cursor-pointer"
+                  >
+                    Đặt phòng cho {activePet.name}
+                  </Link>
+                </div>
+              </div>
+            </section>
+
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start text-left">
+              
+              {/* Left Navigation Sidebar */}
+              <aside className="lg:col-span-3">
+                <nav className="flex flex-row lg:flex-col gap-2.5 sticky top-28 overflow-x-auto pb-4 lg:pb-0 scrollbar-hide">
+                  <button 
+                    onClick={() => setActiveTab('health')}
+                    className={`whitespace-nowrap flex justify-center px-6 py-3.5 rounded-xl transition-all cursor-pointer font-bold text-sm ${
+                      activeTab === 'health' 
+                        ? 'bg-[#a43e24] text-white shadow-lg shadow-[#a43e24]/15' 
+                        : 'bg-white hover:bg-stone-200/40 text-stone-600 border border-[#e5d8d0]'
+                    }`}
+                  >
+                    Sức khỏe
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('habits')}
+                    className={`whitespace-nowrap flex justify-center px-6 py-3.5 rounded-xl transition-all cursor-pointer font-bold text-sm ${
+                      activeTab === 'habits' 
+                        ? 'bg-[#a43e24] text-white shadow-lg shadow-[#a43e24]/15' 
+                        : 'bg-white hover:bg-stone-200/40 text-stone-600 border border-[#e5d8d0]'
+                    }`}
+                  >
+                    Thói quen
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('bookings')}
+                    className={`whitespace-nowrap flex justify-center px-6 py-3.5 rounded-xl transition-all cursor-pointer font-bold text-sm ${
+                      activeTab === 'bookings' 
+                        ? 'bg-[#a43e24] text-white shadow-lg shadow-[#a43e24]/15' 
+                        : 'bg-white hover:bg-stone-200/40 text-stone-600 border border-[#e5d8d0]'
+                    }`}
+                  >
+                    Lịch sử lưu trú
+                  </button>
+                  
+                  {/* Quick Edit/Delete buttons on sidebar */}
+                  <div className="hidden lg:flex gap-2.5 mt-8 pt-6 border-t border-dashed border-[#e5d8d0] w-full">
+                    <button
+                      onClick={() => setEditPet(activePet)}
+                      className="flex-grow py-3 rounded-xl border border-[#e5d8d0] text-xs font-bold text-[#8a7e75] hover:border-[#a43e24] hover:text-[#a43e24] transition-all cursor-pointer bg-white"
+                    >
+                      Sửa hồ sơ
                     </button>
                     <button
-                      onClick={() => handleDelete(pet.id)}
-                      className="flex-1 py-1.5 rounded-xl border border-rose-100 text-xs font-bold text-rose-500 hover:bg-rose-50 transition-all"
+                      onClick={() => handleDelete(activePet.id)}
+                      className="py-3 px-4 rounded-xl border border-rose-100 text-xs font-bold text-rose-500 hover:bg-rose-50 transition-all cursor-pointer bg-white"
                     >
                       Xóa
                     </button>
                   </div>
-                </div>
-              )
-            })
-          )}
+                </nav>
+              </aside>
 
-          {/* Empty State / Add Placeholder */}
-          <div 
-            onClick={() => setShowModal(true)}
-            className="bg-[#eeeeea]/40 rounded-2xl p-6 flex flex-col items-center justify-center text-center border-2 border-dashed border-[#b1b2af] hover:bg-[#eeeeea]/80 transition-colors cursor-pointer group"
-          >
-            <div className="w-16 h-16 rounded-full bg-[#eeeeea] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Plus className="text-[#797b78] text-3xl" size={28} />
-            </div>
-            <p className="font-bold text-[#5d605c]">Thêm một người bạn</p>
-            <p className="text-xs text-[#797b78] mt-1">Áp dụng giảm giá cho nhiều thú cưng</p>
-          </div>
-        </div>
-
-        {/* Detailed View */}
-        {activePet && (
-          <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            
-            {/* Sticky Profile Sidebar */}
-            <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-24 text-left">
-              <div className="bg-white p-10 rounded-2xl overflow-hidden relative text-center border border-[#eeeeea]" style={sunlightShadow}>
-                <div className="absolute top-0 right-0 w-40 h-40 bg-[#d0fac0]/20 rounded-full -mr-20 -mt-20"></div>
-                <div className="relative z-10">
-                  <div className="w-48 h-48 rounded-full mx-auto border-8 border-[#c2ebb2] overflow-hidden mb-6 shadow-inner bg-[#faf9f6] flex items-center justify-center">
-                    {activePet.avatarUrl ? (
-                      <img 
-                        alt={activePet.name} 
-                        className="w-full h-full object-cover" 
-                        src={activePet.avatarUrl}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-[#8a7e75] gap-2 bg-[#f5f3ef]/60">
-                        <PawPrint size={52} className="text-[#a43e24]/40" />
-                        <span className="text-xs font-bold uppercase tracking-widest bg-[#e5d8d0]/50 px-3 py-1 rounded-full">
-                          {activePet.species === 'CAT' ? 'Mèo' : 'Chó'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <h2 className="text-4xl font-black text-[#303330] font-headline">{activePet.name}</h2>
-                  <p className="text-[#44683b] font-semibold mt-1">
-                    Người bạn đồng hành {activePet.breed} đáng yêu
-                  </p>
-                  {activePet.microchipId && (
-                    <p className="text-[10px] font-bold text-[#8a7e75] uppercase tracking-wider mt-2.5 bg-[#eeeeea] px-3 py-1.5 rounded-full inline-block">
-                      Mã Microchip: {activePet.microchipId}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap justify-center gap-2 mt-8">
-                    {activePet.personalityTags?.map((tag, idx) => (
-                      <span 
-                        key={idx} 
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                          idx % 2 === 0 
-                            ? 'bg-[#eeeeea] text-[#5d605c]' 
-                            : 'bg-[#feeadb] text-[#63564b]'
-                        }`}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Detailed Content with Tabs */}
-            <div className="lg:col-span-8 space-y-8 text-left">
-              
-              {/* Navigation Tabs */}
-              <div className="flex border-b border-[#b1b2af]/30 gap-8 overflow-x-auto">
-                <button 
-                  onClick={() => setActiveTab('health')}
-                  className={`py-4 px-2 font-headline font-bold text-lg flex items-center gap-2 transition-all whitespace-nowrap ${
-                    activeTab === 'health' 
-                      ? 'text-[#a43e24] border-b-3 border-[#a43e24]' 
-                      : 'text-[#5d605c] hover:text-[#a43e24]'
-                  }`}
-                >
-                  <Heart size={20} />
-                  Sức khỏe
-                </button>
-                <button 
-                  onClick={() => setActiveTab('habits')}
-                  className={`py-4 px-2 font-headline font-bold text-lg flex items-center gap-2 transition-all whitespace-nowrap ${
-                    activeTab === 'habits' 
-                      ? 'text-[#a43e24] border-b-3 border-[#a43e24]' 
-                      : 'text-[#5d605c] hover:text-[#a43e24]'
-                  }`}
-                >
-                  <Compass size={20} />
-                  Thói quen
-                </button>
-                <button 
-                  onClick={() => setActiveTab('bookings')}
-                  className={`py-4 px-2 font-headline font-bold text-lg flex items-center gap-2 transition-all whitespace-nowrap ${
-                    activeTab === 'bookings' 
-                      ? 'text-[#a43e24] border-b-3 border-[#a43e24]' 
-                      : 'text-[#5d605c] hover:text-[#a43e24]'
-                  }`}
-                >
-                  <Clock size={20} />
-                  Lịch sử lưu trú
-                </button>
-              </div>
-
-              {/* Tab Content: Sức khỏe */}
-              {activeTab === 'health' && (
-                <div className="space-y-10 animate-fadeIn">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-[#f4f4f0] p-6 rounded-xl border-l-4 border-[#a43e24]">
-                      <span className="text-xs font-black text-[#a43e24] uppercase tracking-widest mb-2 block">Cân nặng hiện tại</span>
-                      <div className="flex items-end gap-2">
-                        <span className="text-4xl font-headline font-black">{activePet.weightKg}</span>
-                        <span className="text-lg font-bold text-[#5d605c] mb-1">kg</span>
-                      </div>
-                      <p className="text-xs text-[#5d605c] mt-2 font-medium">Ghi nhận định kỳ gần nhất</p>
-                    </div>
-                    <div className="bg-[#f4f4f0] p-6 rounded-xl border-l-4 border-[#44683b]">
-                      <span className="text-xs font-black text-[#44683b] uppercase tracking-widest mb-2 block">Tuổi</span>
-                      <div className="flex items-end gap-2">
-                        <span className="text-4xl font-headline font-black">{activePet.ageYears}</span>
-                        <span className="text-lg font-bold text-[#5d605c] mb-1">năm</span>
-                      </div>
-                      <p className="text-xs text-[#5d605c] mt-2 font-medium">Sinh nhật được cập nhật tự động</p>
-                    </div>
-                  </div>
-
-                  {/* Vaccination Schedule */}
-                  <div>
+              {/* Right Content Area */}
+              <div className="lg:col-span-9 space-y-12">
+                
+                {/* 1. HEALTH TAB */}
+                {activeTab === 'health' && (
+                  <div className="space-y-10 animate-fadeIn">
+                    
+                    {/* Header */}
                     <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-2xl font-extrabold font-headline">Lịch tiêm phòng</h3>
-                      <button className="text-[#a43e24] font-bold text-sm flex items-center gap-1 hover:underline">
-                        <FileText size={18} />
+                      <h2 className="font-headline text-2xl md:text-3xl font-extrabold text-[#303330]">Hồ sơ Sức khỏe</h2>
+                      <button 
+                        onClick={() => {
+                          if (activePet) {
+                            setMedForm({
+                              ...JSON.parse(JSON.stringify(activePet.medicalRecord || {})),
+                              vaccineBookUrls: activePet.vaccineBookUrls || []
+                            })
+                            setShowMedicalModal(true)
+                          }
+                        }}
+                        className="text-[#a43e24] font-bold text-sm hover:underline cursor-pointer"
+                      >
                         Cập nhật hồ sơ y tế
                       </button>
                     </div>
 
-                    <div className="space-y-4">
-                      {activePet.vaccines?.map((vaccine, idx) => {
-                        const isCompleted = vaccine.status === 'COMPLETED'
-                        return (
-                          <div 
-                            key={idx}
-                            className={`bg-white p-6 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border ${
-                              isCompleted ? 'border-[#b1b2af]/20' : 'border-2 border-[#a43e24]/10'
-                            }`}
-                            style={sunlightShadow}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                                isCompleted ? 'bg-[#d0fac0] text-[#44683b]' : 'bg-[#ffac98] text-[#a43e24]'
-                              }`}>
-                                {isCompleted ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* Pet Details Info Card */}
+                      <div className="bg-white p-8 rounded-2xl border border-[#e5d8d0] shadow-sm border-t-4 border-[#a43e24] transition-all duration-300">
+                        <div className="mb-6 flex justify-between items-center">
+                          <h3 className="font-headline font-extrabold text-lg text-[#303330]">Thông tin hành chính</h3>
+                        </div>
+                        
+                        <div className="space-y-3.5">
+                          <div className="flex justify-between items-center pb-2 border-b border-stone-100 text-xs">
+                            <span className="text-[#8a7e75] font-bold">TÊN BÉ</span>
+                            <span className="font-black text-[#303330] uppercase">{activePet.name}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center pb-2 border-b border-stone-100 text-xs">
+                            <span className="text-[#8a7e75] font-bold">LOÀI / GIỐNG</span>
+                            <span className="font-black text-[#303330]">
+                              {activePet.species === 'CAT' ? 'Mèo' : 'Chó'} ({activePet.breed || 'Chưa rõ'})
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center pb-2 border-b border-stone-100 text-xs">
+                            <span className="text-[#8a7e75] font-bold">GIỚI TÍNH</span>
+                            <span className="font-black text-[#303330]">{activePet.medicalRecord?.gender || 'Chưa cập nhật'}</span>
+                          </div>
+
+                          <div className="flex justify-between items-center pb-2 border-b border-stone-100 text-xs">
+                            <span className="text-[#8a7e75] font-bold">NGÀY SINH / TUỔI</span>
+                            <span className="font-black text-[#303330]">
+                              {activePet.medicalRecord?.dob ? `${activePet.medicalRecord.dob} (${activePet.ageYears} tuổi)` : `${activePet.ageYears} tuổi`}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center pb-2 border-b border-stone-100 text-xs">
+                            <span className="text-[#8a7e75] font-bold">MÀU LÔNG</span>
+                            <span className="font-black text-[#303330]">{activePet.medicalRecord?.furColor || 'Chưa cập nhật'}</span>
+                          </div>
+
+                          <div className="flex justify-between items-center pb-2 border-b border-stone-100 text-xs">
+                            <span className="text-[#8a7e75] font-bold">CÂN NẶNG</span>
+                            <span className="font-black text-[#303330]">{activePet.weightKg} kg</span>
+                          </div>
+
+                          <div className="flex justify-between items-center pb-2 border-b border-stone-100 text-xs">
+                            <span className="text-[#8a7e75] font-bold">MÃ CHIP (MICROCHIP)</span>
+                            <span className="font-black text-[#303330] font-mono">{activePet.microchipId || 'Không có'}</span>
+                          </div>
+
+                          {/* Owner sub-section */}
+                          <div className="mt-6 pt-4 border-t border-dashed border-stone-200">
+                            <p className="font-headline font-black text-xs text-[#a43e24] uppercase tracking-wider mb-3">Thông tin chủ nuôi</p>
+                            <div className="space-y-2.5">
+
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-[#8a7e75] font-semibold">SĐT liên hệ:</span>
+                                <span className="font-bold text-[#303330]">{activePet.medicalRecord?.ownerPhone || 'Chưa cập nhật'}</span>
                               </div>
-                              <div>
-                                <h4 className="font-bold text-lg text-[#303330]">{vaccine.name}</h4>
-                                <p className="text-sm text-[#5d605c]">Thực hiện bởi {vaccine.doctor}</p>
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-[#8a7e75] font-semibold">Địa chỉ:</span>
+                                <span className="font-bold text-[#303330] text-right max-w-[180px] truncate" title={activePet.medicalRecord?.ownerAddress}>{activePet.medicalRecord?.ownerAddress || 'Chưa cập nhật'}</span>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase ${
-                                isCompleted ? 'text-[#2c4e24] bg-[#d0fac0]' : 'text-[#a43e24] bg-[#ffac98]'
-                              }`}>
-                                {isCompleted ? 'Đã hoàn thành' : 'Sắp đến hạn'}
-                              </span>
-                              <p className="text-xs font-semibold text-[#797b78] mt-2">
-                                {isCompleted ? `Hạn tiếp theo: ${vaccine.nextDate}` : 'Còn 14 ngày'}
-                              </p>
                             </div>
                           </div>
-                        )
-                      })}
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
-                  {/* Hồ sơ sổ tiêm thực tế */}
-                  {activePet.isVaccinated && activePet.vaccineBookUrls && activePet.vaccineBookUrls.length > 0 && (
-                    <div className="mt-8">
-                      <h4 className="text-xl font-bold font-headline mb-4">Hình ảnh Sổ tiêm phòng thực tế</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {activePet.vaccineBookUrls.map((url, index) => (
-                          <a 
-                            key={index} 
-                            href={url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="aspect-square rounded-xl overflow-hidden border-2 border-[#e5d8d0] hover:border-[#a43e24] transition-all block group relative"
-                            style={sunlightShadow}
-                          >
-                            <img src={url} alt={`Sổ tiêm ${index + 1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                              <span className="text-white text-xs font-bold px-2 py-1 rounded bg-[#a43e24]">Xem ảnh gốc</span>
+                      {/* Vaccination card */}
+                      <div className="bg-white p-8 rounded-2xl border border-[#e5d8d0] shadow-sm border-t-4 border-[#44683b] transition-all duration-300">
+                        <div className="mb-6">
+                          <h3 className="font-headline font-extrabold text-lg text-[#303330]">Lịch tiêm phòng</h3>
+                        </div>
+
+                        <div className="space-y-3.5">
+                          {activePet.vaccines && activePet.vaccines.length > 0 ? (
+                            activePet.vaccines.map((vaccine, idx) => {
+                              const isCompleted = vaccine.status === 'COMPLETED'
+                              return (
+                                <div 
+                                  key={idx}
+                                  className={`flex justify-between items-center p-4 rounded-xl border ${
+                                    isCompleted 
+                                      ? 'bg-emerald-50/20 border-emerald-100' 
+                                      : 'bg-amber-50/20 border-dashed border-amber-200'
+                                  }`}
+                                >
+                                  <div>
+                                    <p className="font-bold text-xs text-[#303330]">{vaccine.name}</p>
+                                    <p className={`text-[10px] uppercase font-bold mt-0.5 ${isCompleted ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                      {isCompleted ? `Hạn tiếp theo: ${vaccine.nextDate}` : 'Hết hạn / Cần tiêm lại'}
+                                    </p>
+                                  </div>
+                                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                    isCompleted 
+                                      ? 'bg-[#d0fac0] text-[#2c4e24]' 
+                                      : 'bg-[#ffac98] text-[#a43e24]'
+                                  }`}>
+                                    {isCompleted ? 'Đã tiêm' : 'Chờ tiêm'}
+                                  </span>
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <div className="p-6 rounded-xl border border-dashed border-stone-200 text-center text-stone-500">
+                              <p className="text-xs font-bold">Chưa cập nhật thông tin vaccine</p>
+                              <p className="text-[10px] text-stone-400 mt-1">Bé cưng cần được cập nhật hồ sơ tiêm chủng đầy đủ trước khi gửi.</p>
                             </div>
-                          </a>
-                        ))}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
 
-              {/* Tab Content: Thói quen */}
-              {activeTab === 'habits' && (
-                <div className="space-y-8 animate-fadeIn">
-                  <div className="bg-white/70 backdrop-blur-md p-8 rounded-xl border border-[#b1b2af]/20" style={sunlightShadow}>
-                    <div className="flex items-center gap-3 mb-6">
-                      <UtensilsCrossed className="text-[#a43e24]" size={22} />
-                      <h4 className="font-headline font-bold text-xl">Hồ sơ ăn uống</h4>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div>
-                        <h5 className="font-bold text-sm text-[#44683b] uppercase tracking-widest mb-3">Loại thức ăn ưa thích</h5>
-                        <p className="text-[#5d605c] leading-relaxed">{activePet.foodType}</p>
+                      {/* Parasites & Allergies Card */}
+                      <div className="bg-white p-8 rounded-2xl border border-[#e5d8d0] shadow-sm border-t-4 border-[#fa7150] transition-all duration-300">
+                        <div className="mb-6">
+                          <h3 className="font-headline font-extrabold text-lg text-[#303330]">Ký sinh trùng & Dị ứng</h3>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="p-4 rounded-xl bg-amber-50/20 border border-amber-100/50">
+                            <p className="font-bold text-amber-800 text-xs mb-1">Nội ký sinh (Tẩy giun)</p>
+                            <p className="text-xs text-stone-600 font-semibold">{activePet.medicalRecord?.parasites?.internal || 'Chưa ghi nhận tẩy giun định kỳ'}</p>
+                          </div>
+                          <div className="p-4 rounded-xl bg-sky-50/20 border border-sky-100/50">
+                            <p className="font-bold text-sky-800 text-xs mb-1">Ngoại ký sinh (Ve rận, bọ chét)</p>
+                            <p className="text-xs text-stone-600 font-semibold">{activePet.medicalRecord?.parasites?.external || 'Chưa ghi nhận điều trị ngoại ký sinh'}</p>
+                          </div>
+                          <div className="p-4 rounded-xl bg-rose-50/20 border border-rose-100/50">
+                            <p className="font-bold text-[#a43e24] text-xs mb-1">Tiền sử dị ứng</p>
+                            <p className="text-xs text-stone-600 font-bold italic">{activePet.medicalRecord?.allergies || 'Không ghi nhận dị ứng'}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h5 className="font-bold text-sm text-[#44683b] uppercase tracking-widest mb-3">Lịch trình & Khẩu phần</h5>
-                        <p className="text-[#5d605c] leading-relaxed">{activePet.feedingSchedule}</p>
+
+                      {/* Labs & Imaging Card */}
+                      <div className="bg-white p-8 rounded-2xl border border-[#e5d8d0] shadow-sm border-t-4 border-[#3b5998] transition-all duration-300">
+                        <div className="mb-6">
+                          <h3 className="font-headline font-extrabold text-lg text-[#303330]">Xét nghiệm & Hình ảnh</h3>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="p-4 rounded-xl bg-stone-50 border border-stone-200/60">
+                            <p className="font-bold text-stone-700 text-xs mb-1">Xét nghiệm (Máu, nước tiểu, phân...)</p>
+                            <p className="text-xs text-stone-600 font-semibold">{activePet.medicalRecord?.labResults?.bloodTest || 'Chưa có kết quả xét nghiệm'}</p>
+                          </div>
+                          <div className="p-4 rounded-xl bg-stone-50 border border-stone-200/60">
+                            <p className="font-bold text-stone-700 text-xs mb-1">Chẩn đoán hình ảnh (Siêu âm, X-quang...)</p>
+                            <p className="text-xs text-stone-600 font-semibold">{activePet.medicalRecord?.labResults?.imaging || 'Chưa có kết quả siêu âm/X-quang'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Clinical History Card */}
+                      <div className="md:col-span-2 bg-white p-8 rounded-2xl border border-[#e5d8d0] shadow-sm border-t-4 border-[#a43e24] transition-all duration-300">
+                        <div className="mb-6">
+                          <h3 className="font-headline font-extrabold text-lg text-[#303330]">Nhật ký khám bệnh & điều trị</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {activePet.medicalRecord?.clinicalHistory && activePet.medicalRecord.clinicalHistory.length > 0 ? (
+                            activePet.medicalRecord.clinicalHistory.map((clin: any, idx: number) => (
+                              <div key={idx} className="p-4 bg-stone-50 rounded-xl border border-stone-200/60 text-xs space-y-2 shadow-sm">
+                                <div className="flex justify-between items-center border-b border-stone-200 pb-1.5 mb-1.5">
+                                  <span className="font-bold text-stone-700">{clin.reason || 'Chưa rõ địa điểm'}</span>
+                                  {clin.symptoms && (
+                                    <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase ${
+                                      clin.symptoms === 'Đang điều trị' 
+                                        ? 'bg-amber-100 text-amber-800 border border-amber-200' 
+                                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    }`}>
+                                      {clin.symptoms}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-stone-600"><strong className="text-stone-700">Bệnh lý:</strong> {clin.diagnosis || 'Chưa cập nhật'}</p>
+                                <p className="text-stone-600"><strong className="text-stone-700">Thuốc & Liều lượng:</strong> {clin.treatment || 'Chưa cập nhật'}</p>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs text-stone-400 italic md:col-span-2">Chưa ghi nhận bệnh án khám điều trị nào.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sổ tiêm & Sổ sức khỏe thực tế */}
+                    {activePet.vaccineBookUrls && activePet.vaccineBookUrls.length > 0 && (
+                      <div className="mt-8 text-left">
+                        <h4 className="text-lg font-bold font-headline mb-4 text-[#303330]">
+                          Ảnh chụp Sổ sức khỏe / Sổ khám & Tiêm phòng thực tế
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {activePet.vaccineBookUrls.map((url, index) => (
+                            <a 
+                              key={index} 
+                              href={url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="aspect-square rounded-xl overflow-hidden border border-[#e5d8d0] hover:border-[#a43e24] transition-all block group relative shadow-sm"
+                            >
+                              <img src={url} alt={`Sổ tiêm ${index + 1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <span className="text-white text-[10px] font-bold px-2.5 py-1 rounded bg-[#a43e24] shadow-sm">Xem ảnh gốc ↗</span>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. HABITS TAB */}
+                {activeTab === 'habits' && (
+                  <div className="space-y-8 animate-fadeIn">
+                    
+                    <h2 className="font-headline text-2xl md:text-3xl font-extrabold text-[#303330] mb-6">Thói quen & Cá tính</h2>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Diet Card */}
+                      <div className="md:col-span-2 bg-[#feeadb]/30 p-8 rounded-2xl relative overflow-hidden border border-[#feeadb]/60 shadow-sm text-left">
+                        <div className="relative z-10 max-w-lg">
+                          <h3 className="font-headline font-extrabold text-xl mb-3 text-[#63564b]">Chế độ ăn uống</h3>
+                          <div className="space-y-3 text-[#63564b]/90 text-sm leading-relaxed font-medium">
+                            <p className="font-bold">{activePet.name} thích khẩu vị dinh dưỡng như thế nào?</p>
+                            <ul className="space-y-2 mt-2">
+                              <li className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#a43e24]"></span>
+                                <span><strong>Loại thức ăn:</strong> {activePet.foodType || 'Chưa ghi nhận loại thức ăn.'}</span>
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#a43e24]"></span>
+                                <span><strong>Lịch trình & Khẩu phần:</strong> {activePet.feedingSchedule || 'Chưa ghi nhận lịch ăn.'}</span>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Personality Card */}
+                      <div className="bg-white p-8 rounded-2xl border border-[#e5d8d0] shadow-sm flex flex-col items-center text-center justify-center transition-all duration-300">
+                        <h3 className="font-headline font-extrabold text-base mb-3 text-[#303330]">Cá tính</h3>
+                        {activePet.personalityTags && activePet.personalityTags.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 justify-center">
+                            {activePet.personalityTags.map((tag, idx) => (
+                              <span key={idx} className="px-2.5 py-1 bg-[#44683b]/10 text-[#2c4e24] text-xs font-bold rounded-lg border border-[#44683b]/20">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-stone-500 leading-relaxed">
+                            {activePet.name} ngoan ngoãn, đáng yêu và rất thân thiện.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Hobbies Card (Sinh hoạt) */}
+                      <div className="bg-white p-8 rounded-2xl border border-[#e5d8d0] shadow-sm flex flex-col items-center text-center justify-center transition-all duration-300">
+                        <h3 className="font-headline font-extrabold text-base mb-3 text-[#303330]">Sinh hoạt</h3>
+                        <div className="flex flex-col gap-2 w-full text-xs font-bold text-left">
+                          <div className="flex justify-between items-center py-1 border-b border-stone-100">
+                            <span className="text-[#8a7e75] uppercase text-[9px]">Môi trường:</span>
+                            <span className={activePet.isIndoorOnly ? 'text-sky-600' : 'text-stone-600'}>
+                              {activePet.isIndoorOnly ? 'Trong nhà' : 'Tự do'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-1 border-b border-stone-100">
+                            <span className="text-[#8a7e75] uppercase text-[9px]">Dinh dưỡng:</span>
+                            <span className={activePet.hasSpecialDiet ? 'text-[#a43e24]' : 'text-stone-600'}>
+                              {activePet.hasSpecialDiet ? 'Ăn đặc biệt' : 'Ăn thường'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-1">
+                            <span className="text-[#8a7e75] uppercase text-[9px]">Tiêm phòng:</span>
+                            <span className={activePet.isVaccinated ? 'text-emerald-600' : 'text-[#a43e24]'}>
+                              {activePet.isVaccinated ? 'Đã tiêm đủ' : 'Chưa tiêm đủ'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Quote Card */}
+                      <div className="md:col-span-2 relative rounded-2xl overflow-hidden h-48 shadow-md bg-gradient-to-r from-stone-800 to-stone-700 flex flex-col justify-center items-center p-8 text-center">
+                        <div className="absolute inset-0 bg-black/10"></div>
+                        <div className="relative z-10 w-full max-w-xl">
+                          <p className="text-white text-xs font-bold uppercase tracking-wider opacity-75 mb-2.5">
+                            Ghi chú & Chỉ dẫn đặc biệt
+                          </p>
+                          <p className="text-lg md:text-xl text-white font-headline font-bold italic leading-relaxed">
+                            {activePet.specialNotes && activePet.specialNotes.trim() && activePet.specialNotes.toLowerCase() !== 'khoong' && activePet.specialNotes.toLowerCase() !== 'không' ? (
+                              `"${activePet.specialNotes}"`
+                            ) : (
+                              `"${activePet.name} là một người bạn nhỏ tuyệt vời, rất thích được vui chơi và cưng chiều."`
+                            )}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
+                )}
 
-                  <div className="bg-[#f4f4f0] p-8 rounded-xl">
-                    <div className="flex items-center gap-3 mb-6">
-                      <Smile className="text-[#6a5d51]" size={22} />
-                      <h4 className="font-headline font-bold text-xl">Cá tính & Đặc điểm</h4>
-                    </div>
-                    <div className="space-y-4 text-[#5d605c] leading-relaxed">
-                      <p className="whitespace-pre-line">
-                        {activePet.specialNotes || `${activePet.name} là một bé cưng vô cùng ngoan ngoãn, thân thiện và rất dễ gần.`}
-                      </p>
-                      <div className="flex flex-wrap gap-2 pt-2">
-                        {activePet.personalityTags?.map((tag, idx) => (
-                          <span key={idx} className="bg-[#e1e3df] px-3 py-1 rounded text-xs font-semibold text-[#303330]">
-                            {tag}
-                          </span>
-                        ))}
+                {/* 3. BOOKINGS TAB */}
+                {activeTab === 'bookings' && (
+                  <div className="space-y-6 animate-fadeIn">
+                    <h2 className="font-headline text-2xl md:text-3xl font-extrabold text-[#303330] mb-6">Lịch sử lưu trú</h2>
+                    
+                    {petBookings.length > 0 ? (
+                      <div className="bg-white rounded-2xl overflow-hidden border border-[#e5d8d0] shadow-sm">
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="bg-stone-50/80 text-left border-b border-[#e5d8d0]">
+                                <th className="px-6 py-4 font-headline font-bold text-xs uppercase tracking-wider text-stone-500">Phòng lưu trú</th>
+                                <th className="px-6 py-4 font-headline font-bold text-xs uppercase tracking-wider text-stone-500">Thời gian</th>
+                                <th className="px-6 py-4 font-headline font-bold text-xs uppercase tracking-wider text-stone-500 text-right">Trạng thái</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#e5d8d0]/50">
+                              {petBookings.map((booking) => {
+                                const cfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.CANCELLED
+                                return (
+                                  <tr key={booking.id} className="hover:bg-stone-50/30 transition-colors">
+                                    <td className="px-6 py-5">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-lg bg-stone-100 flex items-center justify-center border border-stone-200 text-stone-400 font-bold text-[10px] uppercase tracking-wider shrink-0">
+                                          Room
+                                        </div>
+                                        <div>
+                                          <span className="font-headline font-extrabold text-[#303330] block text-sm">{booking.roomTypeName}</span>
+                                          <span className="text-[11px] text-stone-500">{booking.hotelName}</span>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-bold text-[#303330]">{booking.checkInDate} - {booking.checkOutDate}</span>
+                                        <span className="text-[10px] text-stone-500 mt-0.5">
+                                          {booking.bookingType === 'DAYCARE' ? `${booking.totalDays || 1} ngày gửi` : `${booking.totalNights || 1} đêm lưu trú`}
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-5 text-right">
+                                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase border ${cfg.bg} ${cfg.text}`}>
+                                        {cfg.label}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="bg-white p-12 rounded-2xl border border-dashed border-stone-200 text-center text-stone-500 shadow-inner">
+                        <p className="text-sm font-bold">Chưa có lịch sử lưu trú</p>
+                        <p className="text-xs text-stone-400 mt-1.5">Bé cưng của bạn chưa thực hiện kỳ nghỉ nào cùng PetCare Hub.</p>
+                        <Link
+                          to="/hotels"
+                          style={primaryGlow}
+                          className="mt-6 inline-block text-white px-6 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider cursor-pointer"
+                        >
+                          Khám phá khách sạn ngay
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-
-              {/* Tab Content: Lịch sử lưu trú */}
-              {activeTab === 'bookings' && (
-                <div className="space-y-4 animate-fadeIn">
-                  <h4 className="font-headline font-bold text-xl mb-4 px-2">Các lần đặt phòng gần đây</h4>
-                  <div className="bg-white p-6 rounded-xl flex items-center justify-between border border-[#b1b2af]/20" style={sunlightShadow}>
-                    <div>
-                      <p className="font-bold text-[#303330]">Phòng Cozy Corner Suite</p>
-                      <p className="text-xs text-[#5d605c]">12 tháng 8 — 18 tháng 8, 2025</p>
-                    </div>
-                    <button className="text-[#a43e24] font-bold text-sm hover:underline flex items-center gap-1">
-                      Xem báo cáo <ChevronRight size={14} />
-                    </button>
-                  </div>
-                  <div className="bg-white p-6 rounded-xl flex items-center justify-between border border-[#b1b2af]/20" style={sunlightShadow}>
-                    <div>
-                      <p className="font-bold text-[#303330]">Phòng Playful Paws Room</p>
-                      <p className="text-xs text-[#5d605c]">05 tháng 5 — 12 tháng 5, 2025</p>
-                    </div>
-                    <button className="text-[#a43e24] font-bold text-sm hover:underline flex items-center gap-1">
-                      Xem báo cáo <ChevronRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
+                )}
+              </div>
             </div>
-
-          </section>
+          </div>
+        ) : (
+          <div className="py-24 text-center border-2 border-dashed border-[#e5d8d0] rounded-3xl bg-white max-w-xl mx-auto">
+            <h3 className="text-xl font-bold text-[#303330]">Chưa có thông tin thú cưng</h3>
+            <p className="text-xs text-stone-500 mt-2">Bắt đầu bằng việc tạo hồ sơ cho người bạn nhỏ để nhận các dịch vụ chăm sóc tốt nhất.</p>
+            <button
+              onClick={() => setShowModal(true)}
+              style={primaryGlow}
+              className="mt-6 px-6 py-2.5 rounded-full text-xs font-bold text-white uppercase tracking-wider cursor-pointer"
+            >
+              Thêm thú cưng mới
+            </button>
+          </div>
         )}
 
       </main>
@@ -1112,6 +1442,423 @@ export const PetProfilePage = () => {
                 className="flex-1 py-3 rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-all"
               >
                 Xác nhận xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MEDICAL RECORD MODAL ── */}
+      {showMedicalModal && medForm && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl text-left space-y-6">
+            <div className="border-b border-[#e5d8d0] pb-4 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-black text-[#303330]">Cập nhật hồ sơ y tế</h3>
+                <p className="text-xs text-[#8a7e75] mt-1">Cập nhật hồ sơ sức khỏe và lịch sử điều trị chi tiết của bé cưng.</p>
+              </div>
+              <button
+                onClick={() => { setShowMedicalModal(false); setMedForm(null); }}
+                className="text-stone-400 hover:text-stone-600 font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Section 1: Basic Admin Info */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-[#a43e24] uppercase tracking-wider border-b border-stone-100 pb-1">1. Thông tin hành chính & Chủ nuôi</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Giới tính</label>
+                    <select
+                      value={medForm.gender || ''}
+                      onChange={e => setMedForm({ ...medForm, gender: e.target.value })}
+                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    >
+                      <option value="">Chưa chọn</option>
+                      <option value="Đực">Đực</option>
+                      <option value="Cái">Cái</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Màu lông</label>
+                    <input
+                      value={medForm.furColor || ''}
+                      onChange={e => setMedForm({ ...medForm, furColor: e.target.value })}
+                      placeholder="VD: Vàng kem, đen trắng..."
+                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">SĐT liên lạc</label>
+                    <input
+                      value={medForm.ownerPhone || ''}
+                      onChange={e => setMedForm({ ...medForm, ownerPhone: e.target.value })}
+                      placeholder="Nhập số điện thoại liên hệ..."
+                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Địa chỉ nhà</label>
+                    <input
+                      value={medForm.ownerAddress || ''}
+                      onChange={e => setMedForm({ ...medForm, ownerAddress: e.target.value })}
+                      placeholder="Nhập địa chỉ nhà..."
+                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Vaccination record */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center border-b border-stone-100 pb-1">
+                  <h4 className="text-xs font-black text-[#a43e24] uppercase tracking-wider">2. Lịch sử tiêm phòng</h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentVax = medForm.vaccines || []
+                      setMedForm({
+                        ...medForm,
+                        vaccines: [...currentVax, { name: '', date: '', nextDate: '', doctor: '', status: 'COMPLETED' }]
+                      })
+                    }}
+                    className="text-[10px] font-black text-[#a43e24] hover:underline"
+                  >
+                    + Thêm mũi tiêm
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  {(medForm.vaccines || []).map((vax: any, i: number) => (
+                    <div key={i} className="p-4 bg-stone-50 rounded-2xl border border-[#e5d8d0] relative space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMedForm({
+                            ...medForm,
+                            vaccines: medForm.vaccines.filter((_: any, idx: number) => idx !== i)
+                          })
+                        }}
+                        className="absolute top-2 right-3 text-stone-400 hover:text-red-500 font-bold text-xs"
+                      >
+                        Xóa
+                      </button>
+                      <div className="grid grid-cols-2 gap-3 pr-8">
+                        <div>
+                          <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Tên vắc-xin</label>
+                          <input
+                            value={vax.name || ''}
+                            onChange={e => {
+                              const newVax = [...medForm.vaccines]
+                              newVax[i].name = e.target.value
+                              setMedForm({ ...medForm, vaccines: newVax })
+                            }}
+                            placeholder="VD: Dại, 4 bệnh..."
+                            className="w-full bg-white border border-[#e5d8d0] rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#a43e24]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Bác sĩ thú y</label>
+                          <input
+                            value={vax.doctor || ''}
+                            onChange={e => {
+                              const newVax = [...medForm.vaccines]
+                              newVax[i].doctor = e.target.value
+                              setMedForm({ ...medForm, vaccines: newVax })
+                            }}
+                            placeholder="Tên bác sĩ..."
+                            className="w-full bg-white border border-[#e5d8d0] rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#a43e24]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Ngày tiêm</label>
+                          <input
+                            type="date"
+                            value={vax.date || ''}
+                            onChange={e => {
+                              const newVax = [...medForm.vaccines]
+                              newVax[i].date = e.target.value
+                              setMedForm({ ...medForm, vaccines: newVax })
+                            }}
+                            className="w-full bg-white border border-[#e5d8d0] rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#a43e24]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Ngày nhắc lại</label>
+                          <input
+                            type="date"
+                            value={vax.nextDate || ''}
+                            onChange={e => {
+                              const newVax = [...medForm.vaccines]
+                              newVax[i].nextDate = e.target.value
+                              setMedForm({ ...medForm, vaccines: newVax })
+                            }}
+                            className="w-full bg-white border border-[#e5d8d0] rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#a43e24]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {(medForm.vaccines || []).length === 0 && (
+                    <p className="text-[10px] text-stone-400 italic">Chưa ghi nhận lịch sử tiêm phòng.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 3: Parasite treatment records */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-[#a43e24] uppercase tracking-wider border-b border-stone-100 pb-1">3. Phòng ký sinh trùng</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Nội ký sinh (Tẩy giun định kỳ)</label>
+                    <input
+                      value={medForm.parasites?.internal || ''}
+                      onChange={e => setMedForm({
+                        ...medForm,
+                        parasites: { ...(medForm.parasites || {}), internal: e.target.value }
+                      })}
+                      placeholder="VD: Sanpet (uống 15/06/2026)..."
+                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Ngoại ký sinh (Nhỏ gáy/Trị ve rận)</label>
+                    <input
+                      value={medForm.parasites?.external || ''}
+                      onChange={e => setMedForm({
+                        ...medForm,
+                        parasites: { ...(medForm.parasites || {}), external: e.target.value }
+                      })}
+                      placeholder="VD: Frontline (nhỏ gáy 15/06/2026)..."
+                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Clinical History */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center border-b border-stone-100 pb-1">
+                  <h4 className="text-xs font-black text-[#a43e24] uppercase tracking-wider">4. Nhật ký khám bệnh & điều trị</h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentClin = medForm.clinicalHistory || []
+                      setMedForm({
+                        ...medForm,
+                        clinicalHistory: [...currentClin, { reason: '', symptoms: '', diagnosis: '', treatment: '' }]
+                      })
+                    }}
+                    className="text-[10px] font-black text-[#a43e24] hover:underline"
+                  >
+                    + Thêm lượt khám
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  {(medForm.clinicalHistory || []).map((clin: any, i: number) => (
+                    <div key={i} className="p-4 bg-stone-50 rounded-2xl border border-[#e5d8d0] relative space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMedForm({
+                            ...medForm,
+                            clinicalHistory: medForm.clinicalHistory.filter((_: any, idx: number) => idx !== i)
+                          })
+                        }}
+                        className="absolute top-2 right-3 text-stone-400 hover:text-red-500 font-bold text-xs"
+                      >
+                        Xóa
+                      </button>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-8">
+                        <div>
+                          <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Địa điểm khám / Phòng khám</label>
+                          <input
+                            value={clin.reason || ''}
+                            onChange={e => {
+                              const newClin = [...medForm.clinicalHistory]
+                              newClin[i].reason = e.target.value
+                              setMedForm({ ...medForm, clinicalHistory: newClin })
+                            }}
+                            placeholder="VD: BV thú y ABC, Phòng khám XYZ..."
+                            className="w-full bg-white border border-[#e5d8d0] rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#a43e24]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Trạng thái điều trị</label>
+                          <select
+                            value={clin.symptoms || ''}
+                            onChange={e => {
+                              const newClin = [...medForm.clinicalHistory]
+                              newClin[i].symptoms = e.target.value
+                              setMedForm({ ...medForm, clinicalHistory: newClin })
+                            }}
+                            className="w-full bg-white border border-[#e5d8d0] rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#a43e24]"
+                          >
+                            <option value="">Chưa chọn</option>
+                            <option value="Đang điều trị">Đang điều trị</option>
+                            <option value="Đã khỏi bệnh">Đã khỏi bệnh</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Tên bệnh / Chẩn đoán</label>
+                          <input
+                            value={clin.diagnosis || ''}
+                            onChange={e => {
+                              const newClin = [...medForm.clinicalHistory]
+                              newClin[i].diagnosis = e.target.value
+                              setMedForm({ ...medForm, clinicalHistory: newClin })
+                            }}
+                            placeholder="Mắc bệnh gì..."
+                            className="w-full bg-white border border-[#e5d8d0] rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#a43e24]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Thuốc điều trị & Liều lượng</label>
+                          <input
+                            value={clin.treatment || ''}
+                            onChange={e => {
+                              const newClin = [...medForm.clinicalHistory]
+                              newClin[i].treatment = e.target.value
+                              setMedForm({ ...medForm, clinicalHistory: newClin })
+                            }}
+                            placeholder="Thuốc sử dụng, liều lượng..."
+                            className="w-full bg-white border border-[#e5d8d0] rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#a43e24]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {(medForm.clinicalHistory || []).length === 0 && (
+                    <p className="text-[10px] text-stone-400 italic">Chưa ghi nhận nhật ký khám điều trị.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 5: Lab Results & Imaging */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-[#a43e24] uppercase tracking-wider border-b border-stone-100 pb-1">5. Kết quả xét nghiệm & Chẩn đoán hình ảnh</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Xét nghiệm (Máu, nước tiểu, phân, test nhanh...)</label>
+                    <input
+                      value={medForm.labResults?.bloodTest || ''}
+                      onChange={e => setMedForm({
+                        ...medForm,
+                        labResults: { ...(medForm.labResults || {}), bloodTest: e.target.value }
+                      })}
+                      placeholder="VD: Test nhanh Parvo âm tính..."
+                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Chẩn đoán hình ảnh (Siêu âm, X-quang, MRI...)</label>
+                    <input
+                      value={medForm.labResults?.imaging || ''}
+                      onChange={e => setMedForm({
+                        ...medForm,
+                        labResults: { ...(medForm.labResults || {}), imaging: e.target.value }
+                      })}
+                      placeholder="VD: Siêu âm ổ bụng bình thường..."
+                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 6: Allergies & Medical Alerts */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-[#a43e24] uppercase tracking-wider border-b border-stone-100 pb-1">6. Tiền sử dị ứng & Ghi chú</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Tiền sử dị ứng (Thuốc/Thức ăn)</label>
+                    <input
+                      value={medForm.allergies || ''}
+                      onChange={e => setMedForm({ ...medForm, allergies: e.target.value })}
+                      placeholder="VD: Dị ứng Penicillin, dị ứng thịt bò..."
+                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Ghi chú chỉ dẫn đặc biệt</label>
+                    <input
+                      value={medForm.specialNotes || ''}
+                      onChange={e => setMedForm({ ...medForm, specialNotes: e.target.value })}
+                      placeholder="VD: Nhút nhát khi gặp người lạ..."
+                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 7: Health Profile Photos */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-[#a43e24] uppercase tracking-wider border-b border-stone-100 pb-1">7. Ảnh chụp sổ khám bệnh / Sổ tiêm phòng / Hồ sơ sức khỏe</h4>
+                <div className="bg-stone-50 p-4 rounded-2xl border border-[#e5d8d0] space-y-3">
+                  <label className="text-[10px] font-bold text-[#8a7e75] uppercase block">Danh sách ảnh đã tải lên</label>
+                  
+                  <div className="flex flex-wrap gap-2.5">
+                    {(medForm.vaccineBookUrls || []).map((url: string, i: number) => (
+                      <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-[#e5d8d0] shadow-sm bg-white">
+                        <img src={url} alt={`medical-doc-${i}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMedForm({
+                              ...medForm,
+                              vaccineBookUrls: medForm.vaccineBookUrls.filter((_: any, idx: number) => idx !== i)
+                            })
+                          }}
+                          className="absolute top-1 right-1 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] hover:bg-red-600 font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {(medForm.vaccineBookUrls || []).length === 0 && (
+                      <p className="text-[10px] text-stone-400 italic">Chưa có ảnh hồ sơ nào được tải lên.</p>
+                    )}
+                  </div>
+
+                  <label className={`w-full py-3 px-4 border-2 border-dashed rounded-2xl cursor-pointer text-xs font-bold transition-all block text-center bg-white ${
+                    uploadingVaccine ? 'border-[#ffac98] text-[#fa7150]' : 'border-[#e5d8d0] text-[#8a7e75] hover:border-[#a43e24]'
+                  }`}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingVaccine}
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) handleUploadMedicalPhoto(file)
+                        e.target.value = ''
+                      }}
+                    />
+                    {uploadingVaccine ? 'Đang tải ảnh lên...' : 'Tải lên ảnh sổ sức khỏe / sổ tiêm'}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-6 border-t border-[#e5d8d0]">
+              <button
+                type="button"
+                onClick={() => { setShowMedicalModal(false); setMedForm(null); }}
+                className="flex-1 py-3 rounded-2xl border border-[#e5d8d0] text-xs font-bold text-[#8a7e75] hover:bg-[#faf9f6]"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleUpdateMedicalRecord}
+                disabled={submitting}
+                className="flex-1 py-3 rounded-2xl text-white text-xs font-bold bg-[#a43e24] hover:bg-[#a43e24]/90 disabled:opacity-50"
+              >
+                {submitting ? 'Đang lưu...' : 'Lưu hồ sơ y tế'}
               </button>
             </div>
           </div>

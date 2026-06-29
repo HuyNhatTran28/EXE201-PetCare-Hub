@@ -20,6 +20,13 @@ export const BookingChatModal = ({ conversationId, hotelName, onClose }: Props) 
   const { status, connect, subscribe, sendMessage, disconnect } = useChatSocket()
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [])
+
+  useEffect(() => {
     axiosInstance
       .get<{ data: MessageResponse[] }>(`/api/conversations/${conversationId}/messages`)
       .then(res => setMessages(res.data.data ?? []))

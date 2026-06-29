@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   CheckCircle,
@@ -27,6 +27,17 @@ export const BookingPage = () => {
   const [isSuccess, setIsSuccess] = useState(false)
   const [selectedPetId, setSelectedPetId] = useState('1')
   const [paymentMethod, setPaymentMethod] = useState<'MOMO' | 'VNPAY'>('MOMO')
+
+  useEffect(() => {
+    if (isSuccess) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isSuccess])
 
   const handleCompleteBooking = (e: React.FormEvent) => {
     e.preventDefault()

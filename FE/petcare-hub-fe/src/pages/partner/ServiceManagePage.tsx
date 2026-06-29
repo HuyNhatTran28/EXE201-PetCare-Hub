@@ -66,6 +66,17 @@ export const ServiceManagePage = () => {
     fetchServices()
   }, [hotelId])
 
+  useEffect(() => {
+    if (showModal || editService) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showModal, editService])
+
   const handleUploadImage = async (file: File) => {
     setUploadingImage(true)
     try {

@@ -213,6 +213,17 @@ export const HotelDetailPage = () => {
 
   // Custom Toast notification state
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
+
+  useEffect(() => {
+    if (isEditDescOpen || isEditImagesOpen || showBookingFlow || toast) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isEditDescOpen, isEditImagesOpen, showBookingFlow, toast])
   
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'error') => {
     setToast({ type, message })
