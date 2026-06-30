@@ -30,7 +30,12 @@ import { Header } from '@/components/Header'
 import { useAuthStore } from '@/store/authStore'
 import { cleanAddressDisplay } from '@/utils/cleanAddress'
 
-
+const getLocalDateString = (d = new Date()) => {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 interface RoomType {
   id: string
@@ -100,7 +105,7 @@ export const HotelDetailPage = () => {
   const [locationLat, setLocationLat] = useState<number | null>(null)
   const [locationLong, setLocationLong] = useState<number | null>(null)
   const [googleMapsUrl, setGoogleMapsUrl] = useState<string | null>(null)
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>(DEFAULT_ROOMS)
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
   const [services, setServices] = useState<ExtraService[]>(DEFAULT_SERVICES)
   
   // Hotel details and gallery images states
@@ -215,7 +220,7 @@ export const HotelDetailPage = () => {
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
 
   useEffect(() => {
-    if (isEditDescOpen || isEditImagesOpen || showBookingFlow || toast) {
+    if (isEditDescOpen || isEditImagesOpen || toast) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -223,7 +228,7 @@ export const HotelDetailPage = () => {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [isEditDescOpen, isEditImagesOpen, showBookingFlow, toast])
+  }, [isEditDescOpen, isEditImagesOpen, toast])
   
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'error') => {
     setToast({ type, message })
@@ -394,7 +399,20 @@ export const HotelDetailPage = () => {
         setPetBreedInput(selected.breed || '')
         setPetAgeInput(selected.ageYears !== undefined ? selected.ageYears.toString() : '1')
         setPetWeightInput(selected.weightKg !== undefined ? selected.weightKg.toString() : '5')
-        setSpecialRequestInput(selected.specialNotes || '')
+        // Parse specialNotes JSON to extract only the human-readable note
+        let noteText = ''
+        if (selected.specialNotes) {
+          try {
+            const parsed = JSON.parse(selected.specialNotes)
+            noteText = parsed.SpecialNotes || parsed.specialNotes || ''
+            // Filter out default placeholder text
+            if (noteText === 'Chưa có ghi chú nào') noteText = ''
+          } catch {
+            // If not valid JSON, use the raw string as-is
+            noteText = selected.specialNotes
+          }
+        }
+        setSpecialRequestInput(noteText)
       }
     }
   }, [selectedPetId, pets])
@@ -453,10 +471,13 @@ export const HotelDetailPage = () => {
   useEffect(() => {
     if (roomTypes.length === 0) return
     const today = new Date()
-    const tomorrow  = new Date(today.getTime() + 86400000).toISOString().split('T')[0]
-    const dayAfter  = new Date(today.getTime() + 86400000 * 2).toISOString().split('T')[0]
-    const ci = checkInDate  || tomorrow
-    const co = checkOutDate || dayAfter
+    const todayStr = getLocalDateString(today)
+    const tomorrowStr = getLocalDateString(new Date(today.getTime() + 86400000))
+    const ci = checkInDate  || todayStr
+    const co = checkOutDate || tomorrowStr
+    // Validate dates before calling API to avoid 400 errors
+    if (bookingType === 'OVERNIGHT' && co <= ci) return
+    if (bookingType === 'DAYCARE' && co < ci) return
     Promise.all(
       roomTypes.map(rt =>
         axiosInstance
@@ -608,8 +629,8 @@ export const HotelDetailPage = () => {
       const payload = {
         hotelId: id,
         roomTypeId: selectedRoomId,
-        checkInDate: checkInDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
-        checkOutDate: checkOutDate || new Date(Date.now() + 86400000 * (nights + 1)).toISOString().split('T')[0],
+        checkInDate: checkInDate || getLocalDateString(new Date()),
+        checkOutDate: checkOutDate || getLocalDateString(new Date(Date.now() + 86400000 * nights)),
         petIds: [selectedPetId || '00000000-0000-0000-0000-000000000000'],
         serviceIds: selectedServiceIds,
         voucherCode: discountPercent > 0 ? couponCode : null,
@@ -1331,7 +1352,7 @@ export const HotelDetailPage = () => {
                       <input
                         type="date"
                         value={checkInDate}
-                        min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                        min={getLocalDateString(new Date())}
                         onChange={e => {
                           setCheckInDate(e.target.value)
                           if (bookingType === 'OVERNIGHT') {
@@ -1354,9 +1375,9 @@ export const HotelDetailPage = () => {
                         value={checkOutDate}
                         min={checkInDate
                           ? (bookingType === 'OVERNIGHT'
-                            ? new Date(new Date(checkInDate).getTime() + 86400000).toISOString().split('T')[0]
+                            ? getLocalDateString(new Date(new Date(checkInDate).getTime() + 86400000))
                             : checkInDate)
-                          : new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]}
+                          : getLocalDateString(new Date(Date.now() + 86400000))}
                         onChange={e => setCheckOutDate(e.target.value)}
                         className="w-full border border-[#e5d8d0] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
                       />

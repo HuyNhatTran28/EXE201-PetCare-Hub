@@ -3,6 +3,7 @@ import { MessageCircle, Send, Loader2, User, Wifi, WifiOff, Building } from 'luc
 import axiosInstance from '@/lib/axios'
 import { useChatSocket, type MessageResponse } from '@/hooks/useChatSocket'
 import { useAuthStore } from '@/store/authStore'
+import { useLocation } from 'react-router-dom'
 
 interface ConversationItem {
   id: string
@@ -38,6 +39,9 @@ const sortByRecent = (list: ConversationItem[]): ConversationItem[] =>
 export const StaffChatPage = () => {
   const { user } = useAuthStore()
   const isPartner = user?.role === 'PARTNER'
+  const location = useLocation()
+  const searchParams = new URLSearchParams(location.search)
+  const queryConvId = searchParams.get('convId')
 
   const [hotels, setHotels]               = useState<HotelOption[]>([])
   const [hotelsLoading, setHotelsLoading] = useState(false)
@@ -164,6 +168,16 @@ export const StaffChatPage = () => {
       setMsgLoading(false)
     }
   }, [])
+
+  // Auto-select conversation if queryConvId is present in URL parameters
+  useEffect(() => {
+    if (queryConvId && conversations.length > 0) {
+      const match = conversations.find(c => c.id === queryConvId)
+      if (match) {
+        selectConversation(match)
+      }
+    }
+  }, [queryConvId, conversations, selectConversation])
 
   // ── Send ──────────────────────────────────────────────────────────────────
   const handleSend = () => {

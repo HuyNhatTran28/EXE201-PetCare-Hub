@@ -7,9 +7,6 @@ import java.util.List;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import com.petcare_hub.enums.Eating;
-import com.petcare_hub.enums.Mood;
-import com.petcare_hub.enums.Activity;
 import com.petcare_hub.base.BaseEntity;
 
 @Entity
@@ -35,12 +32,9 @@ public class Diary extends BaseEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> attachedMediaUrls;
 
-    @Enumerated(EnumType.STRING)
-    private Eating eating;
+    private String eating;
 
-    @Enumerated(EnumType.STRING)
-    private Mood mood;
+    private String mood;
 
-    @Enumerated(EnumType.STRING)
-    private Activity activity;
+    private String activity;
 }

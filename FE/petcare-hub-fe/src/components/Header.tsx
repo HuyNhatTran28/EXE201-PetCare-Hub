@@ -1,13 +1,123 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { PawPrint, User, LogOut } from 'lucide-react'
+import { PawPrint, User, LogOut, Bell } from 'lucide-react'
+import { useChatSocket } from '@/hooks/useChatSocket'
+import axiosInstance from '@/lib/axios'
 
 export const Header = () => {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false)
+
+  const [conversations, setConversations] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<any[]>(() => {
+    const saved = localStorage.getItem('petcare_client_notifications')
+    return saved ? JSON.parse(saved) : []
+  })
+
+  // Sync client notifications to localStorage
+  useEffect(() => {
+    localStorage.setItem('petcare_client_notifications', JSON.stringify(notifications))
+  }, [notifications])
+
+  // Fetch initial conversations list for OWNER
+  useEffect(() => {
+    if (!user || user.role !== 'OWNER') return
+    axiosInstance.get('/api/conversations/me')
+      .then(res => setConversations(res.data.data ?? []))
+      .catch(console.error)
+  }, [user])
+
+  const { status, connect, subscribe, subscribeToDestination, disconnect } = useChatSocket()
+
+  // Connect WebSocket
+  useEffect(() => {
+    if (!user || user.role !== 'OWNER') return
+    connect()
+    return () => disconnect()
+  }, [connect, disconnect, user])
+
+  // Subscribe to each conversation for message count updates
+  const convIdsKey = conversations.map(c => c.id).join(',')
+  useEffect(() => {
+    if (status !== 'connected' || !convIdsKey) return
+    const ids = convIdsKey.split(',').filter(Boolean)
+    const unsubs = ids.map(id => subscribe(id, (msg: any) => {
+      if (msg.senderId !== user?.id) {
+        window.dispatchEvent(new CustomEvent('petcare-notification', {
+          detail: {
+            title: 'Tin nhắn mới từ Cửa hàng',
+            message: msg.content,
+            type: 'message',
+            bookingId: id
+          }
+        }))
+        setConversations(prev => prev.map(c => c.id === id ? { ...c, unreadCount: (c.unreadCount ?? 0) + 1 } : c))
+      }
+    }))
+    return () => unsubs.forEach(fn => fn())
+  }, [status, convIdsKey, subscribe, user])
+
+  // Subscribe to diaries real-time events (likes, comments, etc.)
+  useEffect(() => {
+    if (status !== 'connected' || !user || user.role !== 'OWNER') return
+
+    const unsub = subscribeToDestination('/topic/diaries', (wsMsg: any) => {
+      const belongsToMe = conversations.some(c => c.bookingId === wsMsg.bookingId)
+      const isNotMe = wsMsg.authorName !== user.fullName
+
+      if (belongsToMe && isNotMe) {
+        window.dispatchEvent(new CustomEvent('petcare-notification', {
+          detail: {
+            title: wsMsg.type === 'COMMENT' ? 'Phản hồi Nhật ký' : 'Nhật ký mới',
+            message: wsMsg.message,
+            type: wsMsg.type === 'COMMENT' ? 'comment' : 'like',
+            bookingId: wsMsg.bookingId
+          }
+        }))
+      }
+    })
+    return () => unsub()
+  }, [status, conversations, subscribeToDestination, user])
+
+  // Sound notification listener
+  useEffect(() => {
+    const handleNotification = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      const id = Math.random().toString(36).substring(2, 9)
+      const newNotif = {
+        id,
+        title: detail.title || 'Thông báo hệ thống',
+        message: detail.message || '',
+        type: detail.type || 'message',
+        bookingId: detail.bookingId
+      }
+      setNotifications(prev => [newNotif, ...prev])
+
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+        const osc = audioCtx.createOscillator()
+        const gain = audioCtx.createGain()
+        osc.connect(gain)
+        gain.connect(audioCtx.destination)
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime)
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3)
+        osc.start()
+        osc.stop(audioCtx.currentTime + 0.3)
+      } catch (err) {
+        console.warn('Audio play warning:', err)
+      }
+    }
+
+    window.addEventListener('petcare-notification', handleNotification)
+    return () => {
+      window.removeEventListener('petcare-notification', handleNotification)
+    }
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -67,6 +177,73 @@ export const Header = () => {
 
         {/* User Actions */}
         <div className="flex items-center gap-4 relative">
+          
+          {/* OWNER specific notifications icon */}
+          {user && user.role === 'OWNER' && (
+            <div className="flex items-center gap-3 mr-2">
+              {/* Notifications Dropdown (Bell Icon) */}
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+                  className="w-10 h-10 rounded-full bg-white border border-[#e5d8d0] flex items-center justify-center text-[#5a5550] hover:text-[#fa7150] hover:border-[#fa7150]/30 transition-all cursor-pointer relative"
+                >
+                  <Bell size={16} className={notifications.length > 0 ? 'animate-bounce' : ''} />
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-rose-500 text-white rounded-full flex items-center justify-center text-[9px] font-black border-2 border-white">
+                      {notifications.length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Dropdown Tray */}
+                {showNotifDropdown && (
+                  <div 
+                    className="absolute right-0 w-80 bg-white border border-[#e5d8d0] rounded-2xl shadow-xl z-50 overflow-hidden text-xs mt-2 text-left"
+                    style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}
+                  >
+                    <div className="px-4 py-3 border-b border-[#e5d8d0] flex justify-between items-center bg-[#faf9f6]">
+                      <span className="font-extrabold text-[#303330]">Thông báo của bạn ({notifications.length})</span>
+                      {notifications.length > 0 && (
+                        <button 
+                          onClick={() => setNotifications([])}
+                          className="text-[10px] text-[#fa7150] hover:underline font-extrabold cursor-pointer"
+                        >
+                          Xóa tất cả
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-72 overflow-y-auto divide-y divide-[#e5d8d0]/50">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-[#8a7e75] font-bold">
+                          <Bell size={24} className="mx-auto mb-2 text-[#e5d8d0]" />
+                          Không có thông báo mới
+                        </div>
+                      ) : (
+                        notifications.map(n => (
+                          <div 
+                            key={n.id} 
+                            onClick={() => {
+                              navigate('/pet-diaries')
+                              setNotifications(prev => prev.filter(x => x.id !== n.id))
+                              setShowNotifDropdown(false)
+                            }}
+                            className="p-3.5 hover:bg-[#faf9f6] transition-all flex flex-col cursor-pointer text-left border-l-2 border-transparent hover:border-l-[#fa7150] pl-4"
+                          >
+                            <span className="text-[9px] font-black text-[#fa7150] uppercase tracking-wider mb-0.5">
+                              {n.type === 'message' ? 'Tin nhắn' : 'Nhật ký chăm sóc'}
+                            </span>
+                            <p className="font-extrabold text-[#303330] text-xs">{n.title}</p>
+                            <p className="text-[10px] text-[#8a7e75] mt-0.5 leading-snug font-semibold">{n.message}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {user ? (
             <div className="relative">
               <div 

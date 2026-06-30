@@ -175,10 +175,11 @@ export const ChatWidget = () => {
       if (aiMessages[0].content !== expected) setAiMessages([{ role: 'model', content: expected }])
     }
   }, [user, aiMessages.length])
-
   // ── load conversations when chat tab opens ──
   useEffect(() => {
-    if (activeTab === 'chat' && user) loadConversations()
+    if (activeTab === 'chat' && user) {
+      loadConversations()
+    }
   }, [activeTab, user])
 
   // ── scroll chat to bottom ──
@@ -242,9 +243,26 @@ export const ChatWidget = () => {
   const loadConversations = async () => {
     setConvLoading(true)
     try {
-      const res = await axiosInstance.get<{ data: ConversationItem[] }>('/api/conversations/me')
-      setConversations(res.data.data ?? [])
-    } catch { /* ignore */ } finally {
+      if (user?.role === 'STAFF') {
+        const res = await axiosInstance.get<{ data: ConversationItem[] }>('/api/conversations/hotel')
+        setConversations(res.data.data ?? [])
+      } else if (user?.role === 'PARTNER') {
+        const hotelsRes = await axiosInstance.get('/api/hotels/my', { params: { page: 0, size: 20, sort: [] } })
+        const hotels = hotelsRes.data.content || []
+        if (hotels.length > 0) {
+          const firstHotelId = hotels[0].id
+          const res = await axiosInstance.get<{ data: ConversationItem[] }>(`/api/conversations/hotel?hotelId=${firstHotelId}`)
+          setConversations(res.data.data ?? [])
+        } else {
+          setConversations([])
+        }
+      } else {
+        const res = await axiosInstance.get<{ data: ConversationItem[] }>('/api/conversations/me')
+        setConversations(res.data.data ?? [])
+      }
+    } catch { 
+      setConversations([])
+    } finally {
       setConvLoading(false)
     }
   }
@@ -306,22 +324,22 @@ export const ChatWidget = () => {
       <button
         onClick={() => setOpen(o => !o)}
         aria-label={open ? 'Đóng chat' : 'Mở chat'}
-        className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full bg-[#a43e24] text-white
+        className="fixed bottom-6 right-6 z-[9999] w-12 h-12 rounded-full bg-[#a43e24] text-white
                    shadow-lg shadow-[#a43e24]/30 hover:scale-105 active:scale-95
                    transition-all duration-200 flex items-center justify-center"
       >
-        {open ? <X size={22} /> : <MessageCircle size={24} />}
+        {open ? <X size={20} /> : <MessageCircle size={22} />}
       </button>
 
       {/* ── Widget panel ── */}
       <div
-        className={`fixed bottom-24 right-6 z-[9998]
-                    w-[360px] max-w-[calc(100vw-2rem)]
+        className={`fixed bottom-20 right-6 z-[9998]
+                    w-[320px] max-w-[calc(100vw-2rem)]
                     bg-white rounded-3xl shadow-2xl border border-[#f0e4de]
                     flex flex-col overflow-hidden
                     transition-all duration-300 origin-bottom-right
                     ${open ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-90 pointer-events-none'}`}
-        style={{ height: 520 }}
+        style={{ height: 460 }}
       >
         {/* ── Header ── */}
         <div className="bg-[#a43e24] text-white shrink-0">
@@ -335,8 +353,10 @@ export const ChatWidget = () => {
                   aria-label="Quay lại">
                   <ChevronLeft size={18} />
                 </button>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-xs truncate leading-tight">{selectedConv.hotelName}</p>
+                <div className="flex-grow min-w-0">
+                  <p className="font-bold text-xs truncate leading-tight">
+                    {(user?.role === 'PARTNER' || user?.role === 'STAFF') ? `Đơn đặt #${selectedConv.bookingId.substring(0, 8).toUpperCase()}` : selectedConv.hotelName}
+                  </p>
                   {selectedConv.petNames && (
                     <p className="text-[9px] text-white/80 truncate leading-none mt-0.5">
                       Bé: {selectedConv.petNames} • {selectedConv.bookingType === 'DAYCARE' ? 'Gửi ngày' : 'Gửi qua đêm'}
@@ -371,12 +391,12 @@ export const ChatWidget = () => {
             </div>
           </div>
 
-          {/* Tab bar — ẩn khi đang trong cửa sổ chat cụ thể */}
-          {!inConvView && (
+          {/* Tab bar — ẩn khi đang trong cửa sổ chat cụ thể hoặc khi là Partner/Staff */}
+          {!inConvView && !(user?.role === 'PARTNER' || user?.role === 'STAFF') && (
             <div className="flex border-t border-white/20">
               {[
                 { id: 'ai' as Tab, icon: <Bot size={12}/>, label: 'Trợ lý AI', authOnly: false },
-                { id: 'chat' as Tab, icon: <MessageCircle size={12}/>, label: 'Nhắn khách sạn', authOnly: true },
+                { id: 'chat' as Tab, icon: <MessageCircle size={12}/>, label: (user?.role === 'PARTNER' || user?.role === 'STAFF') ? 'Nhắn khách hàng' : 'Nhắn khách sạn', authOnly: true },
               ].map(t => {
                 if (t.authOnly && !user) return null
                 return (
@@ -442,10 +462,16 @@ export const ChatWidget = () => {
                 <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
                   <MessageCircle size={36} className="text-[#e5d8d0]" />
                   <p className="text-sm font-bold text-[#8a7e75]">Chưa có cuộc trò chuyện nào</p>
-                  <p className="text-[11px] text-[#8a7e75] leading-relaxed">
-                    Đặt phòng và nhắn khách sạn qua trang{' '}
-                    <a href="/my-bookings" className="text-[#a43e24] font-bold underline">Lịch sử đặt phòng</a>.
-                  </p>
+                  {(user?.role === 'PARTNER' || user?.role === 'STAFF') ? (
+                    <p className="text-[11px] text-[#8a7e75] leading-relaxed">
+                      Khách hàng sẽ nhắn tin trao đổi trực tiếp với cơ sở khi họ tạo đơn đặt phòng.
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-[#8a7e75] leading-relaxed">
+                      Đặt phòng và nhắn khách sạn qua trang{' '}
+                      <a href="/my-bookings" className="text-[#a43e24] font-bold underline">Lịch sử đặt phòng</a>.
+                    </p>
+                  )}
                 </div>
               ) : (
                 conversations.map(conv => (
@@ -460,8 +486,10 @@ export const ChatWidget = () => {
                         <MessageCircle size={16} className="text-[#a43e24]" />
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-[#303330] truncate mb-0.5">{conv.hotelName}</p>
+                      <div className="flex-grow min-w-0">
+                        <p className="text-xs font-bold text-[#303330] truncate mb-0.5">
+                          {(user?.role === 'PARTNER' || user?.role === 'STAFF') ? `Đơn đặt #${conv.bookingId.substring(0, 8).toUpperCase()}` : conv.hotelName}
+                        </p>
                         
                         {/* Pet names and Stay dates */}
                         {(conv.petNames || conv.checkInDate) && (
@@ -529,12 +557,12 @@ export const ChatWidget = () => {
                 </div>
               ) : (
                 chatMessages.map(msg => {
-                  const mine = msg.senderRole === 'OWNER'
+                  const mine = user?.role === 'OWNER' ? msg.senderRole === 'OWNER' : msg.senderRole === 'STAFF'
                   return (
                     <div key={msg.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[75%] flex flex-col gap-1 ${mine ? 'items-end' : 'items-start'}`}>
                         <span className={`text-[9px] font-black uppercase tracking-wide ${mine ? 'text-[#a43e24]' : 'text-[#44683b]'}`}>
-                          {mine ? 'Bạn' : 'Nhân viên khách sạn'}
+                          {mine ? 'Bạn' : (user?.role === 'OWNER' ? 'Nhân viên khách sạn' : 'Chủ nuôi')}
                         </span>
                         <div className={`px-3.5 py-2.5 text-xs leading-relaxed ${
                           mine

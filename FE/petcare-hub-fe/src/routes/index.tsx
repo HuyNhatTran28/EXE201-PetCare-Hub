@@ -29,6 +29,7 @@ import { BookingManagePage } from '@/pages/partner/BookingManagePage'
 import { HotelCreatePage } from '@/pages/partner/HotelCreatePage'
 import { StaffManagePage } from '@/pages/partner/StaffManagePage'
 import { StaffChatPage } from '@/pages/partner/StaffChatPage'
+import { StaffDiaryPage } from '@/pages/partner/StaffDiaryPage'
 
 // Admin Pages
 import { AdminLayout } from '@/pages/admin/AdminLayout'
@@ -103,6 +104,7 @@ export const router = createBrowserRouter([
         element: <PartnerLayout />,
         children: [
           { path: '/partner/messages', element: <StaffChatPage /> },
+          { path: '/partner/diaries', element: <StaffDiaryPage /> },
         ]
       }
     ],

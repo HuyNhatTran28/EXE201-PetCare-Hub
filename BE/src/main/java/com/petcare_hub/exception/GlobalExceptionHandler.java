@@ -110,11 +110,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         log.error("Unhandled exception: ", ex);
+        String detailedMessage = "Lỗi hệ thống: [" + ex.getClass().getSimpleName() + "] " + ex.getMessage();
+        if (ex.getCause() != null) {
+            detailedMessage += " | Nguyên nhân: " + ex.getCause().getMessage();
+        }
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.builder()
                         .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                        .message("Lỗi hệ thống. Vui lòng thử lại sau.")
+                        .message(detailedMessage)
                         .timestamp(LocalDateTime.now())
                         .build());
     }

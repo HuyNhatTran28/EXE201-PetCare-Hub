@@ -36,7 +36,7 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, UUID> {
                    "     OR r.allowed_pet_types @> CAST('[\"dog_small\"]' AS jsonb) " +
                    "     OR r.allowed_pet_types @> CAST('[\"DOG_LARGE\"]' AS jsonb) " +
                    "     OR r.allowed_pet_types @> CAST('[\"dog_large\"]' AS jsonb)) " +
-                   "ORDER BY r.price_per_night DESC",
+                   "ORDER BY r.price_per_night DESC, COALESCE(jsonb_array_length(h.amenities), 0) DESC",
            nativeQuery = true)
     List<RoomType> findActiveDogAndCatRoomTypes();
 
