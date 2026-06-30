@@ -245,8 +245,8 @@ public class DataSeeder implements CommandLineRunner {
         b1 = bookingRepository.save(b1);
 
         // Seed diaries for b1 (Bơ)
-        createDiary(b1, staff1, LocalDateTime.now().minusHours(4), "Bữa sáng vui vẻ của Bơ", "Bé Bơ đã ăn hết phần ăn sáng ngon lành (Hạt Royal Canin). Bé rất vui vẻ và chạy nhảy thân thiện với các bảo mẫu xung quanh.", List.of("https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=300"), Eating.EXCELLENT, Mood.PLAYFUL, Activity.NORMAL);
-        createDiary(b1, staff1, LocalDateTime.now().minusHours(1), "Vui chơi ngoài trời", "Bé Bơ đã chơi đuổi bắt bóng cùng các bạn cún khác ở bãi cỏ nhân tạo. Bé cực kỳ năng động và không hề có dấu hiệu nhút nhát.", List.of("https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=300"), Eating.EXCELLENT, Mood.PLAYFUL, Activity.ACTIVE);
+        createDiary(b1, staff1, LocalDateTime.now().minusHours(4), "Bữa sáng vui vẻ của Bơ", "Bé Bơ đã ăn hết phần ăn sáng ngon lành (Hạt Royal Canin). Bé rất vui vẻ và chạy nhảy thân thiện với các bảo mẫu xung quanh.", List.of("https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=300"), "Ngon miệng", "Vui vẻ tinh nghịch", "Bình thường");
+        createDiary(b1, staff1, LocalDateTime.now().minusHours(1), "Vui chơi ngoài trời", "Bé Bơ đã chơi đuổi bắt bóng cùng các bạn cún khác ở bãi cỏ nhân tạo. Bé cực kỳ năng động và không hề có dấu hiệu nhút nhát.", List.of("https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=300"), "Ngon miệng", "Thân thiện", "Chạy nhảy năng nổ");
 
         // Booking 2: Confirmed booking checking in today/tomorrow (Today -> 3 days later)
         createBooking(client2, hotel1, rt1Standard, miumiu, today, today.plusDays(3), 450000, BookingStatus.CONFIRMED, PaymentMethod.CASH, "INV-2026-0002");
@@ -277,7 +277,7 @@ public class DataSeeder implements CommandLineRunner {
         
         Booking b11 = createBooking(clientDemo, hotel1, rt1Standard, dau, today, today.plusDays(2), 300000, BookingStatus.CHECKED_IN, PaymentMethod.VNPAY, "INV-2026-0011");
         // Seed diaries for b11 (Đậu)
-        createDiary(b11, staff1, LocalDateTime.now().minusHours(2), "Giờ ăn trưa của Đậu", "Bé Đậu ăn pate Whiskas rất ngon lành. Sau khi ăn xong bé nằm cuộn tròn ngủ một giấc ngắn rất ngoan.", List.of("https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=300"), Eating.EXCELLENT, Mood.PLAYFUL, Activity.LOW);
+        createDiary(b11, staff1, LocalDateTime.now().minusHours(2), "Giờ ăn trưa của Đậu", "Bé Đậu ăn pate Whiskas rất ngon lành. Sau khi ăn xong bé nằm cuộn tròn ngủ một giấc ngắn rất ngoan.", List.of("https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=300"), "Ngon miệng", "Ngoan ngoãn", "Nằm ngủ yên tĩnh");
 
         createBooking(clientDemo, hotel2, rt2Standard, botbot, today.plusDays(3), today.plusDays(6), 450000, BookingStatus.CONFIRMED, PaymentMethod.CASH, "INV-2026-0012");
 
@@ -414,7 +414,7 @@ public class DataSeeder implements CommandLineRunner {
         }
     }
 
-    private Diary createDiary(Booking booking, Staff staff, LocalDateTime time, String title, String content, List<String> media, Eating eating, Mood mood, Activity activity) {
+    private Diary createDiary(Booking booking, Staff staff, LocalDateTime time, String title, String content, List<String> media, String eating, String mood, String activity) {
         Diary d = new Diary();
         d.setBooking(booking);
         d.setWrittenByStaff(staff);

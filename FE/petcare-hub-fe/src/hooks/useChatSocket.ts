@@ -63,6 +63,26 @@ export function useChatSocket() {
     []
   )
 
+  const subscribeToDestination = useCallback(
+    (destination: string, callback: (body: any) => void): (() => void) => {
+      const client = clientRef.current
+      if (!client?.connected) return () => {}
+
+      const sub: StompSubscription = client.subscribe(
+        destination,
+        (frame: IMessage) => {
+          try {
+            callback(JSON.parse(frame.body))
+          } catch (e) {
+            console.error('Failed to parse STOMP message:', e)
+          }
+        }
+      )
+      return () => sub.unsubscribe()
+    },
+    []
+  )
+
   const sendMessage = useCallback((conversationId: string, content: string): boolean => {
     const client = clientRef.current
     if (!client?.connected) return false
@@ -79,5 +99,5 @@ export function useChatSocket() {
     setStatus('disconnected')
   }, [])
 
-  return { status, connect, subscribe, sendMessage, disconnect }
+  return { status, connect, subscribe, subscribeToDestination, sendMessage, disconnect }
 }

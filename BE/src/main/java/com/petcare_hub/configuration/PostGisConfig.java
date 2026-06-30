@@ -25,6 +25,13 @@ public class PostGisConfig {
             // log.info("Spatial index on hotels checked/created successfully.");
 
             log.warn("Đã tạm thời bỏ qua kích hoạt PostGIS tự động để chạy thử nghiệm các tính năng khác.");
+            
+            // Drop check constraints from diaries table to allow free text for eating, mood and activity
+            log.info("Dropping diaries check constraints...");
+            jdbcTemplate.execute("ALTER TABLE diaries DROP CONSTRAINT IF EXISTS diaries_mood_check");
+            jdbcTemplate.execute("ALTER TABLE diaries DROP CONSTRAINT IF EXISTS diaries_eating_check");
+            jdbcTemplate.execute("ALTER TABLE diaries DROP CONSTRAINT IF EXISTS diaries_activity_check");
+            log.info("Diaries check constraints dropped successfully.");
         } catch (Exception e) {
             log.error("Error initializing PostGIS: " + e.getMessage(), e);
         }

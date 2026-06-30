@@ -360,12 +360,21 @@ public class BookingServiceImpl implements BookingService {
                         return partnerWalletRepository.save(newWallet);
                     });
 
-            BigDecimal pendingToDeduct = wallet.getPendingBalance().min(partnerShare);
-            wallet.setPendingBalance(wallet.getPendingBalance().subtract(pendingToDeduct));
-            wallet.setBalance(wallet.getBalance().add(partnerShare));
-            partnerWalletRepository.save(wallet);
-            log.info("Check-out booking {}: Chuyển {} VNĐ từ pendingBalance sang balance khả dụng cho đối tác {}", 
-                    bookingId, partnerShare, partner.getEmail());
+            if (booking.getPaymentMethod() == com.petcare_hub.enums.PaymentMethod.CASH) {
+                // Tiền mặt: Đối tác tự thu 100% tại quầy, nền tảng trừ 8% phí hoa hồng vào ví đối tác
+                wallet.setBalance(wallet.getBalance().subtract(commissionFee));
+                partnerWalletRepository.save(wallet);
+                log.info("Check-out booking CASH {}: Khấu trừ {} VNĐ hoa hồng (8%) từ ví của đối tác {}", 
+                        bookingId, commissionFee, partner.getEmail());
+            } else {
+                // Online: Nền tảng giữ tiền qua cổng, chuyển 92% về ví đối tác (và giải phóng từ pendingBalance)
+                BigDecimal pendingToDeduct = wallet.getPendingBalance().min(partnerShare);
+                wallet.setPendingBalance(wallet.getPendingBalance().subtract(pendingToDeduct));
+                wallet.setBalance(wallet.getBalance().add(partnerShare));
+                partnerWalletRepository.save(wallet);
+                log.info("Check-out booking {}: Chuyển {} VNĐ từ pendingBalance sang balance khả dụng cho đối tác {}", 
+                        bookingId, partnerShare, partner.getEmail());
+            }
         }
 
         return toResponse(bookingRepository.save(booking));

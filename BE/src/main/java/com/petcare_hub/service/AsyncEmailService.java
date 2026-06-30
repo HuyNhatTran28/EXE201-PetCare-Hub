@@ -189,4 +189,58 @@ public class AsyncEmailService {
             log.error("Không thể gửi email chào mừng nhân viên {}: {}", staffEmail, e.getMessage());
         }
     }
+
+    @Async
+    public void sendPaymentReminderEmailAsync(
+            String invoiceNumber, String ownerEmail, String ownerName,
+            String hotelName, String roomName,
+            LocalDate checkInDate, LocalDate checkOutDate,
+            BigDecimal totalAmount) {
+        try {
+            String htmlContent = String.format(
+                "<div style=\"background-color: #f8f9fa; padding: 30px 10px; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100%%;\">" +
+                "    <div style=\"max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 35px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);\">" +
+                "        <div style=\"text-align: center; margin-bottom: 25px;\">" +
+                "            <h2 style=\"color: #e65100; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;\">PetCare Hub ⏰</h2>" +
+                "            <p style=\"color: #e65100; margin: 5px 0 0 0; font-size: 14px; font-weight: bold;\">Nhắc nhở: Sắp hết thời gian giữ phòng</p>" +
+                "        </div>" +
+                "        <div style=\"color: #333333; font-size: 15px; line-height: 1.6;\">" +
+                "            <p style=\"margin-top: 0;\">Xin chào <strong style=\"color: #a43e24;\">%s</strong>,</p>" +
+                "            <p style=\"color: #555555;\">Bạn đang có một yêu cầu đặt phòng chưa hoàn tất thanh toán. Vui lòng thanh toán trong vòng <strong>7 phút tới</strong> để giữ phòng cho bé cưng của bạn. Sau thời gian này, phòng sẽ tự động được giải phóng cho khách hàng khác.</p>" +
+                "            <div style=\"background: #fff8f6; border-radius: 12px; padding: 20px; margin: 25px 0; border: 1px solid #ffccbc;\">" +
+                "                <table style=\"width: 100%%; font-size: 14px; border-collapse: collapse;\">" +
+                "                    <tr><td style=\"padding: 6px 0; color: #8a7e75; font-weight: bold;\">Mã hóa đơn:</td><td style=\"padding: 6px 0; font-weight: bold; text-align: right; color: #303330;\">#%s</td></tr>" +
+                "                    <tr><td style=\"padding: 6px 0; color: #8a7e75; font-weight: bold;\">Khách sạn:</td><td style=\"padding: 6px 0; font-weight: bold; text-align: right; color: #303330;\">%s</td></tr>" +
+                "                    <tr><td style=\"padding: 6px 0; color: #8a7e75; font-weight: bold;\">Loại phòng:</td><td style=\"padding: 6px 0; font-weight: bold; text-align: right; color: #303330;\">%s</td></tr>" +
+                "                    <tr><td style=\"padding: 6px 0; color: #8a7e75; font-weight: bold;\">Check-in:</td><td style=\"padding: 6px 0; font-weight: bold; text-align: right; color: #303330;\">%s</td></tr>" +
+                "                    <tr><td style=\"padding: 6px 0; color: #8a7e75; font-weight: bold;\">Check-out:</td><td style=\"padding: 6px 0; font-weight: bold; text-align: right; color: #303330;\">%s</td></tr>" +
+                "                    <tr><td style=\"padding: 12px 0 0 0; color: #a43e24; font-weight: 800; font-size: 16px; border-top: 1px dashed #ffccbc;\">Tổng số tiền:</td><td style=\"padding: 12px 0 0 0; font-weight: 800; font-size: 16px; text-align: right; color: #a43e24; border-top: 1px dashed #ffccbc;\">%s VND</td></tr>" +
+                "                </table>" +
+                "            </div>" +
+                "            <p style=\"color: #666666; font-size: 14px;\">Nếu bạn đã thực hiện thanh toán, vui lòng bỏ qua email này.</p>" +
+                "        </div>" +
+                "        <hr style=\"border: 0; border-top: 1px solid #eeeeee; margin: 30px 0 20px 0;\">" +
+                "        <div style=\"text-align: center; font-size: 12px; color: #aaaaaa;\">" +
+                "            <p style=\"margin: 0 0 5px 0;\">Email này được gửi tự động từ hệ thống PetCare Hub.</p>" +
+                "            <p style=\"margin: 0; font-weight: 600;\">© 2026 PetCare Hub. Bảo lưu mọi quyền.</p>" +
+                "        </div>" +
+                "    </div>" +
+                "</div>",
+                ownerName, invoiceNumber, hotelName, roomName,
+                checkInDate.toString(), checkOutDate.toString(),
+                String.format("%,.0f", totalAmount)
+            );
+
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setFrom(FROM);
+            helper.setTo(ownerEmail);
+            helper.setSubject("⏳ [Nhắc nhở] Hoàn tất đặt phòng #" + invoiceNumber + " của bạn");
+            helper.setText(htmlContent, true);
+            mailSender.send(mimeMessage);
+            log.info("Đã gửi email nhắc nhở thanh toán tới: {}", ownerEmail);
+        } catch (Exception e) {
+            log.error("Không thể gửi email nhắc nhở thanh toán: {}", e.getMessage());
+        }
+    }
 }

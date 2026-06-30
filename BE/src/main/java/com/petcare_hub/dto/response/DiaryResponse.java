@@ -1,8 +1,5 @@
 package com.petcare_hub.dto.response;
 
-import com.petcare_hub.enums.Activity;
-import com.petcare_hub.enums.Eating;
-import com.petcare_hub.enums.Mood;
 import lombok.Builder;
 import lombok.Data;
 
@@ -21,8 +18,22 @@ public class DiaryResponse {
     private String entryTitle;
     private String entryContent;
     private List<String> attachedMediaUrls;
-    private Eating eating;
-    private Mood mood;
-    private Activity activity;
+    private String eating;
+    private String mood;
+    private String activity;
     private List<String> petNames;
+    
+    // Social interactions
+    private Integer likesCount;
+    private Boolean isLikedByMe;
+    private List<CommentResponse> comments;
+
+    @Data
+    @Builder
+    public static class CommentResponse {
+        private UUID id;
+        private String authorName;
+        private String content;
+        private LocalDateTime createdAt;
+    }
 }

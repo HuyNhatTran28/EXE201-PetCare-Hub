@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Header } from '@/components/Header'
+import { useChatSocket } from '@/hooks/useChatSocket'
 import {
   PawPrint,
-  Calendar,
-  Utensils,
-  Smile,
-  Zap,
   Clock,
   Building,
   User,
@@ -13,7 +10,9 @@ import {
   Heart,
   ChevronRight,
   BookOpen,
-  Camera
+  Camera,
+  MessageSquare,
+  Send
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 
@@ -27,6 +26,13 @@ interface PetType {
   species?: string
 }
 
+interface CommentType {
+  id: string
+  authorName: string
+  content: string
+  createdAt: string
+}
+
 interface DiaryEntry {
   id: string
   bookingId: string | null
@@ -36,10 +42,13 @@ interface DiaryEntry {
   entryTitle: string
   entryContent: string
   attachedMediaUrls: string[]
-  eating: 'GOOD' | 'POOR' | 'NO_EAT' | null
-  mood: 'HAPPY' | 'ANXIOUS' | 'TIRED' | null
-  activity: 'HIGH' | 'NORMAL' | 'LOW' | null
+  eating: string | null
+  mood: string | null
+  activity: string | null
   petNames: string[]
+  likesCount: number
+  isLikedByMe: boolean
+  comments: CommentType[]
 }
 
 const sunlightShadow = {
@@ -53,6 +62,58 @@ export const PetDiaryPage = () => {
   const [loadingPets, setLoadingPets] = useState(true)
   const [loadingDiaries, setLoadingDiaries] = useState(false)
   const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null) // Lightbox
+  
+  // Comment inputs mapped by diaryId
+  const [commentInputs, setCommentInputs] = useState<{[diaryId: string]: string}>({})
+
+  const { status, connect, subscribeToDestination, disconnect } = useChatSocket()
+
+  // Connect WebSocket
+  useEffect(() => {
+    connect()
+    return () => disconnect()
+  }, [connect, disconnect])
+
+  // Subscribe to diaries real-time events
+  useEffect(() => {
+    if (status !== 'connected') return
+
+    const unsub = subscribeToDestination('/topic/diaries', (wsMsg: any) => {
+      const { type, diaryId, likesCount, comment } = wsMsg
+
+      if (type === 'LIKE') {
+        setDiaries(prev => prev.map(d => {
+          if (d.id === diaryId) {
+            return {
+              ...d,
+              likesCount: likesCount
+            }
+          }
+          return d
+        }))
+      } else if (type === 'COMMENT') {
+        setDiaries(prev => prev.map(d => {
+          if (d.id === diaryId) {
+            const exists = d.comments?.some((c: any) => c.id === comment.id)
+            if (exists) return d
+            return {
+              ...d,
+              comments: [...(d.comments || []), comment]
+            }
+          }
+          return d
+        }))
+      } else if (type === 'DIARY_CREATE' || type === 'DIARY_UPDATE') {
+        if (selectedPetId) {
+          axiosInstance.get(`/api/diaries/pet/${selectedPetId}`)
+            .then(res => setDiaries(res.data))
+            .catch(console.error)
+        }
+      }
+    })
+
+    return () => unsub()
+  }, [status, selectedPetId, subscribeToDestination])
 
   useEffect(() => {
     if (activeMediaUrl) {
@@ -102,43 +163,45 @@ export const PetDiaryPage = () => {
 
   const selectedPet = pets.find(p => p.id === selectedPetId)
 
-  // Status Translators & Styles
-  const getEatingStyle = (eating: string | null) => {
-    switch (eating) {
-      case 'GOOD':
-        return { label: 'Ăn ngoan miệng', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' }
-      case 'POOR':
-        return { label: 'Ăn ít', color: 'bg-amber-50 text-amber-700 border-amber-100' }
-      case 'NO_EAT':
-        return { label: 'Bỏ bữa', color: 'bg-rose-50 text-rose-700 border-rose-100' }
-      default:
-        return { label: 'Chưa cập nhật', color: 'bg-stone-50 text-stone-500 border-stone-100' }
+  // Toggle Like API handler
+  const handleToggleLike = async (diaryId: string) => {
+    try {
+      const res = await axiosInstance.post(`/api/diaries/${diaryId}/like`)
+      const { likesCount, isLikedByMe } = res.data
+      setDiaries(prev => prev.map(d => {
+        if (d.id === diaryId) {
+          return { ...d, likesCount, isLikedByMe }
+        }
+        return d
+      }))
+    } catch (err) {
+      console.error('Failed to toggle like:', err)
     }
   }
 
-  const getMoodStyle = (mood: string | null) => {
-    switch (mood) {
-      case 'HAPPY':
-        return { label: 'Vui vẻ, quấn quýt', color: 'bg-pink-50 text-pink-700 border-pink-100' }
-      case 'ANXIOUS':
-        return { label: 'Hơi lo lắng', color: 'bg-indigo-50 text-indigo-700 border-indigo-100' }
-      case 'TIRED':
-        return { label: 'Mệt mỏi', color: 'bg-amber-50 text-amber-700 border-amber-100' }
-      default:
-        return { label: 'Chưa cập nhật', color: 'bg-stone-50 text-stone-500 border-stone-100' }
-    }
-  }
+  // Add Comment API handler
+  const handleAddComment = async (diaryId: string, e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const content = commentInputs[diaryId]?.trim()
+    if (!content) return
 
-  const getActivityStyle = (activity: string | null) => {
-    switch (activity) {
-      case 'HIGH':
-        return { label: 'Năng động, chơi khỏe', color: 'bg-sky-50 text-sky-700 border-sky-100' }
-      case 'NORMAL':
-        return { label: 'Bình thường', color: 'bg-stone-50 text-stone-700 border-stone-200' }
-      case 'LOW':
-        return { label: 'Ít vận động', color: 'bg-orange-50 text-orange-700 border-orange-100' }
-      default:
-        return { label: 'Chưa cập nhật', color: 'bg-stone-50 text-stone-500 border-stone-100' }
+    try {
+      const res = await axiosInstance.post(`/api/diaries/${diaryId}/comment`, { content })
+      const newComment = res.data
+      setDiaries(prev => prev.map(d => {
+        if (d.id === diaryId) {
+          const exists = d.comments?.some((c: any) => c.id === newComment.id)
+          if (exists) return d
+          return {
+            ...d,
+            comments: [...(d.comments || []), newComment]
+          }
+        }
+        return d
+      }))
+      setCommentInputs(prev => ({ ...prev, [diaryId]: '' }))
+    } catch (err) {
+      console.error('Failed to post comment:', err)
     }
   }
 
@@ -268,10 +331,6 @@ export const PetDiaryPage = () => {
                 /* Diary Timeline List */
                 <div className="relative border-l-2 border-[#f0e4de] ml-6 pl-8 space-y-10">
                   {diaries.map((entry) => {
-                    const eatingStyle = getEatingStyle(entry.eating)
-                    const moodStyle = getMoodStyle(entry.mood)
-                    const activityStyle = getActivityStyle(entry.activity)
-
                     return (
                       <div key={entry.id} className="relative">
                         {/* Timeline Icon / Dot */}
@@ -309,31 +368,30 @@ export const PetDiaryPage = () => {
                             {entry.entryContent}
                           </p>
 
-                          {/* Health & Habits Badges */}
-                          <div className="flex flex-wrap gap-2.5 mb-6">
-                            {entry.eating && (
-                              <span className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-colors ${eatingStyle.color}`}>
-                                <Utensils size={12} />
-                                {eatingStyle.label}
-                              </span>
-                            )}
-                            {entry.mood && (
-                              <span className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-colors ${moodStyle.color}`}>
-                                <Smile size={12} />
-                                {moodStyle.label}
-                              </span>
-                            )}
-                            {entry.activity && (
-                              <span className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-colors ${activityStyle.color}`}>
-                                <Zap size={12} />
-                                {activityStyle.label}
-                              </span>
-                            )}
-                          </div>
+                          {/* Custom typed Status Notes (Free-text notes) */}
+                          {(entry.eating || entry.mood || entry.activity) && (
+                            <div className="flex flex-wrap gap-2.5 mb-6 text-xs text-[#5a5550]">
+                              {entry.eating && (
+                                <span className="inline-flex items-center px-3.5 py-1.5 rounded-full border border-[#e5d8d0] bg-[#faf9f6] font-bold">
+                                  🥣 Ăn uống: {entry.eating}
+                                </span>
+                              )}
+                              {entry.mood && (
+                                <span className="inline-flex items-center px-3.5 py-1.5 rounded-full border border-[#e5d8d0] bg-[#faf9f6] font-bold">
+                                  🎭 Tâm trạng: {entry.mood}
+                                </span>
+                              )}
+                              {entry.activity && (
+                                <span className="inline-flex items-center px-3.5 py-1.5 rounded-full border border-[#e5d8d0] bg-[#faf9f6] font-bold">
+                                  🏃‍♂️ Hoạt động: {entry.activity}
+                                </span>
+                              )}
+                            </div>
+                          )}
 
                           {/* Attached Media Grid */}
                           {entry.attachedMediaUrls && entry.attachedMediaUrls.length > 0 && (
-                            <div>
+                            <div className="mb-6">
                               <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#8a7e75] mb-3 flex items-center gap-1.5">
                                 <ImageIcon size={12} />
                                 Khoảnh khắc ghi lại ({entry.attachedMediaUrls.length})
@@ -355,6 +413,70 @@ export const PetDiaryPage = () => {
                               </div>
                             </div>
                           )}
+
+                          {/* ── SOCIAL ACTIONS BAR (Like & Comment Toggles) ── */}
+                          <div className="flex items-center gap-6 pt-4 border-t border-stone-100 text-xs font-bold text-[#5d605c]">
+                            {/* Like Button */}
+                            <button
+                              onClick={() => handleToggleLike(entry.id)}
+                              className={`flex items-center gap-1.5 transition-all hover:scale-[1.05] cursor-pointer ${
+                                entry.isLikedByMe ? 'text-rose-500' : 'hover:text-rose-500'
+                              }`}
+                            >
+                              <Heart size={16} className={entry.isLikedByMe ? 'fill-rose-500 text-rose-500' : ''} />
+                              <span>{entry.likesCount || 0} yêu thích</span>
+                            </button>
+
+                            {/* Comment Count / Icon */}
+                            <div className="flex items-center gap-1.5">
+                              <MessageSquare size={16} className="text-[#8a7e75]" />
+                              <span>{entry.comments?.length || 0} bình luận</span>
+                            </div>
+                          </div>
+
+                          {/* ── COMMENTS SECTION (Facebook style) ── */}
+                          <div className="mt-5 pt-4 border-t border-stone-50 bg-[#faf9f6]/50 rounded-2xl p-4">
+                            {/* Comments List */}
+                            {entry.comments && entry.comments.length > 0 ? (
+                              <div className="space-y-3.5 mb-4 max-h-60 overflow-y-auto pr-1">
+                                {entry.comments.map((comment) => (
+                                  <div key={comment.id} className="flex gap-2.5 items-start text-xs text-left">
+                                    <div className="w-7 h-7 rounded-full bg-[#fa7150]/15 border border-[#fa7150]/20 flex items-center justify-center font-bold text-[10px] text-[#fa7150] shrink-0">
+                                      {comment.authorName.charAt(0)}
+                                    </div>
+                                    <div className="bg-[#faf9f6] border border-[#e5d8d0]/60 p-2.5 rounded-2xl flex-grow max-w-[85%]">
+                                      <div className="flex justify-between items-center mb-1">
+                                        <span className="font-extrabold text-[#303330]">{comment.authorName}</span>
+                                      </div>
+                                      <p className="text-stone-600 font-normal leading-relaxed text-xs">{comment.content}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-[#8a7e75] italic mb-3">Chưa có bình luận nào. Hãy gửi lời hỏi thăm đến bé cưng!</p>
+                            )}
+
+                            {/* Comment Composer */}
+                            <form 
+                              onSubmit={(e) => handleAddComment(entry.id, e)}
+                              className="flex gap-2 items-center"
+                            >
+                              <input
+                                type="text"
+                                value={commentInputs[entry.id] || ''}
+                                onChange={(e) => setCommentInputs(prev => ({ ...prev, [entry.id]: e.target.value }))}
+                                placeholder="Viết bình luận của bạn..."
+                                className="flex-grow bg-white border border-[#e5d8d0] rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#fa7150] transition-colors"
+                              />
+                              <button
+                                type="submit"
+                                className="w-8 h-8 rounded-xl bg-[#fa7150] text-white flex items-center justify-center hover:bg-[#fa7150]/90 transition-colors shadow-md shadow-[#fa7150]/10 cursor-pointer"
+                              >
+                                <Send size={12} />
+                              </button>
+                            </form>
+                          </div>
 
                         </div>
                       </div>

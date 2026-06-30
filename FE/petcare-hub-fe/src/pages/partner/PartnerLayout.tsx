@@ -1,8 +1,14 @@
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom'
 import {
-  PawPrint, Building, Calendar, Sparkles, BarChart2, Settings, LogOut, ChevronRight, DollarSign, Users, MessageCircle
+  PawPrint, Building, Calendar, Sparkles, BarChart2, Settings, LogOut, ChevronRight, DollarSign, Users, MessageCircle, Bell
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { MessengerPanel } from '@/components/MessengerPanel'
+import { ChatBoxWindow } from '@/components/ChatBoxWindow'
+import { useHotelStore } from '@/store/hotelStore'
+import { useChatSocket, type MessageResponse } from '@/hooks/useChatSocket'
+import axiosInstance from '@/lib/axios'
 
 interface NavItem {
   icon: React.ReactNode
@@ -19,26 +25,234 @@ const PARTNER_NAV_ITEMS: NavItem[] = [
   { icon: <BarChart2 size={18} />, label: 'Phân Tích & CRM', path: '/partner/dashboard?tab=analytics', matchTab: 'analytics' },
   { icon: <DollarSign size={18} />, label: 'Quản Lý Tài Chính', path: '/partner/dashboard?tab=finance', matchTab: 'finance' },
   { icon: <Users size={18} />, label: 'Quản Lý Nhân Viên', path: '/partner/staff', matchPath: '/partner/staff' },
-  { icon: <MessageCircle size={18} />, label: 'Tin Nhắn', path: '/partner/messages', matchPath: '/partner/messages' },
+  { icon: <PawPrint size={18} />, label: 'Nhật ký chăm sóc', path: '/partner/diaries', matchPath: '/partner/diaries' },
+  { icon: <MessageCircle size={18} />, label: 'Tin nhắn khách hàng', path: '/partner/messages', matchPath: '/partner/messages' },
   { icon: <Settings size={18} />, label: 'Cài Đặt Hệ Thống', path: '/partner/dashboard?tab=settings', matchTab: 'settings' },
   { icon: <Calendar size={18} />, label: 'Danh sách Bookings', path: '/partner/bookings' },
 ]
 
 const STAFF_NAV_ITEMS: NavItem[] = [
-  { icon: <MessageCircle size={18} />, label: 'Tin Nhắn', path: '/partner/messages', matchPath: '/partner/messages' },
+  { icon: <PawPrint size={18} />, label: 'Nhật ký chăm sóc', path: '/partner/diaries', matchPath: '/partner/diaries' },
+  { icon: <MessageCircle size={18} />, label: 'Tin nhắn khách hàng', path: '/partner/messages', matchPath: '/partner/messages' },
 ]
 
 export const PartnerLayout = () => {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
+  const { openChatWindows, closeChatWindow, selectedHotelId, setSelectedHotelId } = useHotelStore()
   const searchParams = new URLSearchParams(location.search)
   const currentTab = searchParams.get('tab') || 'hotels'
 
   const isStaff = user?.role === 'STAFF'
+  const isPartner = user?.role === 'PARTNER'
   const NAV_ITEMS = isStaff ? STAFF_NAV_ITEMS : PARTNER_NAV_ITEMS
 
   const orangeGradient = { background: 'linear-gradient(135deg, #fa7150 0%, #a43e24 100%)' }
+
+  // ── Global System Notification Dropdown States ──
+  interface ToastNotification {
+    id: string
+    title: string
+    message: string
+    type: 'message' | 'like' | 'comment' | 'booking'
+    bookingId?: string
+    hotelId?: string
+  }
+  const [notifications, setNotifications] = useState<ToastNotification[]>(() => {
+    const saved = localStorage.getItem('petcare_notifications')
+    if (saved) return JSON.parse(saved)
+    return [
+      {
+        id: 'seed-b1',
+        title: 'Đơn đặt phòng mới #BK-938',
+        message: 'Khách hàng Trí Dương vừa đặt phòng Luxury Suite cho bé MiLu.',
+        type: 'booking',
+        bookingId: 'bk-mock-123'
+      },
+      {
+        id: 'seed-l1',
+        title: 'Lượt yêu thích mới',
+        message: 'Chủ nuôi Trí Dương đã thích nhật ký của bé MiLu.',
+        type: 'like',
+        bookingId: 'bk-mock-123'
+      }
+    ]
+  })
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false)
+  const [totalUnread, setTotalUnread]             = useState(0)
+
+  // Sync notifications to localStorage
+  useEffect(() => {
+    localStorage.setItem('petcare_notifications', JSON.stringify(notifications))
+  }, [notifications])
+
+  // ── WebSocket setup for global real-time notifications ───────────────────
+  const { status, connect, subscribe, subscribeToDestination, disconnect } = useChatSocket()
+
+  // Synthesize soft premium bell/chime ring
+  const playNotificationSound = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const now = ctx.currentTime;
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, now); // D5
+      osc1.frequency.exponentialRampToValueAtTime(880.00, now + 0.1); // A5
+
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(880.00, now); // A5
+      osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.15); // D6
+
+      gainNode.gain.setValueAtTime(0.08, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.35);
+      osc2.stop(now + 0.35);
+    } catch (e) {
+      console.warn('Audio playback failed:', e);
+    }
+  };
+
+  // Load hotels list to initialize selectedHotelId if not already set (PARTNER only)
+  useEffect(() => {
+    if (!isPartner || selectedHotelId) return
+    axiosInstance
+      .get('/api/hotels/my', { params: { page: 0, size: 20, sort: [] } })
+      .then(res => {
+        const list = res.data.content ?? []
+        if (list.length > 0) {
+          setSelectedHotelId(list[0].id)
+        }
+      })
+      .catch(console.error)
+  }, [isPartner, selectedHotelId, setSelectedHotelId])
+
+  // Fetch initial unread message count and connect to socket globally
+  useEffect(() => {
+    if (isPartner && !selectedHotelId) return
+    let unsubs: (() => void)[] = []
+
+    const initSocketNotifications = async () => {
+      try {
+        const params = isPartner && selectedHotelId ? { hotelId: selectedHotelId } : undefined
+        const res = await axiosInstance.get<{ data: any[] }>('/api/conversations/hotel', { params })
+        const list = res.data.data ?? []
+        
+        // Calculate initial total unread messages
+        const initialUnread = list.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0)
+        setTotalUnread(initialUnread)
+
+        // Connect STOMP WebSocket globally
+        connect()
+      } catch (err) {
+        console.error('Failed to init global notifications:', err)
+      }
+    }
+
+    initSocketNotifications()
+
+    return () => {
+      disconnect()
+      unsubs.forEach(fn => fn())
+    }
+  }, [connect, disconnect, selectedHotelId, isPartner])
+
+  // Setup STOMP subscription once connected
+  useEffect(() => {
+    if (status !== 'connected') return
+    if (isPartner && !selectedHotelId) return
+    let unsubs: (() => void)[] = []
+
+    // Subscribe to diaries real-time events (likes, comments, creation, etc.)
+    const diariesSub = subscribeToDestination('/topic/diaries', (wsMsg: any) => {
+      if (wsMsg.hotelId === selectedHotelId) {
+        // Dispatch local event for toast notifications & sound in sidebar
+        window.dispatchEvent(new CustomEvent('petcare-notification', {
+          detail: {
+            title: wsMsg.type === 'LIKE' ? 'Yêu thích Nhật ký' : wsMsg.type === 'COMMENT' ? 'Bình luận Nhật ký' : 'Nhật ký mới',
+            message: wsMsg.message,
+            type: wsMsg.type === 'LIKE' ? 'like' : 'comment',
+            bookingId: wsMsg.bookingId,
+            hotelId: wsMsg.hotelId
+          }
+        }))
+
+        // Dispatch local event for StaffDiaryPage to update UI instantly
+        window.dispatchEvent(new CustomEvent('petcare-diary-realtime', {
+          detail: wsMsg
+        }))
+      }
+    })
+    unsubs.push(diariesSub)
+
+    const params = isPartner && selectedHotelId ? { hotelId: selectedHotelId } : undefined
+    axiosInstance.get<{ data: any[] }>('/api/conversations/hotel', { params }).then(res => {
+      const list = res.data.data ?? []
+      list.forEach(c => {
+        const fn = subscribe(c.id, (msg: MessageResponse) => {
+          // Play sound and pop toast for owner's message
+          if (msg.senderRole === 'OWNER') {
+            window.dispatchEvent(new CustomEvent('petcare-notification', {
+              detail: {
+                title: 'Tin nhắn mới từ Chủ nuôi',
+                message: msg.content,
+                type: 'message',
+                bookingId: c.id
+              }
+            }))
+            // Increment unread count
+            setTotalUnread(prev => prev + 1)
+          }
+        })
+        unsubs.push(fn)
+      })
+    }).catch(console.error)
+
+    return () => unsubs.forEach(fn => fn())
+  }, [status, subscribe, subscribeToDestination, selectedHotelId, isPartner])
+
+  // Listen to local unread update events from other parts of FE
+  useEffect(() => {
+    const handleUnreadUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail.unreadCount !== undefined) {
+        setTotalUnread(detail.unreadCount)
+      }
+    }
+    const handleNotification = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      const id = Math.random().toString(36).substring(2, 9)
+      const newNotif: ToastNotification = {
+        id,
+        title: detail.title || 'Thông báo hệ thống',
+        message: detail.message || '',
+        type: detail.type || 'message',
+        bookingId: detail.bookingId,
+        hotelId: detail.hotelId
+      }
+      setNotifications(prev => [newNotif, ...prev])
+
+      // Sound notification alert
+      playNotificationSound()
+    }
+
+    window.addEventListener('petcare-unread-update', handleUnreadUpdate)
+    window.addEventListener('petcare-notification', handleNotification)
+    return () => {
+      window.removeEventListener('petcare-unread-update', handleUnreadUpdate)
+      window.removeEventListener('petcare-notification', handleNotification)
+    }
+  }, [])
 
   const isActive = (item: NavItem) => {
     if (item.matchPath) {
@@ -117,7 +331,132 @@ export const PartnerLayout = () => {
 
       {/* ── WORKSPACE CONTENT ── */}
       <div className="flex-grow flex flex-col min-w-0 h-screen overflow-y-auto">
+        
+        {/* Sticky Header Top Bar (Facebook style notifications & messenger icons) */}
+        <header className="bg-white border-b border-[#e5d8d0] px-6 py-3 flex items-center justify-between shrink-0 sticky top-0 z-40 bg-white/95 backdrop-blur-sm">
+          <div>
+            <span className="text-xs font-black text-[#8a7e75] uppercase tracking-widest">
+              {location.pathname.includes('/messages') 
+                ? 'Tin nhắn khách hàng' 
+                : location.pathname.includes('/diaries') 
+                  ? 'Nhật ký chăm sóc lưu trú' 
+                  : 'Hệ thống Quản lý PetCare Hub'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Messenger Link */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => navigate('/partner/messages')}
+                className={`w-9 h-9 rounded-full bg-[#faf9f6] border border-[#e5d8d0]/80 flex items-center justify-center text-[#5a5550] hover:text-[#fa7150] hover:border-[#fa7150]/20 transition-all cursor-pointer ${
+                  location.pathname === '/partner/messages' ? 'bg-[#fa7150]/15 text-[#fa7150] border-[#fa7150]/30' : ''
+                }`}
+                title="Tin nhắn"
+              >
+                <MessageCircle size={16} />
+              </button>
+              {totalUnread > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#a43e24] text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white shadow-sm shrink-0">
+                  {totalUnread}
+                </span>
+              )}
+            </div>
+
+            {/* Notification Bell */}
+            <div className="relative">
+              <button 
+                type="button"
+                onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+                className={`w-9 h-9 rounded-full bg-[#faf9f6] border border-[#e5d8d0]/80 flex items-center justify-center text-[#5a5550] hover:text-[#fa7150] hover:border-[#fa7150]/20 transition-all cursor-pointer ${
+                  showNotifDropdown ? 'bg-[#fa7150]/15 text-[#fa7150] border-[#fa7150]/30' : ''
+                }`}
+                title="Thông báo hệ thống"
+              >
+                <Bell size={16} className={notifications.length > 0 ? 'animate-bounce' : ''} />
+              </button>
+              {notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#a43e24] text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white shadow-sm shrink-0">
+                  {notifications.length}
+                </span>
+              )}
+
+              {/* Facebook-style Notification Dropdown Tray */}
+              {showNotifDropdown && (
+                <div 
+                  className="fixed right-4 w-80 bg-white border border-[#e5d8d0] rounded-2xl shadow-xl z-50 overflow-hidden text-xs animate-in fade-in slide-in-from-top-2 duration-150"
+                  style={{ top: '60px', boxShadow: '0 15px 35px -5px rgba(48,51,48,0.1), 0 10px 15px -5px rgba(0,0,0,0.03)' }}
+                >
+                  {/* Tray Header */}
+                  <div className="px-4 py-3 border-b border-[#e5d8d0] flex justify-between items-center bg-[#faf9f6]">
+                    <span className="font-extrabold text-[#303330]">Thông báo của bạn ({notifications.length})</span>
+                    {notifications.length > 0 && (
+                      <button 
+                        type="button"
+                        onClick={() => setNotifications([])}
+                        className="text-[10px] text-[#fa7150] hover:underline font-extrabold cursor-pointer"
+                      >
+                        Xóa tất cả
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Tray Feed List */}
+                  <div className="max-h-72 overflow-y-auto divide-y divide-[#e5d8d0]/50">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center text-[#8a7e75] font-bold">
+                        <Bell size={24} className="mx-auto mb-2 text-[#e5d8d0]" />
+                        Không có thông báo mới nào
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div 
+                          key={n.id} 
+                          onClick={() => {
+                            if (n.hotelId) {
+                              setSelectedHotelId(n.hotelId)
+                            }
+                            if (n.type === 'message') {
+                              navigate(`/partner/messages?convId=${n.bookingId}`)
+                            } else if (n.type === 'booking') {
+                              navigate('/partner/bookings')
+                            } else if (n.type === 'like' || n.type === 'comment') {
+                              navigate(`/partner/diaries?bookingId=${n.bookingId}`)
+                            }
+                            // Dismiss clicked notification
+                            setNotifications(prev => prev.filter(x => x.id !== n.id))
+                            setShowNotifDropdown(false)
+                          }}
+                          className="p-3.5 hover:bg-[#faf9f6] transition-all flex flex-col cursor-pointer text-left border-l-2 border-transparent hover:border-l-[#fa7150] pl-4"
+                        >
+                          <span className="text-[9px] font-black text-[#fa7150] uppercase tracking-wider mb-0.5">
+                            {n.type === 'message' ? 'Tin nhắn' : n.type === 'booking' ? 'Đơn đặt phòng' : n.type === 'like' ? 'Yêu thích nhật ký' : 'Bình luận nhật ký'}
+                          </span>
+                          <p className="font-extrabold text-[#303330] text-xs">{n.title}</p>
+                          <p className="text-[10px] text-[#8a7e75] mt-0.5 leading-snug font-semibold">{n.message}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
         <Outlet />
+
+        {/* Floating docked chat boxes (Facebook-style) */}
+        {openChatWindows.map((win, idx) => (
+          <ChatBoxWindow
+            key={win.conversationId}
+            conversationId={win.conversationId}
+            bookingId={win.bookingId}
+            onClose={() => closeChatWindow(win.conversationId)}
+            rightOffset={80 + idx * 340} // Docked next to the floating chatbot icon
+          />
+        ))}
       </div>
     </div>
   )

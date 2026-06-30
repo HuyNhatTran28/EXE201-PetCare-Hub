@@ -41,13 +41,37 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("reqEnd")     LocalDate reqEnd
     );
 
-    // Tìm booking PENDING quá 30 phút — scheduler tự hủy
+    // Tìm booking PENDING (không phải CASH) quá 15 phút — scheduler tự hủy
     @Query("""
         SELECT b FROM Booking b
         WHERE b.status = 'PENDING'
+          AND b.paymentMethod != com.petcare_hub.enums.PaymentMethod.CASH
           AND b.createdAt < :expireTime
     """)
     List<Booking> findExpiredPendingBookings(
+        @Param("expireTime") LocalDateTime expireTime
+    );
+
+    // Tìm booking PENDING (không phải CASH) đã quá 8 phút nhưng chưa gửi mail nhắc nhở
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.status = 'PENDING'
+          AND b.reminderSent = false
+          AND b.paymentMethod != com.petcare_hub.enums.PaymentMethod.CASH
+          AND b.createdAt < :reminderTime
+    """)
+    List<Booking> findPendingBookingsNeedingReminder(
+        @Param("reminderTime") LocalDateTime reminderTime
+    );
+
+    // Tìm booking CASH ở trạng thái PENDING quá 24 giờ — scheduler tự hủy
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.status = 'PENDING'
+          AND b.paymentMethod = com.petcare_hub.enums.PaymentMethod.CASH
+          AND b.createdAt < :expireTime
+    """)
+    List<Booking> findExpiredCashPendingBookings(
         @Param("expireTime") LocalDateTime expireTime
     );
 
