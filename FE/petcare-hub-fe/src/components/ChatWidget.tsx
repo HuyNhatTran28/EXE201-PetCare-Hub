@@ -396,7 +396,7 @@ export const ChatWidget = () => {
             <div className="flex border-t border-white/20">
               {[
                 { id: 'ai' as Tab, icon: <Bot size={12}/>, label: 'Trợ lý AI', authOnly: false },
-                { id: 'chat' as Tab, icon: <MessageCircle size={12}/>, label: (user?.role === 'PARTNER' || user?.role === 'STAFF') ? 'Nhắn khách hàng' : 'Nhắn khách sạn', authOnly: true },
+                { id: 'chat' as Tab, icon: <MessageCircle size={12}/>, label: 'Nhắn khách sạn', authOnly: true },
               ].map(t => {
                 if (t.authOnly && !user) return null
                 return (

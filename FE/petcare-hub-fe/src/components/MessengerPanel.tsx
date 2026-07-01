@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import {
   MessageCircle, Loader2, Wifi, WifiOff,
-  Search, X, Trash2, MoreHorizontal, Mail, Bell, Phone, Video, Ban
+  Search, X, Trash2, MoreHorizontal, Mail, Bell, Phone, Video, Ban, User
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { useChatSocket, type MessageResponse } from '@/hooks/useChatSocket'
