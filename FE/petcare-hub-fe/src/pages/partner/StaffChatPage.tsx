@@ -111,7 +111,8 @@ export const StaffChatPage = () => {
 
   // ── Stable incoming-message handler (uses refs → no stale closure) ────────
   const handleIncoming = useCallback((convId: string, msg: MessageResponse) => {
-    if (selectedIdRef.current === convId) {
+    const isActive = selectedIdRef.current === convId
+    if (isActive) {
       setMessages(prev => [...prev, msg])
     } else {
       setConversations(prev =>
@@ -128,6 +129,19 @@ export const StaffChatPage = () => {
           )
         )
       )
+    }
+
+    // Gửi sự kiện để PartnerLayout biết phát âm thanh & cập nhật chuông
+    if (msg.senderRole === 'OWNER') {
+      window.dispatchEvent(new CustomEvent('petcare-notification', {
+        detail: {
+          title: 'Tin nhắn mới từ Chủ nuôi',
+          message: msg.content,
+          type: 'message',
+          bookingId: convId,
+          soundOnly: isActive
+        }
+      }))
     }
   }, [])
 

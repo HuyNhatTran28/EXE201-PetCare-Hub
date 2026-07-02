@@ -58,6 +58,12 @@ public class AdminController {
 
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Không ai được phép khóa/xóa tài khoản ADMIN — kể cả admin khác
+        if (user.getRole() == Role.ADMIN) {
+            throw new RuntimeException("Không được phép thay đổi trạng thái tài khoản ADMIN");
+        }
+
         user.setIsActive(active);
         return ResponseEntity.ok(toUserResponse(userRepository.save(user)));
     }

@@ -12,7 +12,7 @@ public interface RoomTypeService {
 
     RoomTypeResponse createRoomType(UUID hotelId, UUID partnerId, RoomTypeRequest request);
 
-    List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId, Boolean activeOnly);
+    List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId, Boolean activeOnly, UUID callerId, String callerRole);
 
     RoomTypeResponse updateRoomType(UUID roomTypeId, UUID partnerId, RoomTypeRequest request);
 

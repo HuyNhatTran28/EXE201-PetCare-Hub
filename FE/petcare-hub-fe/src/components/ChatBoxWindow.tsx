@@ -155,7 +155,7 @@ export const ChatBoxWindow = ({ conversationId, bookingId, onClose, rightOffset 
               </div>
             ) : (
               messages.map(msg => {
-                const mine = msg.senderRole === 'STAFF' || msg.senderRole === 'PARTNER'
+                const mine = msg.senderRole === 'STAFF'
                 const isThumbsUp = msg.content === '👍'
 
                 return (

@@ -45,6 +45,7 @@ public class BookingServiceImpl implements BookingService {
     private final ReviewRepository     reviewRepository;
     private final PartnerWalletRepository partnerWalletRepository;
     private final ServiceRepository    serviceRepository;
+    private final PaymentRepository    paymentRepository;
 
     // Hoa hồng nền tảng: 8% trên tổng hóa đơn (totalAmount), đối tác nhận 92%
     private static final double DEFAULT_COMMISSION_RATE = 0.08;
@@ -389,6 +390,17 @@ public class BookingServiceImpl implements BookingService {
             throw new AppException(
                 "Chỉ có thể xác nhận booking đang PENDING",
                 HttpStatus.BAD_REQUEST);
+        }
+
+        // CRITICAL #4 FIX: Nếu thanh toán online, yêu cầu phải có ít nhất một giao dịch SUCCESS trước khi xác nhận
+        if (booking.getPaymentMethod() != com.petcare_hub.enums.PaymentMethod.CASH) {
+            boolean hasPaid = paymentRepository.findByBookingId(bookingId).stream()
+                    .anyMatch(p -> p.getPaymentStatus() == com.petcare_hub.enums.PaymentStatus.SUCCESS);
+            if (!hasPaid) {
+                throw new AppException(
+                        "Booking thanh toán online chưa được thanh toán, không thể xác nhận",
+                        HttpStatus.BAD_REQUEST);
+            }
         }
 
         booking.setStatus(BookingStatus.CONFIRMED);

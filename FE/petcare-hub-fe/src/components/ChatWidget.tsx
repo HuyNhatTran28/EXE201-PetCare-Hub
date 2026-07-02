@@ -124,6 +124,34 @@ const RoomCarousel = ({ rooms }: { rooms: SuggestedRoom[] }) => {
 export const ChatWidget = () => {
   const user = useAuthStore(state => state.user)
 
+  // ── route tracking to hide on /partner and /admin ──
+  const [currentPath, setCurrentPath] = useState(window.location.pathname)
+
+  useEffect(() => {
+    const handlePathChange = () => {
+      setCurrentPath(window.location.pathname)
+    }
+    window.addEventListener('popstate', handlePathChange)
+
+    const originalPush = window.history.pushState
+    const originalReplace = window.history.replaceState
+
+    window.history.pushState = function (...args) {
+      originalPush.apply(this, args)
+      handlePathChange()
+    }
+    window.history.replaceState = function (...args) {
+      originalReplace.apply(this, args)
+      handlePathChange()
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePathChange)
+      window.history.pushState = originalPush
+      window.history.replaceState = originalReplace
+    }
+  }, [])
+
   // ── widget open ──
   const [open, setOpen] = useState<boolean>(() => readSession<boolean>(STORAGE_OPEN, false))
 
@@ -317,6 +345,10 @@ export const ChatWidget = () => {
   const inConvView = activeTab === 'chat' && selectedConv !== null
 
   // ── render ─────────────────────────────────────────────────────────────────
+
+  if (currentPath.startsWith('/partner/messages')) {
+    return null
+  }
 
   return (
     <>
