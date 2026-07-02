@@ -47,9 +47,21 @@ public class RoomTypeController {
     @GetMapping("/hotel/{hotelId}")
     public ResponseEntity<List<RoomTypeResponse>> getRoomTypes(
             @PathVariable UUID hotelId,
-            @RequestParam(required = false, defaultValue = "true") Boolean activeOnly) {
+            @RequestParam(required = false, defaultValue = "true") Boolean activeOnly,
+            Authentication auth) {
 
-        return ResponseEntity.ok(roomTypeService.getRoomTypesByHotel(hotelId, activeOnly));
+        UUID callerId = null;
+        String callerRole = null;
+        if (auth != null && auth.isAuthenticated() && 
+                !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
+            callerId = (UUID) auth.getPrincipal();
+            callerRole = auth.getAuthorities().stream()
+                    .map(r -> r.getAuthority().replace("ROLE_", ""))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        return ResponseEntity.ok(roomTypeService.getRoomTypesByHotel(hotelId, activeOnly, callerId, callerRole));
     }
 
     // GET /api/room-types/{id}/availability — Kiểm tra phòng trống

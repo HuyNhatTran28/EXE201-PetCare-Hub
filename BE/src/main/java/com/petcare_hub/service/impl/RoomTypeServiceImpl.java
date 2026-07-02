@@ -59,12 +59,19 @@ public class RoomTypeServiceImpl implements RoomTypeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId, Boolean activeOnly) {
+    public List<RoomTypeResponse> getRoomTypesByHotel(UUID hotelId, Boolean activeOnly, UUID callerId, String callerRole) {
         Hotel hotel = hotelRepository.findById(hotelId)
                 .orElseThrow(() -> new AppException("Không tìm thấy khách sạn", HttpStatus.NOT_FOUND));
-        if ((activeOnly == null || activeOnly) && hotel.getStatus() != HotelStatus.ACTIVE) {
-            throw new AppException("Cơ sở không khả dụng", HttpStatus.NOT_FOUND);
+        
+        // Nếu khách sạn không ACTIVE, chỉ cho phép ADMIN hoặc chính PARTNER chủ khách sạn xem
+        if (hotel.getStatus() != HotelStatus.ACTIVE) {
+            boolean isAllowed = callerId != null && 
+                    ("ADMIN".equals(callerRole) || hotel.getPartner().getId().equals(callerId));
+            if (!isAllowed) {
+                throw new AppException("Cơ sở không khả dụng", HttpStatus.NOT_FOUND);
+            }
         }
+
         List<RoomType> roomTypes = (activeOnly == null || activeOnly)
                 ? roomTypeRepository.findByHotelIdAndIsActiveTrue(hotelId)
                 : roomTypeRepository.findByHotelId(hotelId);

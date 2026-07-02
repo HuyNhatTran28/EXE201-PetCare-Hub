@@ -57,7 +57,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public java.util.Map<String, String> register(RegisterRequest request) {
+    public Map<String, String> register(RegisterRequest request) {
+
+        // CRITICAL FIX: Chỉ cho phép đăng ký OWNER hoặc PARTNER
+        // ADMIN/STAFF phải được tạo qua luồng riêng (DataSeeder / StaffManagementController)
+        if (request.getRole() != com.petcare_hub.enums.Role.OWNER
+                && request.getRole() != com.petcare_hub.enums.Role.PARTNER) {
+            throw new AppException(
+                    "Không được phép đăng ký với role " + request.getRole(),
+                    HttpStatus.FORBIDDEN);
+        }
 
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(

@@ -53,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/chat",
+                                "/api/payment/payos-webhook",
                                 "/ws/**",          // WebSocket handshake — xác thực qua STOMP CONNECT
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

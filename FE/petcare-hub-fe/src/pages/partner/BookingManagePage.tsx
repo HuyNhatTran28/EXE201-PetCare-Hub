@@ -205,7 +205,7 @@ export const BookingManagePage = () => {
     const day = pad(date.getDate())
     const month = pad(date.getMonth() + 1)
     const year = String(date.getFullYear()).slice(-2)
-    return `${hours}:${minutes} ${day}/${month}/${year}`
+    return `${hours}:${minutes} - ${day}/${month}/${year}`
   }
 
   const formatDateCompact = (dateStr?: string) => {
@@ -286,7 +286,7 @@ export const BookingManagePage = () => {
         </header>
 
         {/* ── WORKSPACE CONTENT ── */}
-        <div className="p-8 md:p-12 overflow-y-auto flex-grow max-w-7xl w-full mx-auto">
+        <div className="p-8 md:p-12 overflow-y-auto flex-grow max-w-[92rem] w-full mx-auto">
           
           {/* Global Hotel Context Selector */}
           {hotels.length > 0 && (
@@ -481,7 +481,7 @@ export const BookingManagePage = () => {
                                   setDiaryEating('')
                                   setDiaryMood('')
                                   setDiaryActivity('')
-                                  setDiaryImageUrl(MOCK_PET_IMAGES[Math.floor(Math.random() * MOCK_PET_IMAGES.length)])
+                                  setDiaryImageUrl('')
                                   setShowDiaryModal(true)
                                 }} 
                                 className="bg-amber-500 hover:bg-amber-500/95 text-white font-black text-[9px] uppercase tracking-wider px-3 py-2 rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-md shadow-amber-500/10 cursor-pointer"

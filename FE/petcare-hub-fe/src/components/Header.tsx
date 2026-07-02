@@ -5,6 +5,28 @@ import { PawPrint, User, LogOut, Bell } from 'lucide-react'
 import { useChatSocket } from '@/hooks/useChatSocket'
 import axiosInstance from '@/lib/axios'
 
+const notifAudio = typeof Audio !== 'undefined' ? new Audio('/notification.mp3') : null
+if (notifAudio) {
+  notifAudio.preload = 'auto'
+}
+
+const playSynthFallback = () => {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = audioCtx.createOscillator()
+    const gain = audioCtx.createGain()
+    osc.connect(gain)
+    gain.connect(audioCtx.destination)
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime)
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3)
+    osc.start()
+    osc.stop(audioCtx.currentTime + 0.3)
+  } catch (e) {
+    console.warn('Synthesizer fallback failed:', e)
+  }
+}
+
 export const Header = () => {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
@@ -97,19 +119,15 @@ export const Header = () => {
       }
       setNotifications(prev => [newNotif, ...prev])
 
-      try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
-        const osc = audioCtx.createOscillator()
-        const gain = audioCtx.createGain()
-        osc.connect(gain)
-        gain.connect(audioCtx.destination)
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime)
-        gain.gain.setValueAtTime(0.08, audioCtx.currentTime)
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3)
-        osc.start()
-        osc.stop(audioCtx.currentTime + 0.3)
-      } catch (err) {
-        console.warn('Audio play warning:', err)
+      if (notifAudio) {
+        notifAudio.currentTime = 0
+        notifAudio.volume = 0.4
+        notifAudio.play().catch(err => {
+          console.warn('MP3 play failed, falling back to synth beep:', err)
+          playSynthFallback()
+        })
+      } else {
+        playSynthFallback()
       }
     }
 

@@ -36,6 +36,43 @@ const STAFF_NAV_ITEMS: NavItem[] = [
   { icon: <MessageCircle size={18} />, label: 'Tin nhắn khách hàng', path: '/partner/messages', matchPath: '/partner/messages' },
 ]
 
+const notifAudio = typeof Audio !== 'undefined' ? new Audio('/notification.mp3') : null
+if (notifAudio) {
+  notifAudio.preload = 'auto'
+}
+
+const playSynthFallback = () => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const now = ctx.currentTime
+    const osc1 = ctx.createOscillator()
+    const osc2 = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+
+    osc1.type = 'sine'
+    osc1.frequency.setValueAtTime(587.33, now) // D5
+    osc1.frequency.exponentialRampToValueAtTime(880.00, now + 0.1) // A5
+
+    osc2.type = 'triangle'
+    osc2.frequency.setValueAtTime(880.00, now) // A5
+    osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.15) // D6
+
+    gainNode.gain.setValueAtTime(0.08, now)
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35)
+
+    osc1.connect(gainNode)
+    osc2.connect(gainNode)
+    gainNode.connect(ctx.destination)
+
+    osc1.start(now)
+    osc2.start(now)
+    osc1.stop(now + 0.35)
+    osc2.stop(now + 0.35)
+  } catch (e) {
+    console.warn('Synthesizer fallback failed:', e)
+  }
+}
+
 export const PartnerLayout = () => {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
@@ -92,34 +129,15 @@ export const PartnerLayout = () => {
 
   // Synthesize soft premium bell/chime ring
   const playNotificationSound = () => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const now = ctx.currentTime;
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(587.33, now); // D5
-      osc1.frequency.exponentialRampToValueAtTime(880.00, now + 0.1); // A5
-
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(880.00, now); // A5
-      osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.15); // D6
-
-      gainNode.gain.setValueAtTime(0.08, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-
-      osc1.connect(gainNode);
-      osc2.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      osc1.start(now);
-      osc2.start(now);
-      osc1.stop(now + 0.35);
-      osc2.stop(now + 0.35);
-    } catch (e) {
-      console.warn('Audio playback failed:', e);
+    if (notifAudio) {
+      notifAudio.currentTime = 0
+      notifAudio.volume = 0.4
+      notifAudio.play().catch(err => {
+        console.warn('MP3 play failed, falling back to synth beep:', err)
+        playSynthFallback()
+      })
+    } else {
+      playSynthFallback()
     }
   };
 
@@ -231,6 +249,13 @@ export const PartnerLayout = () => {
     }
     const handleNotification = (e: Event) => {
       const detail = (e as CustomEvent).detail
+      
+      // Nếu chỉ phát âm thanh (nhập chat trực tiếp) -> Không chèn vào danh sách chuông thông báo
+      if (detail.soundOnly) {
+        playNotificationSound()
+        return
+      }
+
       const id = Math.random().toString(36).substring(2, 9)
       const newNotif: ToastNotification = {
         id,
