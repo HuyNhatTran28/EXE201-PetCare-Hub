@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,13 +15,13 @@ import java.util.List;
 
 @Configuration
 public class SwaggerConfiguration {
-    
+
     @Bean
-    public OpenAPI customOpenAPI() {
+    public OpenAPI customOpenAPI(
+            @Value("${app.backend-base-url:http://localhost:8080}") String appPublicBaseUrl) {
         Server localServer = new Server();
-        String appPublicBaseUrl = "http://localhost:8080";
         localServer.setUrl(appPublicBaseUrl);
-        localServer.setDescription("Local Development Server");
+        localServer.setDescription("API Server");
         
         License license = new License()
                 .name("MIT License")

@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class WithdrawalController {
 
     private final UserRepository userRepository;

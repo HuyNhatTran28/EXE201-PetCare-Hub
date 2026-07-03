@@ -1,0 +1,22 @@
+# Áp dụng cho build có context = "." (service "nginx" trong docker-compose.yml,
+# vì nó cần copy cả FE/petcare-hub-fe/ lẫn nginx/nginx.conf). Build của service
+# "backend" dùng context riêng "./BE" nên đọc BE/.dockerignore, không đọc file này.
+
+.git/
+.claude/
+.vscode/
+*.md
+*.pdf
+
+# BE không liên quan tới build FE/nginx nhưng loại trừ cho gọn context
+BE/target/
+
+# node_modules/dist không cần gửi vào build context — Dockerfile tự "npm ci"
+# và tự "npm run build" bên trong container
+**/node_modules/
+FE/petcare-hub-fe/dist/
+
+# Secret dev cục bộ — KHÔNG được lọt vào image production.
+# .env.production (không phải .local) vẫn phải giữ lại, vì đó là file
+# quyết định VITE_API_URL rỗng lúc build — không được ignore file đó.
+FE/petcare-hub-fe/.env.local

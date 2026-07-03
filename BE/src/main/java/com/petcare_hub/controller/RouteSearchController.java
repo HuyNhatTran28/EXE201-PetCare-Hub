@@ -16,7 +16,6 @@ import java.util.Map;
 @RequestMapping("/api/hotels")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 @Tag(name = "Route Search", description = "Tìm kiếm dọc tuyến đường và gợi ý khách sạn")
 public class RouteSearchController {
 
