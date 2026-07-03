@@ -49,3 +49,6 @@ curl_out*.txt
 
 # Ignore CLAUDE.md guidelines file
 CLAUDE.md
+
+### Docker / deploy — secret thật, không commit ###
+.env

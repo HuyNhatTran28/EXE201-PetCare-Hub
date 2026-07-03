@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicLong;
 @RequestMapping("/api/payment")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class PaymentController {
 
     private final BookingRepository bookingRepository;
