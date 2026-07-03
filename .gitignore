@@ -46,3 +46,6 @@ BE/vn/
 curl_out*.txt
 
 .claude/
+
+# Ignore CLAUDE.md guidelines file
+CLAUDE.md
