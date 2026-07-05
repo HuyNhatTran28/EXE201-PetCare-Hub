@@ -1,0 +1,46 @@
+name: Deploy PetCare Hub
+
+on:
+  push:
+    branches: [ develop ]   # push develop là chạy
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./BE
+          file: ./BE/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/petcare-backend:latest
+
+      - name: Build & push nginx (frontend) image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./FE/petcare-hub-fe/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/petcare-nginx:latest
+
+      - name: Deploy to VM via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd ~/EXE201-PetCare-Hub
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker image prune -f
