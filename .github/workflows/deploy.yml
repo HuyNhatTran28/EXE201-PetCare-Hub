@@ -41,6 +41,7 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd ~/EXE201-PetCare-Hub
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
-            docker image prune -f
+  		git pull origin develop
+  		docker compose -f docker-compose.prod.yml pull
+  		docker compose -f docker-compose.prod.yml up -d
+  		docker image prune -f
