@@ -64,6 +64,42 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @Operation(summary = "Khởi chạy luồng đăng nhập Google")
+    @GetMapping("/oauth2/login")
+    public ResponseEntity<Void> oauth2Login(jakarta.servlet.http.HttpServletResponse response) {
+        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("oauth2_flow", "login");
+        cookie.setPath("/");
+        cookie.setMaxAge(300);
+        cookie.setHttpOnly(true);
+        response.addCookie(cookie);
+
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", "/oauth2/authorization/google")
+                .build();
+    }
+
+    @Operation(summary = "Khởi chạy luồng đăng ký Google")
+    @GetMapping("/oauth2/register")
+    public ResponseEntity<Void> oauth2Register(
+            @RequestParam(defaultValue = "OWNER") String role,
+            jakarta.servlet.http.HttpServletResponse response) {
+        jakarta.servlet.http.Cookie flowCookie = new jakarta.servlet.http.Cookie("oauth2_flow", "register");
+        flowCookie.setPath("/");
+        flowCookie.setMaxAge(300);
+        flowCookie.setHttpOnly(true);
+        response.addCookie(flowCookie);
+
+        jakarta.servlet.http.Cookie roleCookie = new jakarta.servlet.http.Cookie("oauth2_role", role);
+        roleCookie.setPath("/");
+        roleCookie.setMaxAge(300);
+        roleCookie.setHttpOnly(true);
+        response.addCookie(roleCookie);
+
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", "/oauth2/authorization/google")
+                .build();
+    }
+
 
     @Operation(summary = "Lấy access token mới từ refresh token")
     @PostMapping("/refresh")

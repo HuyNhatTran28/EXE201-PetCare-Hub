@@ -5,6 +5,8 @@ services:
     # search-along-route). Thiếu extension postgis thì BE lỗi khi chạy
     # native query. Tag khớp với "docker compose up -d db" ghi trong CLAUDE.md.
     image: postgis/postgis:16-3.4
+    ports:
+      - "5432:5432"
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-petcare_hub}

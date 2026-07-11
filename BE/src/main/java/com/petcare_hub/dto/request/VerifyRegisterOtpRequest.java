@@ -15,4 +15,6 @@ public class VerifyRegisterOtpRequest {
     @NotBlank(message = "Mã OTP không được để trống")
     @Pattern(regexp = "^[0-9]{6}$", message = "Mã OTP phải gồm 6 chữ số")
     private String otpCode;
+
+    private String role;
 }

@@ -7,6 +7,7 @@ import { authService } from '@/features/auth/services/authService'
 import { useAuthStore } from '@/store/authStore'
 import type { RegisterRequest } from '@/features/auth/types'
 import type { AxiosError } from 'axios'
+import corgiImg from '@/assets/corgi.png'
 
 interface FormData extends Omit<RegisterRequest, 'role'> {
     confirmPassword?: string
@@ -30,6 +31,36 @@ export const RegisterPage = () => {
     const [isResending, setIsResending] = useState(false)
     const [verificationError, setVerificationError] = useState<string | null>(null)
     const [resendMessage, setResendMessage] = useState<string | null>(null)
+    const [oauthError, setOauthError] = useState('')
+    const [showRegisteredModal, setShowRegisteredModal] = useState(false)
+    const [isGoogleFlow, setIsGoogleFlow] = useState(false)
+    const [showRoleSelectionModal, setShowRoleSelectionModal] = useState(false)
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        const emailParam = params.get('email')
+        const otpParam = params.get('otp')
+        const errParam = params.get('error')
+
+        if (errParam) {
+            if (errParam.includes('đã được sử dụng') || errParam.includes('đã tồn tại') || errParam.includes('đã đăng ký')) {
+                setShowRegisteredModal(true)
+            } else {
+                setOauthError(errParam)
+            }
+        }
+
+        if (emailParam && otpParam === 'true') {
+            setRegisteredEmail(emailParam)
+            setShowOtpStep(true)
+            setCountdown(60)
+            setOtpValues(['', '', '', '', '', ''])
+            setIsGoogleFlow(true)
+            setTimeout(() => {
+                inputRefs.current[0]?.focus()
+            }, 200)
+        }
+    }, [])
 
     const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -110,21 +141,35 @@ export const RegisterPage = () => {
         }
     }
 
-    const handleVerifyOtp = async () => {
+    const submitVerifyOtp = async (selectedRoleStr?: string) => {
         const otpCode = otpValues.join('')
-        if (otpCode.length !== 6) return
-
         setIsVerifying(true)
         setVerificationError(null)
         try {
-            const res = await authService.verifyRegisterOtp({ email: registeredEmail, otpCode })
+            const res = await authService.verifyRegisterOtp({ 
+                email: registeredEmail, 
+                otpCode,
+                role: selectedRoleStr
+            })
             setAuth(res.accessToken, res.refreshToken, res.user)
             navigate('/')
         } catch (err: any) {
             const message = err?.response?.data?.message || 'Xác thực thất bại. Vui lòng thử lại.'
             setVerificationError(message)
+            setShowRoleSelectionModal(false)
         } finally {
             setIsVerifying(false)
+        }
+    }
+
+    const handleVerifyOtp = async () => {
+        const otpCode = otpValues.join('')
+        if (otpCode.length !== 6) return
+
+        if (isGoogleFlow) {
+            setShowRoleSelectionModal(true)
+        } else {
+            await submitVerifyOtp()
         }
     }
 
@@ -148,7 +193,7 @@ export const RegisterPage = () => {
         }
     }
 
-    const apiError = (error as AxiosError<{ message: string }>)?.response?.data?.message
+    const apiError = oauthError || (error as AxiosError<{ message: string }>)?.response?.data?.message
 
     return (
         <div
@@ -201,33 +246,16 @@ export const RegisterPage = () => {
 
                         <div className="relative w-full max-w-sm">
                             <img
-                                src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=700"
-                                alt="Chó vui vẻ"
+                                src={corgiImg}
+                                alt="Chó Corgi vui vẻ"
                                 className="w-full h-60 object-cover rounded-2xl shadow-lg"
                             />
-                            {/* Badge đè lên ảnh */}
-                            <div
-                                className="absolute -bottom-5 right-[-0.75rem] inline-flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg"
-                                style={{ backgroundColor: '#ffffff', border: '1px solid #f0e4de' }}
-                            >
-                                <div className="p-2 rounded-xl" style={{ backgroundColor: '#fff0e6' }}>
-                                    <PawPrint size={18} style={{ color: '#fa7150' }} />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: '#a43e24' }}>
-                                        Trải nghiệm
-                                    </p>
-                                    <p className="text-xs font-semibold leading-tight" style={{ color: '#303330' }}>
-                                        Hơn 500+ thú cưng<br />đã lưu trú vui vẻ.
-                                    </p>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
                     {/* Footer */}
                     <p className="text-xs z-10 mt-14" style={{ color: '#b07060' }}>
-                        © 2024 PetCare Hub. Đã đăng ký bản quyền.
+                        © 2026 PetCare Hub. Đã đăng ký bản quyền.
                     </p>
                 </div>
 
@@ -385,7 +413,7 @@ export const RegisterPage = () => {
                             </div>
 
                             {/* Lỗi API */}
-                            {isError && (
+                            {(isError || oauthError) && (
                                 <div
                                     className="mb-4 p-3 rounded-xl text-sm"
                                     style={{
@@ -622,7 +650,7 @@ export const RegisterPage = () => {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    window.location.href = `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/oauth2/authorization/google`
+                                    window.location.href = `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/api/auth/oauth2/register?role=${selectedRole}`
                                 }}
                                 className="w-full py-3 rounded-xl text-sm font-semibold border flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
                                 style={{
@@ -651,7 +679,88 @@ export const RegisterPage = () => {
                     )}
                 </div>
 
-            </div>
+            {/* ── Already Registered User Modal ── */}
+            {showRegisteredModal && (
+                <div 
+                    className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+                    onClick={() => setShowRegisteredModal(false)}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] p-10 max-w-md w-full shadow-2xl border border-[#e5d8d0] animate-in fade-in zoom-in duration-200 text-left relative cursor-default"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-2xl font-black mb-3" style={{ color: '#303330' }}>
+                                    Email đã được đăng ký
+                                </h3>
+                                <p className="text-xs font-bold leading-relaxed mb-2" style={{ color: '#8a7e75' }}>
+                                    Email này đã được sử dụng để đăng ký tài khoản trên hệ thống. Vui lòng đăng nhập để tiếp tục.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                                <Link
+                                    to="/login"
+                                    onClick={() => setShowRegisteredModal(false)}
+                                    className="flex-1 py-4 text-center bg-[#fa7150] hover:bg-[#a43e24] text-white rounded-full font-bold text-xs uppercase tracking-wider transition-all shadow-lg cursor-pointer"
+                                >
+                                    Đăng nhập ngay
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowRegisteredModal(false)}
+                                    className="flex-1 py-4 border border-[#e5dbd4] rounded-full text-[#303330] font-bold text-xs uppercase tracking-wider transition-all hover:bg-gray-50 cursor-pointer"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Role Selection Modal for Google Register ── */}
+            {showRoleSelectionModal && (
+                <div 
+                    className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+                    onClick={() => setShowRoleSelectionModal(false)}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] p-10 max-w-md w-full shadow-2xl border border-[#e5d8d0] animate-in fade-in zoom-in duration-200 text-left relative cursor-default"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-2xl font-black mb-3" style={{ color: '#303330' }}>
+                                    Chọn loại tài khoản
+                                </h3>
+                                <p className="text-xs font-bold leading-relaxed mb-2" style={{ color: '#8a7e75' }}>
+                                    Để hoàn tất đăng ký, vui lòng chọn vai trò bạn muốn tham gia trên hệ thống PetCare Hub:
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => submitVerifyOtp('OWNER')}
+                                    className="w-full py-4 bg-white hover:bg-[#fa7150] border border-[#e5dbd4] hover:border-[#fa7150] text-[#303330] hover:text-white rounded-full font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer"
+                                >
+                                    Khách Hàng
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => submitVerifyOtp('PARTNER')}
+                                    className="w-full py-4 bg-white hover:bg-[#fa7150] border border-[#e5dbd4] hover:border-[#fa7150] text-[#303330] hover:text-white rounded-full font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer"
+                                >
+                                    Doanh Nghiệp
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
-    )
+    </div>
+)
 }

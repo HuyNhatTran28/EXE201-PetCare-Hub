@@ -187,37 +187,7 @@ export const HomePage = () => {
     "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=800"
   ]
 
-  const fallbackRooms = [
-    {
-      id: 'default-1',
-      name: 'Deluxe Garden Suite',
-      pricePerNight: 450000,
-      allowedPetTypes: ['DOG'],
-      description: 'Lối đi riêng ra ban công cỏ xanh mát & đệm ngủ orthopedic êm ái.',
-      images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuDgfm5N85OjZH2i_oSez_41ZkbQRif-ad-B_EH-Eoo_fOLpgbRDXnDwMpIiZ76NiEPqDUoM4yCNHURpRGxE5obuxpmVhjkyFe5LaMQrKp64MWV2XcvEzYp56dHGGsAcJW3BLrCMfBwrOHeBxkvPu6axXI5oeBEw84Dd2zUSjnMgoulFrQDOowZWPb-rg7UB7X9VEXVJ0SVsNyMN0V1Jg_6cGVrUYswH0Kxao0kLTPU-CfrHOi1Ds4rWpON4y4--yzs6w2d9D-0MSEx-'],
-      hotelId: 'default-hotel-1'
-    },
-    {
-      id: 'default-2',
-      name: 'The Zenith Loft',
-      pricePerNight: 350000,
-      allowedPetTypes: ['CAT'],
-      description: 'Không gian leo trèo nhiều tầng đặc trưng & cửa sổ ngắm chim trời.',
-      images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuDSvF4C5HvsXyxQJ80WAlQ2X0ih-j_xH5irvc5d4SnBo0EvJvAFePFPervgfSR1b3A3g_sj_u6vb9RVvSxTnzb_T1q99ocF-BuG3dRyvg1omDOYhCa0KB89QBHIqMh_DYmLqvrsiyUrtrsgrUISnmQng0Q4S9_sjTDk9dIkLTcR-yjFOpYc8a7cGwqeDIj1FupozgjTPYVcosv9KAe_GjtoX4Oyw2pQevLAlhn3wVLsr_4ag6T7dTYyOa6zyZDOwgPOuwFEW2uH7KQP'],
-      hotelId: 'default-hotel-2'
-    },
-    {
-      id: 'default-3',
-      name: 'Presidential Manor',
-      pricePerNight: 850000,
-      allowedPetTypes: ['DOG_SMALL', 'DOG_LARGE', 'CAT'],
-      description: 'Quản gia chăm sóc riêng 24/7 & không giới hạn liệu trình spa thư giãn.',
-      images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuBWlswjRUEn9gUBfwNddofi8-MDKVD73XFrinIVuBvZhzg5EoVUTw5odNjpdHIr9s73Svo84B7Nt7WKoWTeNsD6-Fyf5kPLVyHs2p5jDFLANkNvG2f9F_3FW_I90eeRC2xHp0N3-C7gUKq98GDsQn7OMBgJIONTqkDgWR4WxY8dA2GSf7-EcWIHURnevsN6VB9KU-sjZ-JYT3jvuJX8PvIjj5jcxJkfijWs0PPqwjeKjVJEt1eGfZyPQG6gFrHdooyxfGdjcaytHs3w'],
-      hotelId: 'default-hotel-3'
-    }
-  ]
-
-  const activeRoomsList = roomTypes.length > 0 ? roomTypes : fallbackRooms
+  const activeRoomsList = roomTypes
   const displayedRooms = activeRoomsList.slice(roomIndex, roomIndex + 3)
 
   useEffect(() => {
@@ -466,126 +436,128 @@ export const HomePage = () => {
       </section>
 
       {/* ── 4. SUITE PREVIEWS ─────────────────────────────────── */}
-      {(!isLoadingRooms && !roomsError && activeRoomsList.length === 0) ? null : (
-        <section className="py-24 px-8 overflow-hidden bg-white/5 backdrop-blur-sm text-left">
-          <div className="max-w-7xl mx-auto">
-            
-            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-              <div className="max-w-xl">
-                <h2 className="font-headline text-4xl font-bold text-[#303330] mb-4">Các Hạng Phòng Premium</h2>
-                <p className="text-[#5d605c] leading-relaxed text-sm">Không gian được thiết kế hoàn hảo cho từng tính cách riêng biệt, từ chú cún năng động đến chú mèo quý tộc.</p>
-              </div>
-              <div className="flex items-center gap-6 shrink-0">
-                {!isLoadingRooms && !roomsError && activeRoomsList.length > 0 && (
-                  <button 
-                    onClick={handleViewAllRooms} 
-                    className="text-[#a43e24] font-bold border-b-2 border-[#a43e24]/20 hover:border-[#a43e24] transition-colors pb-1 text-sm cursor-pointer bg-transparent border-none p-0 outline-none"
-                  >
-                    Xem tất cả các phòng
-                  </button>
-                )}
-                {!isLoadingRooms && !roomsError && activeRoomsList.length > 3 && (
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={prevRooms}
-                      disabled={roomIndex === 0}
-                      className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
-                        roomIndex === 0 ? 'opacity-30 border-[#b1b2af]/40 text-[#b1b2af]' : 'border-[#a43e24] text-[#a43e24] hover:bg-[#a43e24] hover:text-white cursor-pointer bg-transparent'
-                      }`}
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <button 
-                      onClick={nextRooms}
-                      disabled={roomIndex + 3 >= activeRoomsList.length}
-                      className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
-                        roomIndex + 3 >= activeRoomsList.length ? 'opacity-30 border-[#b1b2af]/40 text-[#b1b2af]' : 'border-[#a43e24] text-[#a43e24] hover:bg-[#a43e24] hover:text-white cursor-pointer bg-transparent'
-                      }`}
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                )}
-              </div>
+      <section className="py-24 px-8 overflow-hidden bg-white/5 backdrop-blur-sm text-left">
+        <div className="max-w-7xl mx-auto">
+          
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+            <div className="max-w-xl">
+              <h2 className="font-headline text-4xl font-bold text-[#303330] mb-4">Các Hạng Phòng Premium</h2>
+              <p className="text-[#5d605c] leading-relaxed text-sm">Không gian được thiết kế hoàn hảo cho từng tính cách riêng biệt, từ chú cún năng động đến chú mèo quý tộc.</p>
             </div>
-
-            {isLoadingRooms ? (
-              /* Loading Skeleton (3 cards) */
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                {[1, 2, 3].map((idx) => (
-                  <div key={idx} className="animate-pulse flex flex-col">
-                    <div className="rounded-3xl h-[350px] bg-white/20 border border-[#e1e3df]/40 mb-6"></div>
-                    <div className="h-4 bg-white/20 rounded-full w-1/4 mb-3"></div>
-                    <div className="h-6 bg-white/20 rounded-full w-3/4 mb-2"></div>
-                    <div className="h-4 bg-white/20 rounded-full w-full"></div>
-                  </div>
-                ))}
-              </div>
-            ) : roomsError ? (
-              /* Error State */
-              <div className="glass-card p-12 rounded-3xl border border-white/40 text-center max-w-lg mx-auto shadow-md">
-                <p className="text-stone-700 font-bold mb-6">{roomsError}</p>
+            <div className="flex items-center gap-6 shrink-0">
+              {!isLoadingRooms && !roomsError && activeRoomsList.length > 0 && (
                 <button 
-                  onClick={fetchRooms}
-                  className="px-6 py-2.5 bg-[#a43e24] hover:bg-[#a43e24]/90 text-white rounded-full font-bold text-sm shadow-md transition-all hover:scale-105 active:scale-95"
+                  onClick={handleViewAllRooms} 
+                  className="text-[#a43e24] font-bold border-b-2 border-[#a43e24]/20 hover:border-[#a43e24] transition-colors pb-1 text-sm cursor-pointer bg-transparent border-none p-0 outline-none"
                 >
-                  Thử lại
+                  Xem tất cả các phòng
                 </button>
-              </div>
-            ) : (
-              /* Room List with dynamic columns centering */
-              <div className={`grid gap-10 ${
-                activeRoomsList.length === 1 ? 'grid-cols-1 max-w-md mx-auto' : 
-                activeRoomsList.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' : 
-                'grid-cols-1 md:grid-cols-3'
-              }`}>
-                {displayedRooms.map((room: any) => {
-                  const isDog = room.allowedPetTypes?.some((t: string) => t.toUpperCase().includes('DOG'))
-                  const isCat = room.allowedPetTypes?.some((t: string) => t.toUpperCase().includes('CAT'))
-                  const categoryText = isDog ? 'DÀNH CHO CHÓ' : isCat ? 'DÀNH CHO MÈO' : 'THÚ CƯNG KHÁC'
-                  const roomImage = (room.images && room.images.length > 0) ? room.images[0] : 'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800'
-                  
-                  return (
-                    <div 
-                      key={room.id} 
-                      className="group cursor-pointer"
-                      onClick={() => handleRoomClick(room.hotelId)}
-                    >
-                      <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/5] sunlight-shadow bg-white">
-                        <img 
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                          alt={room.name} 
-                          src={roomImage}
-                        />
-                        <div className="absolute inset-0 bg-[#a43e24]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-[#a43e24] font-bold text-sm sunlight-shadow">
-                          {room.pricePerNight.toLocaleString('vi-VN')}đ/đêm
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-start text-left">
-                        <div>
-                          <span className="text-xs font-bold text-[#3e6135] uppercase tracking-widest mb-2 block">{categoryText}</span>
-                          <h4 className="font-headline text-xl font-bold mb-1 text-[#303330] group-hover:text-[#a43e24] transition-colors">{room.name}</h4>
-                          <p className="text-sm text-[#5d605c] line-clamp-2">{room.description || 'Không gian nghỉ dưỡng lý tưởng dành cho bé cưng.'}</p>
-                        </div>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleRoomClick(room.hotelId)
-                          }} 
-                          className="w-10 h-10 rounded-full border border-[#b1b2af]/40 flex items-center justify-center text-[#5d605c] hover:bg-[#a43e24] hover:text-white hover:border-[#a43e24] transition-all shrink-0 ml-4 bg-transparent outline-none cursor-pointer"
-                        >
-                          <ChevronRight size={16} />
-                        </button>
+              )}
+              {!isLoadingRooms && !roomsError && activeRoomsList.length > 3 && (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={prevRooms}
+                    disabled={roomIndex === 0}
+                    className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
+                      roomIndex === 0 ? 'opacity-30 border-[#b1b2af]/40 text-[#b1b2af]' : 'border-[#a43e24] text-[#a43e24] hover:bg-[#a43e24] hover:text-white cursor-pointer bg-transparent'
+                    }`}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button 
+                    onClick={nextRooms}
+                    disabled={roomIndex + 3 >= activeRoomsList.length}
+                    className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
+                      roomIndex + 3 >= activeRoomsList.length ? 'opacity-30 border-[#b1b2af]/40 text-[#b1b2af]' : 'border-[#a43e24] text-[#a43e24] hover:bg-[#a43e24] hover:text-white cursor-pointer bg-transparent'
+                    }`}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {isLoadingRooms ? (
+            /* Loading Skeleton (3 cards) */
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+              {[1, 2, 3].map((idx) => (
+                <div key={idx} className="animate-pulse flex flex-col">
+                  <div className="rounded-3xl h-[350px] bg-white/20 border border-[#e1e3df]/40 mb-6"></div>
+                  <div className="h-4 bg-white/20 rounded-full w-1/4 mb-3"></div>
+                  <div className="h-6 bg-white/20 rounded-full w-3/4 mb-2"></div>
+                  <div className="h-4 bg-white/20 rounded-full w-full"></div>
+                </div>
+              ))}
+            </div>
+          ) : roomsError ? (
+            /* Error State */
+            <div className="glass-card p-12 rounded-3xl border border-white/40 text-center max-w-lg mx-auto shadow-md">
+              <p className="text-stone-700 font-bold mb-6">{roomsError}</p>
+              <button 
+                onClick={fetchRooms}
+                className="px-6 py-2.5 bg-[#a43e24] hover:bg-[#a43e24]/90 text-white rounded-full font-bold text-sm shadow-md transition-all hover:scale-105 active:scale-95"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : activeRoomsList.length === 0 ? (
+            <div className="text-center py-12 text-stone-500 font-semibold text-sm">
+              Hiện tại chưa có phòng hoặc dịch vụ nào hoạt động.
+            </div>
+          ) : (
+            /* Room List with dynamic columns centering */
+            <div className={`grid gap-10 ${
+              activeRoomsList.length === 1 ? 'grid-cols-1 max-w-md mx-auto' : 
+              activeRoomsList.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' : 
+              'grid-cols-1 md:grid-cols-3'
+            }`}>
+              {displayedRooms.map((room: any) => {
+                const isDog = room.allowedPetTypes?.some((t: string) => t.toUpperCase().includes('DOG'))
+                const isCat = room.allowedPetTypes?.some((t: string) => t.toUpperCase().includes('CAT'))
+                const categoryText = isDog ? 'DÀNH CHO CHÓ' : isCat ? 'DÀNH CHO MÈO' : 'THÚ CƯNG KHÁC'
+                const roomImage = (room.images && room.images.length > 0) ? room.images[0] : 'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800'
+                
+                return (
+                  <div 
+                    key={room.id} 
+                    className="group cursor-pointer"
+                    onClick={() => handleRoomClick(room.hotelId)}
+                  >
+                    <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/5] sunlight-shadow bg-white">
+                      <img 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                        alt={room.name} 
+                        src={roomImage}
+                      />
+                      <div className="absolute inset-0 bg-[#a43e24]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-[#a43e24] font-bold text-sm sunlight-shadow">
+                        {room.pricePerNight.toLocaleString('vi-VN')}đ/đêm
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+                    <div className="flex justify-between items-start text-left">
+                      <div>
+                        <span className="text-xs font-bold text-[#3e6135] uppercase tracking-widest mb-2 block">{categoryText}</span>
+                        <h4 className="font-headline text-xl font-bold mb-1 text-[#303330] group-hover:text-[#a43e24] transition-colors">{room.name}</h4>
+                        <p className="text-sm text-[#5d605c] line-clamp-2">{room.description || 'Không gian nghỉ dưỡng lý tưởng dành cho bé cưng.'}</p>
+                      </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleRoomClick(room.hotelId)
+                        }} 
+                        className="w-10 h-10 rounded-full border border-[#b1b2af]/40 flex items-center justify-center text-[#5d605c] hover:bg-[#a43e24] hover:text-white hover:border-[#a43e24] transition-all shrink-0 ml-4 bg-transparent outline-none cursor-pointer"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* ── 5. SERVICE HIGHLIGHTS ──────────────────────────────── */}
       <section className="py-24 px-8 bg-[#f4f4f0]/40 backdrop-blur-md relative overflow-hidden text-left border-y border-[#e1e3df]">

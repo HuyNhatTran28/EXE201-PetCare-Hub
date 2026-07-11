@@ -113,6 +113,52 @@ const cleanFormalPrefixes = (str: string, pattern: RegExp) => {
     current = current.replace(pattern, '').trim();
   }
   return current;
+};const PROVINCES_AND_CITIES = [
+  'Thành phố Hà Nội',
+  'Thành phố Huế',
+  'Thành phố Hồ Chí Minh',
+  'Thành phố Hải Phòng',
+  'Thành phố Đà Nẵng',
+  'Thành phố Cần Thơ',
+  'Tỉnh Lai Châu',
+  'Tỉnh Điện Biên',
+  'Tỉnh Sơn La',
+  'Tỉnh Lạng Sơn',
+  'Tỉnh Quảng Ninh',
+  'Tỉnh Thanh Hoá',
+  'Tỉnh Nghệ An',
+  'Tỉnh Hà Tĩnh',
+  'Tỉnh Cao Bằng',
+  'Tỉnh Tuyên Quang',
+  'Tỉnh Lào Cai',
+  'Tỉnh Thái Nguyên',
+  'Tỉnh Phú Thọ',
+  'Tỉnh Bắc Ninh',
+  'Tỉnh Hưng Yên',
+  'Tỉnh Ninh Bình',
+  'Tỉnh Quảng Trị',
+  'Tỉnh Quảng Ngãi',
+  'Tỉnh Gia Lai',
+  'Tỉnh Khánh Hoà',
+  'Tỉnh Lâm Đồng',
+  'Tỉnh Đắk Lắk',
+  'Tỉnh Đồng Nai',
+  'Tỉnh Tây Ninh',
+  'Tỉnh Vĩnh Long',
+  'Tỉnh Đồng Tháp',
+  'Tỉnh Cà Mau',
+  'Tỉnh An Giang'
+];
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) {
+    return 'Chào buổi sáng';
+  } else if (hour >= 12 && hour < 18) {
+    return 'Chào buổi chiều';
+  } else {
+    return 'Chào buổi tối';
+  }
 };
 
 export const PartnerDashboard = () => {
@@ -1362,7 +1408,7 @@ export const PartnerDashboard = () => {
                 activeTab === 'paperless' ? 'Quy trình Không giấy tờ' :
                   activeTab === 'analytics' ? 'Phân tích & CRM' :
                     activeTab === 'settings' ? 'Cấu hình Hệ thống' :
-                      `Chào buổi sáng, ${user?.fullName || 'Đối tác'}! 🐾`}
+                      `${getGreeting()}, ${user?.fullName || 'Đối tác'}!`}
             </h1>
             <p className="text-[#8a7e75] text-sm max-w-xl">
               {activeTab === 'bookings' ? 'Quản lý trạng thái phòng nghỉ và lịch trình đón thú cưng trong tuần này.' :
@@ -3282,10 +3328,9 @@ export const PartnerDashboard = () => {
                         onChange={e => setHotelProvince(e.target.value)}
                         className="w-full p-2.5 bg-white border border-[#e5d8d0] rounded-xl outline-none cursor-pointer"
                       >
-                        <option value="Thành phố Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                        <option value="Hà Nội">Hà Nội</option>
-                        <option value="Đà Nẵng">Đà Nẵng</option>
-                        <option value="Bình Dương">Bình Dương</option>
+                        {PROVINCES_AND_CITIES.map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
                       </select>
                     </div>
                     <div>

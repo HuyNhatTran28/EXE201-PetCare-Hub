@@ -34,4 +34,6 @@ public interface AuthService {
     void sendForgotPasswordOtp(String email);
 
     void resetPassword(String email, String otpCode, String newPassword);
+
+    void createAndSendRegisterOtp(String email, String fullName);
 }

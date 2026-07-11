@@ -13,14 +13,6 @@ import {
   Building,
   Camera
 } from 'lucide-react'
-
-const MOCK_PET_IMAGES = [
-  'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600', // Dog playing
-  'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=600', // Cat sleeping
-  'https://images.unsplash.com/photo-1477884213960-b99d26d965df?auto=format&fit=crop&q=80&w=600', // Happy dog
-  'https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&q=80&w=600', // Relaxed cat
-  'https://images.unsplash.com/photo-1535268647977-a403b69fc757?auto=format&fit=crop&q=80&w=600'  // Pet eating
-]
 import axiosInstance from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
 

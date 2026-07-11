@@ -5,10 +5,25 @@ import { Eye, EyeOff, Mail, Lock, PawPrint, X, Key, CheckCircle } from 'lucide-r
 import { useLogin } from '@/features/auth/hooks/useLogin'
 import type { LoginRequest } from '@/features/auth/types'
 import axiosInstance from '@/lib/axios'
+import corgiImg from '@/assets/corgi.png'
 
 export const LoginPage = () => {
     const [showPassword, setShowPassword] = useState(false)
     const { mutate: login, isPending, isError, error } = useLogin()
+    const [oauthError, setOauthError] = useState('')
+    const [showUnregisteredModal, setShowUnregisteredModal] = useState(false)
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        const errParam = params.get('error')
+        if (errParam) {
+            if (errParam.includes('chưa được đăng ký') || errParam.includes('chưa đăng ký')) {
+                setShowUnregisteredModal(true)
+            } else {
+                setOauthError(errParam)
+            }
+        }
+    }, [])
 
     // States for Forgot Password Modal
     const [showForgotModal, setShowForgotModal] = useState(false)
@@ -188,33 +203,16 @@ export const LoginPage = () => {
 
                         <div className="relative w-full max-w-sm">
                             <img
-                                src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=700"
-                                alt="Chó vui vẻ"
+                                src={corgiImg}
+                                alt="Chó Corgi vui vẻ"
                                 className="w-full h-60 object-cover rounded-2xl shadow-lg"
                             />
-                            {/* Badge đè lên ảnh */}
-                            <div
-                                className="absolute -bottom-5 right-[-0.75rem] inline-flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg"
-                                style={{ backgroundColor: '#ffffff', border: '1px solid #f0e4de' }}
-                            >
-                                <div className="p-2 rounded-xl" style={{ backgroundColor: '#fff0e6' }}>
-                                    <PawPrint size={18} style={{ color: '#fa7150' }} />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: '#a43e24' }}>
-                                        Trải nghiệm
-                                    </p>
-                                    <p className="text-xs font-semibold leading-tight" style={{ color: '#303330' }}>
-                                        Hơn 500+ thú cưng<br />đã lưu trú vui vẻ.
-                                    </p>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
                     {/* Footer */}
                     <p className="text-xs z-10 mt-14" style={{ color: '#b07060' }}>
-                        © 2024 PetCare Hub. Đã đăng ký bản quyền.
+                        © 2026 PetCare Hub. Đã đăng ký bản quyền.
                     </p>
                 </div>
 
@@ -260,7 +258,7 @@ export const LoginPage = () => {
                         </div>
 
                         {/* Lỗi API */}
-                        {isError && (
+                        {(isError || oauthError) && (
                             <div
                                 className="mb-4 p-3 rounded-xl text-sm"
                                 style={{
@@ -269,7 +267,7 @@ export const LoginPage = () => {
                                     border: '1px solid #ffac98',
                                 }}
                             >
-                                {(error as any)?.response?.data?.message || 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.'}
+                                {oauthError || (error as any)?.response?.data?.message || 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.'}
                             </div>
                         )}
 
@@ -392,7 +390,7 @@ export const LoginPage = () => {
                         <button
                             type="button"
                             onClick={() => {
-                                window.location.href = `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/oauth2/authorization/google`
+                                window.location.href = `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/api/auth/oauth2/login`
                             }}
                             className="w-full py-3 rounded-xl text-sm font-semibold border flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
                             style={{
@@ -698,6 +696,47 @@ export const LoginPage = () => {
                                 </form>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* ── Unregistered User Modal ── */}
+            {showUnregisteredModal && (
+                <div 
+                    className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+                    onClick={() => setShowUnregisteredModal(false)}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] p-10 max-w-md w-full shadow-2xl border border-[#e5d8d0] animate-in fade-in zoom-in duration-200 text-left relative cursor-default"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-2xl font-black mb-3" style={{ color: '#303330' }}>
+                                    Tài khoản chưa được đăng ký
+                                </h3>
+                                <p className="text-xs font-bold leading-relaxed mb-2" style={{ color: '#8a7e75' }}>
+                                    Tài khoản của bạn chưa được đăng ký trên hệ thống. Vui lòng đăng ký tài khoản mới để tiếp tục.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                                <Link
+                                    to="/register"
+                                    onClick={() => setShowUnregisteredModal(false)}
+                                    className="flex-1 py-4 text-center bg-[#fa7150] hover:bg-[#a43e24] text-white rounded-full font-bold text-xs uppercase tracking-wider transition-all shadow-lg cursor-pointer"
+                                >
+                                    Đăng ký ngay
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowUnregisteredModal(false)}
+                                    className="flex-1 py-4 border border-[#e5dbd4] rounded-full text-[#303330] font-bold text-xs uppercase tracking-wider transition-all hover:bg-gray-50 cursor-pointer"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

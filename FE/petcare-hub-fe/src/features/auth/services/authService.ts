@@ -13,7 +13,7 @@ export const authService = {
         return res.data
     },
 
-    verifyRegisterOtp: async (data: { email: string; otpCode: string }): Promise<AuthResponse> => {
+    verifyRegisterOtp: async (data: { email: string; otpCode: string; role?: string }): Promise<AuthResponse> => {
         const res = await axiosInstance.post('/api/auth/register/verify', data)
         return res.data
     },

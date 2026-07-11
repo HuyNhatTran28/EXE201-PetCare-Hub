@@ -12,13 +12,6 @@ interface HotelOption {
   name: string
 }
 
-const MOCK_PET_IMAGES = [
-  'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=300',
-  'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=300',
-  'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=300',
-  'https://images.unsplash.com/photo-1537151608828-ea2b117b6b86?auto=format&fit=crop&q=80&w=300',
-  'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&q=80&w=300'
-]
 
 const formatDiaryTime = (timeStr: string) => {
   try {
