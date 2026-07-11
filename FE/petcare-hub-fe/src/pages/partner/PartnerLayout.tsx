@@ -99,22 +99,7 @@ export const PartnerLayout = () => {
   const [notifications, setNotifications] = useState<ToastNotification[]>(() => {
     const saved = localStorage.getItem('petcare_notifications')
     if (saved) return JSON.parse(saved)
-    return [
-      {
-        id: 'seed-b1',
-        title: 'Đơn đặt phòng mới #BK-938',
-        message: 'Khách hàng Trí Dương vừa đặt phòng Luxury Suite cho bé MiLu.',
-        type: 'booking',
-        bookingId: 'bk-mock-123'
-      },
-      {
-        id: 'seed-l1',
-        title: 'Lượt yêu thích mới',
-        message: 'Chủ nuôi Trí Dương đã thích nhật ký của bé MiLu.',
-        type: 'like',
-        bookingId: 'bk-mock-123'
-      }
-    ]
+    return []
   })
   const [showNotifDropdown, setShowNotifDropdown] = useState(false)
   const [totalUnread, setTotalUnread]             = useState(0)

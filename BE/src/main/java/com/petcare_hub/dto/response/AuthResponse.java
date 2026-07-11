@@ -29,5 +29,6 @@ public class AuthResponse {
         private String avatarUrl;
         private Role role;
         private Boolean mustChangePassword;
+        private Boolean isVerified;
     }
 }

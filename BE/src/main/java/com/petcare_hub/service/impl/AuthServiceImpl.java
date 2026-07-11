@@ -96,9 +96,7 @@ public class AuthServiceImpl implements AuthService {
         log.info("User mới đăng ký (chưa xác thực): {} ({})", savedUser.getEmail(), savedUser.getRole());
 
         // Sinh OTP đăng ký và gửi email
-        String otpCode = generateOtp();
-        registerOtpStore.put(savedUser.getEmail().toLowerCase().trim(), new OtpEntry(otpCode, LocalDateTime.now().plusMinutes(5)));
-        sendRegisterOtpEmail(savedUser.getEmail(), savedUser.getFullName(), otpCode);
+        createAndSendRegisterOtp(savedUser.getEmail(), savedUser.getFullName());
 
         return java.util.Map.of(
                 "message", "Mã OTP xác thực đã được gửi về email của bạn. Vui lòng kiểm tra hộp thư.",
@@ -210,6 +208,7 @@ public class AuthServiceImpl implements AuthService {
                 .avatarUrl(user.getAvatarUrl())
                 .role(user.getRole())
                 .mustChangePassword(user.getMustChangePassword())
+                .isVerified(user.getIsVerified())
                 .build();
     }
 
@@ -439,6 +438,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse verifyRegisterOtp(com.petcare_hub.dto.request.VerifyRegisterOtpRequest request) {
+        log.info("verifyRegisterOtp request: email={}, otpCode={}, role={}", request.getEmail(), request.getOtpCode(), request.getRole());
         String emailClean = request.getEmail().toLowerCase().trim();
         User user = userRepository.findByEmail(emailClean)
                 .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
@@ -464,9 +464,19 @@ public class AuthServiceImpl implements AuthService {
         // OTP đúng -> kích hoạt tài khoản
         registerOtpStore.remove(emailClean);
         user.setIsVerified(true);
+
+        // Cập nhật role nếu được gửi lên
+        if (request.getRole() != null) {
+            try {
+                user.setRole(com.petcare_hub.enums.Role.valueOf(request.getRole().toUpperCase().trim()));
+            } catch (Exception e) {
+                log.warn("Invalid role passed to verifyRegisterOtp: {}", request.getRole());
+            }
+        }
+
         userRepository.save(user);
 
-        log.info("User {} xác thực tài khoản thành công qua OTP đăng ký", user.getEmail());
+        log.info("User {} xác thực tài khoản thành công qua OTP đăng ký với role: {}", user.getEmail(), user.getRole());
         return buildAuthResponse(user);
     }
 
@@ -481,7 +491,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String otpCode = generateOtp();
-        registerOtpStore.put(emailClean, new OtpEntry(otpCode, LocalDateTime.now().plusMinutes(5)));
+        registerOtpStore.put(emailClean, new OtpEntry(otpCode, LocalDateTime.now().plusMinutes(1)));
         sendRegisterOtpEmail(user.getEmail(), user.getFullName(), otpCode);
         log.info("Gửi lại mã OTP đăng ký thành công cho: {}", user.getEmail());
     }
@@ -520,7 +530,7 @@ public class AuthServiceImpl implements AuthService {
                     </div>
                     
                     <p style="color: #666666; font-size: 14px; margin-bottom: 5px;">
-                        Mã này có hiệu lực trong <strong style="color: #fa7150;">5 phút</strong>.
+                        Mã này có hiệu lực trong <strong style="color: #fa7150;">1 phút</strong>.
                     </p>
                     <p style="color: #888888; font-size: 13px; margin-top: 0; font-style: italic;">
                         Nếu bạn không thực hiện đăng ký tài khoản này, vui lòng bỏ qua email.
@@ -535,5 +545,13 @@ public class AuthServiceImpl implements AuthService {
             </div>
         </div>
         """.formatted(fullName, otpCode);
+    }
+
+    @Override
+    @Transactional
+    public void createAndSendRegisterOtp(String email, String fullName) {
+        String otpCode = generateOtp();
+        registerOtpStore.put(email.toLowerCase().trim(), new OtpEntry(otpCode, LocalDateTime.now().plusMinutes(1)));
+        sendRegisterOtpEmail(email, fullName, otpCode);
     }
 }

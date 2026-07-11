@@ -80,6 +80,7 @@ public class DataSeeder implements CommandLineRunner {
             }
         }
 
+
         // 2. Get or Create Clients (Pet Owners)
         User client1 = getOrCreateClient("minhanh.nguyen@gmail.com", "Nguyễn Minh Anh", "0987654321");
         User client2 = getOrCreateClient("lebinh.pet@gmail.com", "Lê Thị Bình", "0901234567");
