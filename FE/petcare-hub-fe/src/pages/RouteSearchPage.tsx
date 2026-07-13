@@ -142,17 +142,12 @@ export const RouteSearchPage = () => {
         rating: h.averageRating || null,
         totalReviews: h.totalReviews || 0,
         price: h.minPrice || undefined,
-        tags:
-          h.allowedPetTypes?.length > 0
-            ? h.allowedPetTypes
-            : idx % 2 === 0
-              ? ['Dogs', 'Cats']
-              : ['Small Pets'],
+        tags: h.allowedPetTypes || [],
         image:
           h.imageUrls && h.imageUrls.length > 0
             ? h.imageUrls[0]
             : DEFAULT_HOTEL_IMAGES[idx % DEFAULT_HOTEL_IMAGES.length],
-        isPopular: idx % 3 === 0,
+        isPopular: (h.averageRating && h.averageRating >= 4.8 && h.totalReviews > 5) || false,
         locationLat: h.locationLat,
         locationLong: h.locationLong,
         amenities: h.amenities || []

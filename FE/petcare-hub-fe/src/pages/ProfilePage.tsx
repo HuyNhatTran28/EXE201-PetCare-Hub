@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { Header } from '@/components/Header'
 import axiosInstance from '@/lib/axios'
 import {
   PawPrint,
@@ -24,7 +25,7 @@ import {
 
 
 export const ProfilePage = () => {
-  const { user, logout } = useAuthStore()
+  const { user, logout, updateUser } = useAuthStore()
   const navigate = useNavigate()
 
   // Lấy role hiện tại của user để phân luồng giao diện
@@ -35,6 +36,14 @@ export const ProfilePage = () => {
   const [phone, setPhone] = useState(user?.phone || '')
   const [address, setAddress] = useState(user?.address || '')
   const [isSaved, setIsSaved] = useState(false)
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.fullName || '')
+      setPhone(user.phone || '')
+      setAddress(user.address || '')
+    }
+  }, [user])
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -126,6 +135,19 @@ export const ProfilePage = () => {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!fullName.trim()) {
+      alert('Vui lòng nhập Họ và tên!')
+      return
+    }
+    if (!phone.trim()) {
+      alert('Vui lòng nhập Số điện thoại!')
+      return
+    }
+    updateUser({
+      fullName,
+      phone,
+      address
+    })
     setIsSaved(true)
     setTimeout(() => setIsSaved(false), 2000)
   }
@@ -221,6 +243,34 @@ export const ProfilePage = () => {
     navigate('/login')
   }
 
+  if (currentRole === 'OWNER') {
+    return (
+      <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans flex flex-col selection:bg-[#fa7150] selection:text-white">
+        <Header />
+        
+        <main className="flex-grow max-w-4xl w-full mx-auto p-6 md:p-12 text-left space-y-8 animate-in fade-in duration-300">
+          <div>
+            <h2 className="text-3xl sm:text-5xl font-black text-[#303330]">Hội viên & Điểm thưởng</h2>
+            <p className="text-[#5a5550] text-sm mt-2">Chào mừng quay trở lại! Bạn đang sở hữu những đặc quyền khách hàng thân thiết hàng đầu.</p>
+          </div>
+
+          {/* Loyalty points card */}
+          <div className="bg-[#1e392a] text-white p-8 rounded-3xl flex justify-between items-center shadow-xl">
+            <div>
+              <span className="bg-white/10 px-3 py-1 rounded-full text-[9px] font-black uppercase">Đặc quyền Gold</span>
+              <h3 className="text-2xl font-black mt-4">Điểm Tích Lũy Của Bạn</h3>
+            </div>
+            <div className="text-center bg-white/10 p-6 rounded-2xl border border-white/10">
+              <Coins size={32} className="text-[#fa7150] mx-auto mb-1" />
+              <p className="text-2xl font-black">450 Pts</p>
+              <span className="text-[9px] uppercase font-bold text-gray-300">Hạng Vàng</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#303330] font-sans flex flex-col md:flex-row selection:bg-[#fa7150] selection:text-white">
 
@@ -238,25 +288,7 @@ export const ProfilePage = () => {
 
         <nav className="flex-grow space-y-1 relative z-10">
           {/* OWNER Links */}
-          {currentRole === 'OWNER' && (
-            <>
-              <Link to="/" className="flex items-center text-[#5a5550] hover:text-[#fa7150] hover:bg-white/40 px-8 py-3.5 transition-all text-xs font-bold uppercase tracking-wider">
-                <PawPrint size={16} className="mr-4" /> Trang chủ
-              </Link>
-              <Link to="/hotels" className="flex items-center text-[#5a5550] hover:text-[#fa7150] hover:bg-white/40 px-8 py-3.5 transition-all text-xs font-bold uppercase tracking-wider">
-                <CalendarDays size={16} className="mr-4" /> Đặt phòng
-              </Link>
-              <Link to="/pets" className="flex items-center text-[#5a5550] hover:text-[#fa7150] hover:bg-white/40 px-8 py-3.5 transition-all text-xs font-bold uppercase tracking-wider">
-                <User size={16} className="mr-4" /> Thú cưng của tôi
-              </Link>
-              <Link to="/my-bookings" className="flex items-center text-[#5a5550] hover:text-[#fa7150] hover:bg-white/40 px-8 py-3.5 transition-all text-xs font-bold uppercase tracking-wider">
-                <ClipboardList size={16} className="mr-4" /> Nhật ký hoạt động
-              </Link>
-              <Link to="/profile" className="flex items-center bg-white text-[#fa7150] font-black px-8 py-3.5 mx-4 rounded-2xl shadow-sm text-xs font-bold uppercase tracking-wider">
-                <Crown size={16} className="mr-4" /> Điểm thành viên
-              </Link>
-            </>
-          )}
+
 
           {/* PARTNER Links */}
           {currentRole === 'PARTNER' && (
@@ -308,51 +340,7 @@ export const ProfilePage = () => {
       {/* ── NỘI DUNG CHÍNH DYNAMIC THEO ROLE ── */}
       <main className="flex-grow p-6 md:p-12 text-left">
 
-        {/* ── 1. GIAO DIỆN CHỦ THÚ CƯNG (OWNER) ── */}
-        {currentRole === 'OWNER' && (
-          <div className="space-y-12 animate-in fade-in duration-300">
-            <h2 className="text-3xl sm:text-5xl font-black text-[#303330]">Hội viên & Điểm thưởng</h2>
-            <p className="text-[#5a5550] text-sm">Chào mừng quay trở lại! Bạn đang sở hữu những đặc quyền khách hàng thân thiết hàng đầu.</p>
 
-            {/* Loyalty points card */}
-            <div className="bg-[#1e392a] text-white p-8 rounded-3xl flex justify-between items-center shadow-xl">
-              <div>
-                <span className="bg-white/10 px-3 py-1 rounded-full text-[9px] font-black uppercase">Đặc quyền Gold</span>
-                <h3 className="text-2xl font-black mt-4">Điểm Tích Lũy Của Bạn</h3>
-              </div>
-              <div className="text-center bg-white/10 p-6 rounded-2xl border border-white/10">
-                <Coins size={32} className="text-[#fa7150] mx-auto mb-1" />
-                <p className="text-2xl font-black">450 Pts</p>
-                <span className="text-[9px] uppercase font-bold text-gray-300">Hạng Vàng</span>
-              </div>
-            </div>
-
-            {/* Profile Edit */}
-            <div className="bg-white p-8 rounded-3xl border border-[#e5d8d0] shadow-sm">
-              <h3 className="text-lg font-black mb-6">Cập nhật thông tin tài khoản</h3>
-              {isSaved && <div className="mb-4 text-xs font-bold text-[#44683b]">Cập nhật thành công!</div>}
-              <form onSubmit={handleSaveProfile} className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-bold">
-                <div>
-                  <label className="block text-[#8a7e75] mb-2 uppercase">Họ và tên</label>
-                  <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-2xl outline-none" />
-                </div>
-                <div>
-                  <label className="block text-[#8a7e75] mb-2 uppercase">Số điện thoại</label>
-                  <input type="text" value={phone} onChange={e => setPhone(e.target.value)} className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-2xl outline-none" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-[#8a7e75] mb-2 uppercase">Địa chỉ</label>
-                  <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-2xl outline-none" />
-                </div>
-                <div className="md:col-span-2 text-right">
-                  <button type="submit" className="bg-[#fa7150] text-white px-6 py-3 rounded-full uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg">
-                    Lưu thay đổi
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
         {/* ── 2. GIAO DIỆN CHỦ KHÁCH SẠN (PARTNER) ── */}
         {currentRole === 'PARTNER' && (

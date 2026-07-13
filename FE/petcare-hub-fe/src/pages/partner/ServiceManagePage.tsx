@@ -39,6 +39,13 @@ export const ServiceManagePage = () => {
   const [editService, setEditService] = useState<Service | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [focusedInput, setFocusedInput] = useState<string | null>(null)
+  
+  const formatNumberWithDots = (val: number | string | null | undefined) => {
+    if (val === undefined || val === null || val === '') return ''
+    const num = Number(String(val).replace(/[^0-9]/g, ''))
+    return num.toLocaleString('vi-VN')
+  }
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -107,12 +114,22 @@ export const ServiceManagePage = () => {
 
   const handleCreate = async () => {
     if (!form.name || !form.price) return
-    if (Number(form.price) < 0) {
+    const priceVal = Number(form.price)
+    if (priceVal < 0) {
       alert('Giá dịch vụ không được âm!')
       return
     }
-    if (Number(form.durationMinutes) < 0) {
+    if (priceVal > 10000000) {
+      alert('Giá dịch vụ tối đa là 10.000.000 đ!')
+      return
+    }
+    const durationVal = Number(form.durationMinutes) || 0
+    if (durationVal < 0) {
       alert('Thời gian dịch vụ không được âm!')
+      return
+    }
+    if (durationVal > 1440) {
+      alert('Thời gian dịch vụ tối đa là 1.440 phút (24 giờ)!')
       return
     }
     setSubmitting(true)
@@ -138,12 +155,22 @@ export const ServiceManagePage = () => {
 
   const handleUpdate = async () => {
     if (!editService) return
-    if (Number(editService.price) < 0) {
+    const priceVal = Number(editService.price)
+    if (priceVal < 0) {
       alert('Giá dịch vụ không được âm!')
       return
     }
-    if (Number(editService.durationMinutes) < 0) {
+    if (priceVal > 10000000) {
+      alert('Giá dịch vụ tối đa là 10.000.000 đ!')
+      return
+    }
+    const durationVal = Number(editService.durationMinutes) || 0
+    if (durationVal < 0) {
       alert('Thời gian dịch vụ không được âm!')
+      return
+    }
+    if (durationVal > 1440) {
+      alert('Thời gian dịch vụ tối đa là 1.440 phút (24 giờ)!')
       return
     }
     setSubmitting(true)
@@ -429,12 +456,26 @@ export const ServiceManagePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá (đ) *</label>
                   <input
-                    type="number"
-                    min="0"
-                    value={editService ? editService.price : form.price}
-                    onChange={e => editService
-                      ? setEditService({ ...editService, price: Number(e.target.value) })
-                      : setForm({ ...form, price: e.target.value })}
+                    type="text"
+                    value={
+                      focusedInput === 'servicePrice'
+                        ? (editService ? editService.price : form.price)
+                        : formatNumberWithDots(editService ? editService.price : form.price)
+                    }
+                    onFocus={() => setFocusedInput('servicePrice')}
+                    onBlur={() => setFocusedInput(null)}
+                    onChange={e => {
+                      let val = e.target.value.replace(/[^0-9]/g, '')
+                      if (Number(val) > 10000000) {
+                        alert('Giá dịch vụ tối đa được phép thiết lập là 10.000.000 đ.')
+                        val = '10000000'
+                      }
+                      if (editService) {
+                        setEditService({ ...editService, price: Number(val) })
+                      } else {
+                        setForm({ ...form, price: val })
+                      }
+                    }}
                     placeholder="150000"
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
                   />
@@ -442,12 +483,20 @@ export const ServiceManagePage = () => {
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Thời gian (phút)</label>
                   <input
-                    type="number"
-                    min="0"
+                    type="text"
                     value={editService ? editService.durationMinutes : form.durationMinutes}
-                    onChange={e => editService
-                      ? setEditService({ ...editService, durationMinutes: Number(e.target.value) })
-                      : setForm({ ...form, durationMinutes: e.target.value })}
+                    onChange={e => {
+                      let val = e.target.value.replace(/[^0-9]/g, '')
+                      if (Number(val) > 1440) {
+                        alert('Thời gian dịch vụ tối đa được phép thiết lập là 1.440 phút (24 giờ).')
+                        val = '1440'
+                      }
+                      if (editService) {
+                        setEditService({ ...editService, durationMinutes: Number(val) })
+                      } else {
+                        setForm({ ...form, durationMinutes: val })
+                      }
+                    }}
                     placeholder="60"
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
                   />

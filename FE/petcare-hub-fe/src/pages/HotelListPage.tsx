@@ -94,17 +94,15 @@ export const HotelListPage = () => {
           rating: h.averageRating || null,
           totalReviews: h.totalReviews || 0,
           price: h.minPrice || undefined,
-          tags: h.allowedPetTypes?.length > 0 ? h.allowedPetTypes : (idx % 2 === 0 ? ['Dogs', 'Cats'] : ['Small Pets']),
+          tags: h.allowedPetTypes || [],
           image: (h.imageUrls && h.imageUrls.length > 0)
             ? h.imageUrls[0]
             : DEFAULT_HOTEL_IMAGES[idx % DEFAULT_HOTEL_IMAGES.length],
           imageUrls: (h.imageUrls && h.imageUrls.length > 0)
             ? h.imageUrls
             : [DEFAULT_HOTEL_IMAGES[idx % DEFAULT_HOTEL_IMAGES.length]],
-          isPopular: idx % 3 === 0,
-          amenities: (h.amenities && h.amenities.some((a: string) => ['Private Garden', 'Điều hòa (AC)', 'Camera 24/7', 'Đệm ngủ cao cấp'].includes(a)))
-            ? h.amenities
-            : (idx % 3 === 0 ? ['Camera 24/7'] : idx % 3 === 1 ? ['Private Garden'] : ['Điều hòa (AC)'])
+          isPopular: (h.averageRating && h.averageRating >= 4.8 && h.totalReviews > 5) || false,
+          amenities: h.amenities || []
         }))
         setHotels(list)
       } else {
@@ -381,16 +379,18 @@ export const HotelListPage = () => {
                         </div>
 
                         {/* Tags list */}
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {hotel.tags?.map((tag, idx) => {
-                            const tagVi = tag === 'Dogs' ? 'Chó' : tag === 'Cats' ? 'Mèo' : tag === 'Small Pets' ? 'Thú nhỏ' : tag === 'CAT' ? 'Mèo' : tag === 'DOG' ? 'Chó' : tag === 'DOG_SMALL' ? 'Chó & Thú nhỏ' : tag === 'CAT_SMALL' ? 'Mèo & Thú nhỏ' : tag
-                            return (
-                            <span key={idx} className="bg-[#feeadb]/60 text-[#a43e24] px-3 py-1 rounded-full text-[10px] font-bold">
-                              {tagVi}
-                            </span>
-                            )
-                          })}
-                        </div>
+                        {hotel.tags && hotel.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {hotel.tags.map((tag, idx) => {
+                              const tagVi = tag === 'Dogs' ? 'Chó' : tag === 'Cats' ? 'Mèo' : tag === 'Small Pets' ? 'Thú nhỏ' : tag === 'CAT' ? 'Mèo' : tag === 'DOG' ? 'Chó' : tag === 'DOG_SMALL' ? 'Chó & Thú nhỏ' : tag === 'CAT_SMALL' ? 'Mèo & Thú nhỏ' : tag
+                              return (
+                                <span key={idx} className="bg-[#feeadb]/60 text-[#a43e24] px-3 py-1 rounded-full text-[10px] font-bold">
+                                  {tagVi}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        )}
                       </div>
 
                       {/* Action buttons row */}
