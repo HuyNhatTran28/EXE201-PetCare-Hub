@@ -1149,10 +1149,18 @@ export const HotelDetailPage = () => {
                   <div>
                     <p className="text-[#8a7e75] text-xs font-bold uppercase tracking-wider">Giá khởi điểm từ</p>
                     <div className="flex items-baseline gap-1 mt-1">
-                      <span className="text-3xl font-black text-[#a43e24]">
-                        {(roomTypes[0]?.pricePerNight || 1200000).toLocaleString('vi-VN')} đ
-                      </span>
-                      <span className="text-xs text-[#8a7e75]">/đêm</span>
+                      {roomTypes && roomTypes.length > 0 ? (
+                        <>
+                          <span className="text-3xl font-black text-[#a43e24]">
+                            {roomTypes[0].pricePerNight.toLocaleString('vi-VN')} đ
+                          </span>
+                          <span className="text-xs text-[#8a7e75]">/đêm</span>
+                        </>
+                      ) : (
+                        <span className="text-xl font-black text-[#a43e24]">
+                          Chưa có phòng
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1173,6 +1181,7 @@ export const HotelDetailPage = () => {
                   </div>
 
                   <button 
+                    disabled={!roomTypes || roomTypes.length === 0}
                     onClick={() => {
                       if (!user) {
                         navigate('/login', { state: { from: `/hotels/${id}` } })
@@ -1181,7 +1190,11 @@ export const HotelDetailPage = () => {
                         setStep(1) // Start from Step 1
                       }
                     }}
-                    className="w-full py-4 rounded-full bg-[#a43e24] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#a43e24]/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#a43e24]/10"
+                    className={`w-full py-4 rounded-full font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                      !roomTypes || roomTypes.length === 0
+                        ? 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
+                        : 'bg-[#a43e24] text-white hover:bg-[#a43e24]/90 shadow-lg shadow-[#a43e24]/10'
+                    }`}
                   >
                     Đặt phòng ngay <ArrowRight size={14} />
                   </button>

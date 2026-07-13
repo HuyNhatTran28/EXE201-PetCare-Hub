@@ -140,7 +140,7 @@ export const RouteSearchPage = () => {
         address: h.address || 'Hồ Chí Minh, Việt Nam',
         rating: h.averageRating || null,
         totalReviews: h.totalReviews || 0,
-        price: h.minPrice || (300000 + (idx % 4) * 100000),
+        price: h.minPrice || undefined,
         tags:
           h.allowedPetTypes?.length > 0
             ? h.allowedPetTypes
@@ -802,8 +802,10 @@ export const RouteSearchPage = () => {
             </p>
 
             <p style="margin: 0 0 10px; color: #fa7150; font-weight: 900; font-size: 13px;">
-              ${(hotel.price || 0).toLocaleString('vi-VN')}đ
-              <span style="font-size: 10px; font-weight: normal; color: #8a7e75;">/đêm</span>
+              ${hotel.price
+                ? `${hotel.price.toLocaleString('vi-VN')}đ<span style="font-size: 10px; font-weight: normal; color: #8a7e75;">/đêm</span>`
+                : 'Chưa có phòng'
+              }
             </p>
 
             <div style="display: flex; gap: 8px; margin-top: 8px;">

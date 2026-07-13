@@ -256,6 +256,7 @@ export const PartnerDashboard = () => {
 
   // Step 1: Store Profile
   const [newHotelName, setNewHotelName] = useState('')
+  const [description, setDescription] = useState('')
   const [hotelProvince, setHotelProvince] = useState('Thành phố Hồ Chí Minh')
   const [hotelDistrict, setHotelDistrict] = useState('')
   const [hotelWard, setHotelWard] = useState('')
@@ -619,6 +620,7 @@ export const PartnerDashboard = () => {
         frontUrl,
         roomsUrl,
         imageUrls: hotelImages,
+        description: description,
       }
 
       const payload = {
@@ -698,6 +700,7 @@ export const PartnerDashboard = () => {
   const handleOpenNewHotelModal = () => {
     setEditingHotelId(null)
     setNewHotelName('')
+    setDescription('')
     setHotelStreet('')
     setHotelWard('')
     setHotelDistrict('')
@@ -817,6 +820,7 @@ export const PartnerDashboard = () => {
         setRoomsUrl(Array.isArray(extra.roomsUrl) ? (extra.roomsUrl[0] || '') : (extra.roomsUrl || ''))
         setHotelImages(extra.imageUrls || [])
         setPetTarget(extra.petTarget || 'BOTH')
+        setDescription(extra.description || '')
 
         setCccdNumber(extra.cccd?.number || fallbackCccd)
         setCccdFrontUrl(extra.cccd?.frontUrl || fallbackCccdFront)
@@ -3315,6 +3319,17 @@ export const PartnerDashboard = () => {
                       <option value="CAT_ONLY">Chỉ nhận Mèo</option>
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-[#8a7e75] mb-1.5 uppercase">Mô tả / Giới thiệu cơ sở</label>
+                  <textarea
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Nhập đoạn mô tả ngắn giới thiệu về cơ sở của bạn (VD: Khách sạn thú cưng tiêu chuẩn 5 sao với phòng ốc máy lạnh sạch sẽ, có camera giám sát...)"
+                    rows={3}
+                    className="w-full p-3 bg-[#fdfaf8] border border-[#e5d8d0] rounded-xl outline-none focus:border-[#fa7150] resize-none text-xs font-semibold"
+                  />
                 </div>
 
                 {/* Địa chỉ phân cấp */}
