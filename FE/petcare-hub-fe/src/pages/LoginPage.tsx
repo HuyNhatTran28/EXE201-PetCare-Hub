@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { Eye, EyeOff, Mail, Lock, PawPrint, X, Key, CheckCircle } from 'lucide-react'
 import { useLogin } from '@/features/auth/hooks/useLogin'
@@ -8,6 +9,15 @@ import axiosInstance from '@/lib/axios'
 import corgiImg from '@/assets/corgi.png'
 
 export const LoginPage = () => {
+    const itemVariants = {
+        hidden: { opacity: 0, y: 15 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as any }
+        }
+    }
+
     const [showPassword, setShowPassword] = useState(false)
     const { mutate: login, isPending, isError, error } = useLogin()
     const [oauthError, setOauthError] = useState('')
@@ -155,10 +165,13 @@ export const LoginPage = () => {
     return (
         <div
             className="min-h-screen flex items-center justify-center p-4 sm:p-6"
-            style={{ backgroundColor: '#f5ede8' }}
+            style={{ background: 'linear-gradient(to bottom, #fdfbf7 0%, #f5ede8 100%)' }}
         >
             {/* ── Card bọc cả hai cột ────────────────────────── */}
-            <div
+            <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as any }}
                 className="w-full max-w-6xl flex rounded-3xl overflow-hidden shadow-2xl"
                 style={{ border: '1px solid #ecddd5', minHeight: '620px' }}
             >
@@ -201,13 +214,18 @@ export const LoginPage = () => {
                             mang lại sự an tâm tuyệt đối cho bạn.
                         </p>
 
-                        <div className="relative w-full max-w-sm">
+                        <motion.div
+                            className="relative w-full max-w-sm"
+                            initial={{ opacity: 0, scale: 1.05 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+                        >
                             <img
                                 src={corgiImg}
                                 alt="Chó Corgi vui vẻ"
                                 className="w-full h-60 object-cover rounded-2xl shadow-lg"
                             />
-                        </div>
+                        </motion.div>
                     </div>
 
                     {/* Footer */}
@@ -221,20 +239,29 @@ export const LoginPage = () => {
 
                 {/* ── Bên phải — Form ─────────────────────────── */}
                 <div className="w-full lg:flex-1 flex items-center justify-center p-12 bg-white">
-                    <div className="w-full max-w-sm">
+                    <motion.div
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                            hidden: {},
+                            visible: { transition: { staggerChildren: 0.12 } }
+                        }}
+                        className="w-full max-w-sm"
+                    >
 
                         {/* Welcome */}
-                        <div className="mb-6">
-                            <h2 className="text-2xl font-bold mb-1" style={{ color: '#303330' }}>
+                        <motion.div variants={itemVariants} className="mb-6">
+                            <h2 className="text-3xl font-black mb-1" style={{ color: '#303330' }}>
                                 Chào mừng trở lại!
                             </h2>
                             <p className="text-sm" style={{ color: '#8a7060' }}>
                                 Vui lòng nhập thông tin để truy cập tài khoản.
                             </p>
-                        </div>
+                        </motion.div>
 
                         {/* Tab Đăng nhập / Đăng ký */}
-                        <div
+                        <motion.div
+                            variants={itemVariants}
                             className="flex gap-1 p-1 rounded-xl mb-6"
                             style={{ backgroundColor: '#f0e8e2' }}
                         >
@@ -255,11 +282,12 @@ export const LoginPage = () => {
                             >
                                 Đăng ký
                             </Link>
-                        </div>
+                        </motion.div>
 
                         {/* Lỗi API */}
                         {(isError || oauthError) && (
-                            <div
+                            <motion.div
+                                variants={itemVariants}
                                 className="mb-4 p-3 rounded-xl text-sm"
                                 style={{
                                     backgroundColor: '#fff7f4',
@@ -268,13 +296,13 @@ export const LoginPage = () => {
                                 }}
                             >
                                 {oauthError || (error as any)?.response?.data?.message || 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.'}
-                            </div>
+                            </motion.div>
                         )}
 
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
                             {/* Email */}
-                            <div>
+                            <motion.div variants={itemVariants}>
                                 <label className="block text-sm font-medium mb-1.5" style={{ color: '#303330' }}>
                                     Email
                                 </label>
@@ -287,7 +315,7 @@ export const LoginPage = () => {
                                     <input
                                         type="email"
                                         placeholder="you@example.com"
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl border text-sm outline-none"
+                                        className="w-full pl-10 pr-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[#fa7150]/20"
                                         style={{
                                             backgroundColor: '#fdfaf8',
                                             borderColor: errors.email ? '#fa7150' : '#e5dbd4',
@@ -307,10 +335,10 @@ export const LoginPage = () => {
                                         {errors.email.message}
                                     </p>
                                 )}
-                            </div>
+                            </motion.div>
 
                             {/* Password */}
-                            <div>
+                            <motion.div variants={itemVariants}>
                                 <div className="flex justify-between mb-1.5">
                                     <label className="text-sm font-medium" style={{ color: '#303330' }}>
                                         Mật khẩu
@@ -333,7 +361,7 @@ export const LoginPage = () => {
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         placeholder="••••••••"
-                                        className="w-full pl-10 pr-10 py-3 rounded-xl border text-sm outline-none"
+                                        className="w-full pl-10 pr-10 py-3 rounded-xl border text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[#fa7150]/20"
                                         style={{
                                             backgroundColor: '#fdfaf8',
                                             borderColor: errors.password ? '#fa7150' : '#e5dbd4',
@@ -362,37 +390,43 @@ export const LoginPage = () => {
                                         {errors.password.message}
                                     </p>
                                 )}
-                            </div>
+                            </motion.div>
 
                             {/* Submit */}
-                            <button
+                            <motion.button
+                                variants={itemVariants}
+                                whileHover={isPending ? {} : { scale: 1.02, boxShadow: '0 4px 15px rgba(250, 113, 80, 0.3)' }}
+                                whileTap={isPending ? {} : { scale: 0.98 }}
                                 type="submit"
                                 disabled={isPending}
-                                className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-2"
+                                className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-2 transition-all duration-300 cursor-pointer"
                                 style={{
                                     backgroundColor: isPending ? '#ffac98' : '#fa7150',
                                     cursor: isPending ? 'not-allowed' : 'pointer',
                                 }}
                             >
                                 {isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}
-                            </button>
+                            </motion.button>
 
                         </form>
 
                         {/* Divider */}
-                        <div className="flex items-center gap-3 my-5">
+                        <motion.div variants={itemVariants} className="flex items-center gap-3 my-5">
                             <div className="flex-1 h-px" style={{ backgroundColor: '#e5dbd4' }} />
                             <span className="text-xs" style={{ color: '#a09080' }}>Hoặc</span>
                             <div className="flex-1 h-px" style={{ backgroundColor: '#e5dbd4' }} />
-                        </div>
+                        </motion.div>
 
                         {/* Google */}
-                        <button
+                        <motion.button
+                            variants={itemVariants}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             type="button"
                             onClick={() => {
                                 window.location.href = `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/api/auth/oauth2/login`
                             }}
-                            className="w-full py-3 rounded-xl text-sm font-semibold border flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                            className="w-full py-3 rounded-xl text-sm font-semibold border flex items-center justify-center gap-3 hover:bg-gray-50 transition-all cursor-pointer"
                             style={{
                                 backgroundColor: '#ffffff',
                                 borderColor: '#e5dbd4',
@@ -405,20 +439,20 @@ export const LoginPage = () => {
                                 className="w-5 h-5"
                             />
                             Tiếp tục với Google
-                        </button>
+                        </motion.button>
 
                         {/* Terms */}
-                        <p className="text-center text-xs mt-5" style={{ color: '#a09080' }}>
+                        <motion.p variants={itemVariants} className="text-center text-xs mt-5" style={{ color: '#a09080' }}>
                             Bằng cách đăng nhập, bạn đồng ý với{' '}
                             <a href="#" className="underline" style={{ color: '#a43e24' }}>Điều khoản</a>
                             {' '}&{' '}
                             <a href="#" className="underline" style={{ color: '#a43e24' }}>Chính sách</a> của chúng tôi.
-                        </p>
+                        </motion.p>
 
-                    </div>
+                    </motion.div>
                 </div>
 
-            </div>
+            </motion.div>
 
             {/* ── Forgot Password Modal ── */}
             {/* ── Forgot Password Modal ── */}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { Eye, EyeOff, Mail, Lock, PawPrint, User } from 'lucide-react'
 import { useRegister } from '@/features/auth/hooks/useRegister'
@@ -14,6 +15,15 @@ interface FormData extends Omit<RegisterRequest, 'role'> {
 }
 
 export const RegisterPage = () => {
+    const itemVariants = {
+        hidden: { opacity: 0, y: 15 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as any }
+        }
+    }
+
     const navigate = useNavigate()
     const setAuth = useAuthStore((s) => s.setAuth)
 
@@ -198,10 +208,13 @@ export const RegisterPage = () => {
     return (
         <div
             className="min-h-screen flex items-center justify-center p-4 sm:p-6"
-            style={{ backgroundColor: '#f5ede8' }}
+            style={{ background: 'linear-gradient(to bottom, #fdfbf7 0%, #f5ede8 100%)' }}
         >
             {/* ── Card bọc cả hai cột ────────────────────────── */}
-            <div
+            <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as any }}
                 className="w-full max-w-6xl flex rounded-3xl overflow-hidden shadow-2xl"
                 style={{ border: '1px solid #ecddd5', minHeight: '620px' }}
             >
@@ -264,8 +277,16 @@ export const RegisterPage = () => {
 
                 {/* ── Bên phải — Form ─────────────────────────── */}
                 <div className="w-full lg:flex-1 flex items-center justify-center p-12 bg-white">
-                    {showOtpStep ? (
-                        <div className="w-full max-w-sm animate-fadeIn">
+                    <AnimatePresence mode="wait">
+                        {showOtpStep ? (
+                            <motion.div
+                                key="otp-step"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.4, ease: 'easeOut' }}
+                                className="w-full max-w-sm"
+                            >
                             {/* Tiêu đề & Mô tả */}
                             <div className="mb-6">
                                 <h2 className="text-2xl font-bold mb-2" style={{ color: '#303330' }}>
@@ -374,22 +395,30 @@ export const RegisterPage = () => {
                                     Quay lại đăng ký
                                 </button>
                             </div>
-                        </div>
+                        </motion.div>
                     ) : (
-                        <div className="w-full max-w-sm">
+                        <motion.div
+                            key="register-step"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="w-full max-w-sm"
+                        >
 
                             {/* Welcome */}
-                            <div className="mb-6">
-                                <h2 className="text-2xl font-bold mb-1" style={{ color: '#303330' }}>
+                            <motion.div variants={itemVariants} className="mb-6">
+                                <h2 className="text-3xl font-black mb-1" style={{ color: '#303330' }}>
                                     Tạo tài khoản mới
                                 </h2>
                                 <p className="text-sm" style={{ color: '#8a7060' }}>
                                     Tham gia cộng đồng yêu thú cưng ngay hôm nay.
                                 </p>
-                            </div>
+                            </motion.div>
 
                             {/* Tab Đăng nhập / Đăng ký */}
-                            <div
+                            <motion.div
+                                variants={itemVariants}
                                 className="flex gap-1 p-1 rounded-xl mb-6"
                                 style={{ backgroundColor: '#f0e8e2' }}
                             >
@@ -410,11 +439,12 @@ export const RegisterPage = () => {
                                 >
                                     Đăng ký
                                 </button>
-                            </div>
+                            </motion.div>
 
                             {/* Lỗi API */}
                             {(isError || oauthError) && (
-                                <div
+                                <motion.div
+                                    variants={itemVariants}
                                     className="mb-4 p-3 rounded-xl text-sm"
                                     style={{
                                         backgroundColor: '#fff7f4',
@@ -423,7 +453,7 @@ export const RegisterPage = () => {
                                     }}
                                 >
                                     {apiError ?? 'Đăng ký thất bại. Vui lòng thử lại.'}
-                                </div>
+                                </motion.div>
                             )}
 
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -628,7 +658,7 @@ export const RegisterPage = () => {
                                 <button
                                     type="submit"
                                     disabled={isPending}
-                                    className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-2"
+                                    className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-2 transition-all duration-300 cursor-pointer"
                                     style={{
                                         backgroundColor: isPending ? '#ffac98' : '#fa7150',
                                         cursor: isPending ? 'not-allowed' : 'pointer',
@@ -675,8 +705,9 @@ export const RegisterPage = () => {
                                 </Link>
                             </p>
 
-                        </div>
+                        </motion.div>
                     )}
+                    </AnimatePresence>
                 </div>
 
             {/* ── Already Registered User Modal ── */}
@@ -760,7 +791,7 @@ export const RegisterPage = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </motion.div>
     </div>
 )
 }

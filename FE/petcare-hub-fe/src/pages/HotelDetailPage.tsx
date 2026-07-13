@@ -28,6 +28,8 @@ import {
 import axiosInstance from '@/lib/axios'
 import { Header } from '@/components/Header'
 import { useAuthStore } from '@/store/authStore'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { ScrollReveal } from '@/components/ScrollReveal'
 import { cleanAddressDisplay } from '@/utils/cleanAddress'
 
 const getLocalDateString = (d = new Date()) => {
@@ -99,6 +101,10 @@ export const HotelDetailPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuthStore()
+
+  const { scrollY } = useScroll()
+  const coverScale = useTransform(scrollY, [0, 480], [1, 1.08])
+  const coverY = useTransform(scrollY, [0, 480], [0, 25])
 
   const [hotelName, setHotelName] = useState('PetCare Sanctuary')
   const [hotelAddress, setHotelAddress] = useState('Đường Nguyễn Thị Minh Khai, Quận 1, TP. HCM')
@@ -841,6 +847,7 @@ export const HotelDetailPage = () => {
         {!showBookingFlow && (
           <div className="space-y-10">
             {/* Header Section */}
+            <ScrollReveal>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#e1e3df] pb-6">
               <div className="flex items-center gap-4">
                 {logoUrl ? (
@@ -855,7 +862,7 @@ export const HotelDetailPage = () => {
                   </div>
                 )}
                 <div>
-                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#303330]">
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight" style={{ color: '#303330' }}>
                     {hotelName}
                   </h1>
                   <p className="text-[#5d605c] flex items-center gap-1.5 text-xs sm:text-sm mt-2">
@@ -890,8 +897,10 @@ export const HotelDetailPage = () => {
                 </div>
               </div>
             </div>
+            </ScrollReveal>
 
             {/* Elegant Image Slideshow Carousel */}
+            <ScrollReveal delay={0.1}>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-[#8a7e75] uppercase tracking-wider">Hình ảnh cơ sở vật chất</span>
@@ -914,12 +923,13 @@ export const HotelDetailPage = () => {
               <div className="relative h-80 md:h-[480px] rounded-3xl overflow-hidden shadow-lg group bg-stone-100">
                 {allImages.length > 0 ? (
                   allImages.map((imgUrl, idx) => (
-                    <img 
+                    <motion.img 
                       key={imgUrl + idx}
                       src={imgUrl} 
                       alt={`${hotelName} slide ${idx + 1}`} 
+                      style={idx === currentImageIndex ? { y: coverY, scale: coverScale } : undefined}
                       className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-                        idx === currentImageIndex ? 'opacity-100 z-10 scale-[1.005]' : 'opacity-0 z-0 scale-100'
+                        idx === currentImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
                       }`}
                     />
                   ))
@@ -967,6 +977,7 @@ export const HotelDetailPage = () => {
                 )}
               </div>
             </div>
+            </ScrollReveal>
 
             {/* Two Column Layout: Main Profile Info vs Booking Widget */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -974,6 +985,7 @@ export const HotelDetailPage = () => {
               {/* Left Column: About, Rooms, Map, Reviews */}
               <div className="lg:col-span-8 space-y-10">
                 {/* About Section */}
+                <ScrollReveal delay={0.1}>
                 <div className="p-8 bg-white rounded-3xl border border-[#e1e3df] shadow-sm text-left">
                   <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
                     <h2 className="text-xl font-black text-[#303330] flex items-center gap-2">
@@ -996,15 +1008,22 @@ export const HotelDetailPage = () => {
                     {hotelDescriptionText || 'Chào mừng bạn đến với khách sạn thú cưng của chúng tôi! Nơi mang đến cho bé cưng của bạn trải nghiệm nghỉ dưỡng 5 sao chất lượng hàng đầu. Với phòng ốc tiện nghi, chế độ dinh dưỡng khoa học và sự chăm sóc chu đáo từ đội ngũ nhân viên giàu kinh nghiệm.'}
                   </div>
                 </div>
+                </ScrollReveal>
 
                 {/* Rooms List Section */}
+                <ScrollReveal delay={0.15}>
                 <div className="space-y-6">
                   <h2 className="text-2xl font-black text-[#303330] text-left">Danh sách loại phòng hiện có</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {roomTypes.map((room) => (
-                      <div 
+                    {roomTypes.map((room, roomIndex) => (
+                      <ScrollReveal
                         key={room.id}
-                        className="bg-white rounded-3xl overflow-hidden border border-[#e1e3df] hover:border-[#a43e24] hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                        delay={Math.min(roomIndex, 4) * 0.08}
+                        direction="up"
+                        distance={30}
+                      >
+                      <div 
+                        className="bg-white rounded-3xl overflow-hidden border border-[#e1e3df] hover:border-[#a43e24] hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-full"
                       >
                         <div className="h-48 relative overflow-hidden">
                           <img className="w-full h-full object-cover" src={room.image} alt={room.name} />
@@ -1064,13 +1083,16 @@ export const HotelDetailPage = () => {
                           })()}
                         </div>
                       </div>
+                      </ScrollReveal>
                     ))}
                   </div>
                 </div>
+                </ScrollReveal>
 
 
 
                 {/* Reviews List Section */}
+                <ScrollReveal delay={0.1}>
                 <div className="space-y-6 text-left">
                   <h2 className="text-2xl font-black text-[#303330]">Nhận xét từ khách hàng ({reviews.length})</h2>
                   
@@ -1080,8 +1102,9 @@ export const HotelDetailPage = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {reviews.map((rev: any) => (
-                        <div key={rev.id} className="bg-white p-6 rounded-3xl border border-[#e1e3df] shadow-sm flex flex-col justify-between space-y-4">
+                      {reviews.map((rev: any, revIndex: number) => (
+                        <ScrollReveal key={rev.id} delay={Math.min(revIndex, 3) * 0.1} distance={25}>
+                        <div className="bg-white p-6 rounded-3xl border border-[#e1e3df] shadow-sm flex flex-col justify-between space-y-4 h-full">
                           <div className="space-y-3">
                             {/* User Header */}
                             <div className="flex items-center gap-3">
@@ -1136,10 +1159,12 @@ export const HotelDetailPage = () => {
                             </div>
                           )}
                         </div>
+                        </ScrollReveal>
                       ))}
                     </div>
                   )}
                 </div>
+                </ScrollReveal>
 
               </div>
 
@@ -1193,7 +1218,7 @@ export const HotelDetailPage = () => {
                     className={`w-full py-4 rounded-full font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                       !roomTypes || roomTypes.length === 0
                         ? 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
-                        : 'bg-[#a43e24] text-white hover:bg-[#a43e24]/90 shadow-lg shadow-[#a43e24]/10'
+                        : 'bg-[#a43e24] text-[#faf9f6] hover:bg-[#a43e24]/90 shadow-lg shadow-[#a43e24]/10 transition-all duration-300'
                     }`}
                   >
                     Đặt phòng ngay <ArrowRight size={14} />
