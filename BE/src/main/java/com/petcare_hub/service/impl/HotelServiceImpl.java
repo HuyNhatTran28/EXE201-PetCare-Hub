@@ -9,6 +9,7 @@ import com.petcare_hub.exception.AppException;
 import com.petcare_hub.repository.HotelRepository;
 import com.petcare_hub.repository.UserRepository;
 import com.petcare_hub.service.HotelService;
+import com.petcare_hub.service.AsyncEmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,8 @@ public class HotelServiceImpl implements HotelService {
 
     private final HotelRepository hotelRepository;
     private final UserRepository userRepository;
+    private final AsyncEmailService asyncEmailService;
+    private final com.petcare_hub.repository.HotelReportRepository hotelReportRepository;
 
     // ── Tìm kiếm KS có bộ lọc tích hợp ─────────────────────────
     @Override
@@ -153,8 +156,67 @@ public class HotelServiceImpl implements HotelService {
     public HotelResponse updateHotelStatus(UUID hotelId, HotelStatus status) {
         Hotel hotel = findHotelById(hotelId);
         hotel.setStatus(status);
+        if (status == HotelStatus.SUSPENDED) {
+            hotel.setRejectionReason("Bị đình chỉ hoạt động do vi phạm quy định hệ thống.");
+        }
+        
+        Hotel saved = hotelRepository.save(hotel);
         log.info("KS {} chuyển sang status: {}", hotelId, status);
-        return toResponse(hotelRepository.save(hotel));
+
+        // Gửi email thông báo cho đối tác khi trạng thái khách sạn thay đổi
+        if (saved.getPartner() != null && saved.getPartner().getEmail() != null) {
+            try {
+                if (status == HotelStatus.SUSPENDED) {
+                    // Lấy tất cả báo cáo của khách sạn để liệt kê chi tiết trong email
+                    List<com.petcare_hub.entity.HotelReport> approvedReports = hotelReportRepository.findAll().stream()
+                            .filter(r -> r.getHotel().getId().equals(saved.getId()) && r.getStatus() == com.petcare_hub.enums.ReportStatus.APPROVED)
+                            .collect(java.util.stream.Collectors.toList());
+                    
+                    StringBuilder reportsHtml = new StringBuilder();
+                    reportsHtml.append("<div style=\"background: #fff5f5; border: 1px solid #feb2b2; border-radius: 12px; padding: 18px; margin: 20px 0; text-align: left;\">");
+                    reportsHtml.append("<h4 style=\"margin: 0 0 12px 0; color: #c53030; font-size: 15px; font-weight: 800; border-bottom: 1px solid #fed7d7; padding-bottom: 6px;\">Danh sách phản ánh vi phạm đã xác thực:</h4>");
+                    reportsHtml.append("<ul style=\"padding-left: 20px; margin: 0; font-size: 13px; color: #4a5568;\">");
+                    
+                    java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
+                    if (approvedReports.isEmpty()) {
+                        reportsHtml.append("<li style=\"margin-bottom: 12px;\">Khách sạn bị tạm ngưng hoạt động do vi phạm quy định dịch vụ chung của hệ thống.</li>");
+                    } else {
+                        for (com.petcare_hub.entity.HotelReport r : approvedReports) {
+                            String timeStr = "N/A";
+                            if (r.getCreatedAt() != null) {
+                                timeStr = r.getCreatedAt().atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).format(dtf);
+                            }
+                            reportsHtml.append("<li style=\"margin-bottom: 12px;\">")
+                                       .append("<strong>Thời gian:</strong> ").append(timeStr).append("<br/>")
+                                       .append("<strong>Nội dung phản ánh:</strong> ").append(r.getReason())
+                                       .append("</li>");
+                        }
+                    }
+                    reportsHtml.append("</ul>");
+                    reportsHtml.append("</div>");
+
+                    asyncEmailService.sendSuspendHotelEmailAsync(
+                            saved.getPartner().getEmail(),
+                            saved.getPartner().getFullName(),
+                            saved.getName(),
+                            reportsHtml.toString(),
+                            true // isSuspended = true
+                    );
+                } else if (status == HotelStatus.ACTIVE) {
+                    asyncEmailService.sendSuspendHotelEmailAsync(
+                            saved.getPartner().getEmail(),
+                            saved.getPartner().getFullName(),
+                            saved.getName(),
+                            null,
+                            false // isSuspended = false
+                    );
+                }
+            } catch (Exception e) {
+                log.error("Lỗi gửi mail thông báo đổi trạng thái khách sạn: {}", e.getMessage());
+            }
+        }
+
+        return toResponse(saved);
     }
 
     @Override
@@ -164,7 +226,25 @@ public class HotelServiceImpl implements HotelService {
         hotel.setStatus(HotelStatus.ACTIVE);
         hotel.setRejectionReason(null);
         log.info("Admin đã duyệt khách sạn {}", hotelId);
-        return toResponse(hotelRepository.save(hotel));
+        
+        Hotel saved = hotelRepository.save(hotel);
+
+        // Gửi email thông báo kích hoạt lại khách sạn cho đối tác
+        if (saved.getPartner() != null && saved.getPartner().getEmail() != null) {
+            try {
+                asyncEmailService.sendSuspendHotelEmailAsync(
+                        saved.getPartner().getEmail(),
+                        saved.getPartner().getFullName(),
+                        saved.getName(),
+                        null,
+                        false // isSuspended = false (reactivated)
+                );
+            } catch (Exception e) {
+                log.error("Lỗi gửi mail thông báo kích hoạt lại khách sạn: {}", e.getMessage());
+            }
+        }
+
+        return toResponse(saved);
     }
 
     @Override
@@ -176,7 +256,6 @@ public class HotelServiceImpl implements HotelService {
         log.info("Admin đã từ chối khách sạn {} — lý do: {}", hotelId, reason);
         return toResponse(hotelRepository.save(hotel));
     }
-
     @Override
     @Transactional
     public HotelResponse resubmitHotel(UUID hotelId, UUID partnerId) {
@@ -184,8 +263,8 @@ public class HotelServiceImpl implements HotelService {
         if (!hotel.getPartner().getId().equals(partnerId)) {
             throw new AppException("Bạn không có quyền chỉnh sửa khách sạn này", HttpStatus.FORBIDDEN);
         }
-        if (hotel.getStatus() != HotelStatus.REJECTED) {
-            throw new AppException("Chỉ có thể gửi duyệt lại khi khách sạn đang ở trạng thái bị từ chối", HttpStatus.BAD_REQUEST);
+        if (hotel.getStatus() != HotelStatus.REJECTED && hotel.getStatus() != HotelStatus.SUSPENDED) {
+            throw new AppException("Chỉ có thể gửi duyệt lại khi khách sạn đang ở trạng thái bị từ chối hoặc bị đình chỉ", HttpStatus.BAD_REQUEST);
         }
         hotel.setStatus(HotelStatus.PENDING);
         hotel.setRejectionReason(null);
@@ -259,6 +338,11 @@ public class HotelServiceImpl implements HotelService {
         } else if (hotel.getStatus() == HotelStatus.REJECTED) {
             throw new AppException(
                     "Khách sạn đang bị từ chối. Vui lòng chỉnh sửa thông tin và gửi duyệt lại",
+                    HttpStatus.BAD_REQUEST
+            );
+        } else if (hotel.getStatus() == HotelStatus.SUSPENDED) {
+            throw new AppException(
+                    "Khách sạn đang bị đình chỉ hoạt động. Vui lòng gửi yêu cầu duyệt lại cho Admin.",
                     HttpStatus.BAD_REQUEST
             );
         } else {

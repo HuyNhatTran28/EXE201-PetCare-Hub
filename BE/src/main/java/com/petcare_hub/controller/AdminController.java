@@ -9,7 +9,9 @@ import com.petcare_hub.enums.Role;
 import com.petcare_hub.repository.BookingRepository;
 import com.petcare_hub.repository.HotelRepository;
 import com.petcare_hub.repository.UserRepository;
+import com.petcare_hub.repository.HotelReportRepository;
 import com.petcare_hub.service.HotelService;
+import com.petcare_hub.service.AsyncEmailService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -34,6 +37,8 @@ public class AdminController {
     private final HotelRepository hotelRepository;
     private final BookingRepository bookingRepository;
     private final HotelService hotelService;
+    private final AsyncEmailService asyncEmailService;
+    private final HotelReportRepository hotelReportRepository;
 
     // GET /api/admin/users
     @GetMapping("/users")
@@ -66,6 +71,14 @@ public class AdminController {
 
         user.setIsActive(active);
         return ResponseEntity.ok(toUserResponse(userRepository.save(user)));
+    }
+
+    // GET /api/admin/users/{id}
+    @GetMapping("/users/{id}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(toUserResponse(user));
     }
 
     // GET /api/admin/hotels/pending — danh sách KS chờ duyệt

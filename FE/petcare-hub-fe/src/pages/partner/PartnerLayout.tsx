@@ -217,6 +217,44 @@ export const PartnerLayout = () => {
     }
   }, [connect, disconnect, selectedHotelId, isPartner])
 
+  // Periodic check for suspended hotels to trigger partner notifications
+  useEffect(() => {
+    if (!isPartner) return
+
+    const checkSuspendedHotels = async () => {
+      try {
+        const res = await axiosInstance.get('/api/hotels/my', { params: { page: 0, size: 20, sort: [] } })
+        const list = res.data.content ?? []
+        
+        list.forEach((h: any) => {
+          if (h.status === 'SUSPENDED') {
+            const notifId = `suspended-${h.id}`;
+            setNotifications(prev => {
+              // Only insert if it doesn't exist
+              if (prev.some(n => n.id === notifId)) return prev;
+              
+              const newNotif: ToastNotification = {
+                id: notifId,
+                title: 'Cơ sở bị đình chỉ',
+                message: `Cơ sở "${h.name}" của bạn đã bị đình chỉ hoạt động. Lý do: ${h.rejectionReason || 'Không có lý do cụ thể.'}`,
+                type: 'booking',
+                hotelId: h.id
+              };
+              playNotificationSound();
+              return [newNotif, ...prev];
+            });
+          }
+        });
+      } catch (err) {
+        console.error('Failed to check suspended hotels:', err)
+      }
+    }
+
+    checkSuspendedHotels()
+    const interval = setInterval(checkSuspendedHotels, 20000)
+    return () => clearInterval(interval)
+  }, [isPartner])
+
   // Setup STOMP subscription once connected
   useEffect(() => {
     if (status !== 'connected') return

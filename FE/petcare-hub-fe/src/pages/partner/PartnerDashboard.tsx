@@ -1553,7 +1553,7 @@ export const PartnerDashboard = () => {
                                   ? 'bg-[#e3f4e1] text-[#2c4e24] border-[#d0fac0]'
                                   : hotel.status === 'PENDING'
                                     ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                    : hotel.status === 'REJECTED'
+                                    : hotel.status === 'REJECTED' || hotel.status === 'SUSPENDED'
                                       ? 'bg-red-100 text-red-700 border-red-300'
                                       : 'bg-rose-50 text-rose-700 border-rose-200'
                                 }`}
@@ -1561,7 +1561,8 @@ export const PartnerDashboard = () => {
                               {isActive ? 'Đang hoạt động'
                                 : hotel.status === 'PENDING' ? 'Chờ duyệt'
                                   : hotel.status === 'REJECTED' ? 'Bị từ chối'
-                                    : 'Tạm ngưng'}
+                                    : hotel.status === 'SUSPENDED' ? 'Đang bị đình chỉ'
+                                      : 'Tạm ngưng'}
                             </span>
                           </div>
 
@@ -1571,10 +1572,12 @@ export const PartnerDashboard = () => {
                             <span className="line-clamp-2">{cleanAddressDisplay(hotel.address)}</span>
                           </p>
 
-                          {/* Lý do từ chối */}
-                          {hotel.status === 'REJECTED' && hotel.rejectionReason && (
+                          {/* Lý do từ chối / đình chỉ */}
+                          {(hotel.status === 'REJECTED' || hotel.status === 'SUSPENDED') && hotel.rejectionReason && (
                             <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-3">
-                              <p className="text-[9px] font-black text-red-500 uppercase tracking-wider mb-0.5">Lý do từ chối</p>
+                              <p className="text-[9px] font-black text-red-500 uppercase tracking-wider mb-0.5">
+                                {hotel.status === 'REJECTED' ? 'Lý do từ chối' : 'Lý do đình chỉ'}
+                              </p>
                               <p className="text-xs text-red-700">{hotel.rejectionReason}</p>
                             </div>
                           )}
@@ -1623,7 +1626,7 @@ export const PartnerDashboard = () => {
                           >
                             <Edit size={13} /> Chỉnh sửa cơ sở
                           </button>
-                          {hotel.status === 'REJECTED' && (
+                          {(hotel.status === 'REJECTED' || hotel.status === 'SUSPENDED') && (
                             <button
                               type="button"
                               onClick={() => handleResubmitHotel(hotel.id)}
@@ -1632,7 +1635,7 @@ export const PartnerDashboard = () => {
                               Gửi duyệt lại
                             </button>
                           )}
-                          {hotel.status !== 'PENDING' && hotel.status !== 'REJECTED' && (
+                          {hotel.status !== 'PENDING' && hotel.status !== 'REJECTED' && hotel.status !== 'SUSPENDED' && (
                             <button
                               type="button"
                               onClick={() => handleToggleHotelStatus(hotel.id)}

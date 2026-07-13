@@ -243,4 +243,72 @@ public class AsyncEmailService {
             log.error("Không thể gửi email nhắc nhở thanh toán: {}", e.getMessage());
         }
     }
+
+    @Async
+    public void sendSuspendHotelEmailAsync(
+            String partnerEmail, String partnerName, String hotelName, String reportsHtml, boolean isSuspended) {
+        try {
+            String subject = isSuspended 
+                ? "❌ [QUAN TRỌNG] Khách sạn " + hotelName + " đã bị ĐÌNH CHỈ HOẠT ĐỘNG — PetCare Hub" 
+                : "✅ [THÔNG BÁO] Khách sạn " + hotelName + " đã được KÍCH HOẠT LẠI — PetCare Hub";
+                
+            String title = isSuspended 
+                ? "CƠ SỞ ĐÃ BỊ ĐÌNH CHỈ HOẠT ĐỘNG" 
+                : "CƠ SỞ ĐÃ ĐƯỢC KÍCH HOẠT LẠI";
+                
+            String bannerColor = isSuspended ? "#dc2626" : "#059669"; // Red vs Green
+            
+            String statusDescription = isSuspended 
+                ? String.format("Ban quản trị PetCare Hub thông báo: cơ sở kinh doanh <strong>%s</strong> của bạn đã bị <strong>đình chỉ hoạt động</strong> do nhận phản hồi khiếu nại/vi phạm từ phía khách hàng.", hotelName)
+                : String.format("Ban quản trị PetCare Hub thông báo: cơ sở kinh doanh <strong>%s</strong> của bạn đã được phê duyệt giải trình và <strong>kích hoạt hoạt động trở lại</strong> bình thường trên hệ thống.", hotelName);
+
+            String html = """
+                <div style="background:#faf9f6;padding:40px 20px;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:16px;color:#303330;line-height:1.6;">
+                  <div style="max-width:580px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #e5d8d0;box-shadow:0 4px 20px rgba(0,0,0,0.02);">
+                    <div style="background:linear-gradient(135deg,%s 0%%,#7f1d1d 100%%);padding:30px;text-align:center;">
+                      <h2 style="color:#ffffff;margin:0;font-size:22px;font-weight:800;">PetCare Hub 🐾</h2>
+                      <p style="color:rgba(255,255,255,0.9);margin:6px 0 0;font-size:14px;text-transform:uppercase;letter-spacing:1px;font-weight:700;">%s</p>
+                    </div>
+                    <div style="padding:36px 30px;">
+                      <p style="margin-top:0;">Xin chào đối tác <strong>%s</strong>,</p>
+                      <p>%s</p>
+                      
+                      %s
+                      
+                      %s
+                      
+                      <p style="color:#555555;font-size:14px;margin-top:20px;">
+                        Mọi thắc mắc hoặc cần khiếu nại, giải trình về các vi phạm trên, vui lòng liên hệ bộ phận hỗ trợ khách hàng của PetCare Hub để được hỗ trợ giải quyết.
+                      </p>
+                    </div>
+                    <hr style="border:0;border-top:1px solid #eeeeee;margin:0;">
+                    <div style="text-align:center;font-size:12px;color:#aaaaaa;padding:20px 30px;">
+                      <p style="margin:0 0 4px;">Email này được gửi tự động từ hệ thống quản trị PetCare Hub, vui lòng không phản hồi trực tiếp.</p>
+                      <p style="margin:0;font-weight:600;">© 2026 PetCare Hub. All rights reserved.</p>
+                    </div>
+                  </div>
+                </div>
+                """.formatted(
+                    bannerColor, 
+                    title, 
+                    partnerName, 
+                    statusDescription,
+                    isSuspended ? (reportsHtml != null ? reportsHtml : "") : "",
+                    isSuspended 
+                        ? "<div style=\"background:#fef2f2;border:1px solid #fee2e2;border-radius:12px;padding:16px;color:#991b1b;font-size:13px;margin-top:15px;\"><strong>Ảnh hưởng:</strong> Khi bị đình chỉ, cơ sở của bạn sẽ tạm thời bị ẩn khỏi danh sách tìm kiếm công khai và không thể tiếp nhận lượt đặt phòng mới. Bạn vẫn có thể đăng nhập để xử lý các booking hiện tại và gửi yêu cầu duyệt lại.</div>"
+                        : "<div style=\"background:#ecfdf5;border:1px solid #d1fae5;border-radius:12px;padding:16px;color:#065f46;font-size:13px;\"><strong>Thông báo:</strong> Bây giờ khách sạn của bạn đã hoạt động bình thường trở lại và có thể nhận đặt phòng bình thường.</div>"
+                );
+
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setFrom(FROM);
+            helper.setTo(partnerEmail);
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            mailSender.send(mimeMessage);
+            log.info("Đã gửi email thông báo trạng thái khách sạn tới đối tác: {}", partnerEmail);
+        } catch (Exception e) {
+            log.error("Không thể gửi email thông báo trạng thái khách sạn: {}", e.getMessage());
+        }
+    }
 }

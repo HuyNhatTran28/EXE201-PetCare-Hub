@@ -263,6 +263,62 @@ export const Header = () => {
     }
   }, [])
 
+  // Periodic check for owner's report status updates to notify the owner
+  useEffect(() => {
+    if (!user || user.role !== 'OWNER') return
+
+    const checkReportStatusUpdates = async () => {
+      try {
+        const res = await axiosInstance.get('/api/reports/me')
+        const reportsList = res.data || []
+
+        reportsList.forEach((rep: any) => {
+          const status = rep.status
+          if (status === 'APPROVED' || status === 'REJECTED') {
+            const notifKey = `report-notified-${rep.id}-${status}`
+            const alreadyNotified = localStorage.getItem(notifKey)
+            
+            if (!alreadyNotified) {
+              const newTitle = 'Cập nhật báo cáo vi phạm'
+              const newMsg = status === 'APPROVED'
+                ? `Báo cáo của bạn về cơ sở "${rep.hotelName}" đã được phê duyệt. Cơ sở này đã bị đình chỉ hoạt động.`
+                : `Báo cáo của bạn về cơ sở "${rep.hotelName}" đã bị từ chối. Lý do: ${rep.adminNote || 'Không có lý do cụ thể.'}`
+
+              // Add notification locally
+              const id = Math.random().toString(36).substring(2, 9)
+              const newNotif = {
+                id,
+                title: newTitle,
+                message: newMsg,
+                type: 'message',
+                createdAt: new Date().toISOString()
+              }
+              setNotifications(prev => [newNotif, ...prev])
+
+              // Play sound
+              if (notifAudio) {
+                notifAudio.currentTime = 0
+                notifAudio.volume = 0.4
+                notifAudio.play().catch(console.warn)
+              } else {
+                playSynthFallback()
+              }
+
+              // Save to localStorage so it doesn't notify again
+              localStorage.setItem(notifKey, 'true')
+            }
+          }
+        })
+      } catch (err) {
+        console.error('Failed to check report status updates:', err)
+      }
+    }
+
+    checkReportStatusUpdates()
+    const interval = setInterval(checkReportStatusUpdates, 20000)
+    return () => clearInterval(interval)
+  }, [user])
+
   const handleLogout = () => {
     logout()
     navigate('/login')

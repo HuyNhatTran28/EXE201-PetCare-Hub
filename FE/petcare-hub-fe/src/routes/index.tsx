@@ -42,6 +42,7 @@ import { AuditLogPage } from '@/pages/admin/AuditLogPage'
 import { SettingsPage } from '@/pages/admin/SettingsPage'
 import { WithdrawalApprovePage } from '@/pages/admin/WithdrawalApprovePage'
 import { FeedbackManagePage } from '@/pages/admin/FeedbackManagePage'
+import { ReportManagePage } from '@/pages/admin/ReportManagePage'
 
 export const router = createBrowserRouter([
 
@@ -126,6 +127,7 @@ export const router = createBrowserRouter([
           { path: '/admin/settings', element: <SettingsPage /> },
           { path: '/admin/withdrawals', element: <WithdrawalApprovePage /> },
           { path: '/admin/feedbacks', element: <FeedbackManagePage /> },
+          { path: '/admin/reports', element: <ReportManagePage /> },
         ]
       }
     ]
