@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
   Compass,
@@ -930,7 +931,12 @@ export const RouteSearchPage = () => {
           <main className="flex-grow h-full relative bg-[#eeeeea]">
             <div ref={mapContainerRef} className="w-full h-full" />
 
-            <div className="absolute top-4 left-4 z-25 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-[calc(100vw-32px)]">
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="absolute top-4 left-4 z-25 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-[calc(100vw-32px)]"
+            >
               <div className="relative w-72 md:w-80 bg-white border border-[#e1e3df] rounded-full shadow-lg flex items-center px-4 py-2 text-xs text-[#303330] z-30 font-semibold">
                 <Search size={14} className="text-gray-400 mr-2 shrink-0" />
 
@@ -1046,37 +1052,45 @@ export const RouteSearchPage = () => {
                   )
                 })}
               </div>
-            </div>
+            </motion.div>
 
-            {routeInfo && (
-              <div className="absolute top-[120px] sm:top-[72px] left-4 z-10 bg-white/95 backdrop-blur-sm border border-[#fa7150]/20 rounded-2xl p-4 shadow-xl flex items-center gap-4 text-left min-w-[320px]">
-                <div className="space-y-1 flex-grow">
-                  <p className="text-[10px] font-bold text-[#8a7e75] uppercase">
-                    Độ dài tuyến đường
-                  </p>
-
-                  <p className="text-xs font-black text-[#303330] flex items-center gap-1">
-                    <Compass size={14} className="text-[#fa7150]" />
-                    {routeInfo.distance} ({routeInfo.duration})
-                  </p>
-
-                  <p className="text-[10px] font-bold text-[#8a7e75]">
-                    Tìm thấy {filteredHotelsList.length} địa điểm
-                  </p>
-                </div>
-
-                <button
-                  onClick={startMotorbikeMoving}
-                  disabled={isMoving}
-                  className={`px-4 py-2 rounded-full text-xs font-black text-white shadow-md transition-all whitespace-nowrap ${isMoving
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-[#fa7150] hover:bg-[#a43e24] active:scale-95'
-                    }`}
+            <AnimatePresence>
+              {routeInfo && (
+                <motion.div
+                  initial={{ x: -50, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -50, opacity: 0 }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                  className="absolute top-[120px] sm:top-[72px] left-4 z-10 bg-white/95 backdrop-blur-sm border border-[#fa7150]/20 rounded-2xl p-4 shadow-xl flex items-center gap-4 text-left min-w-[320px]"
                 >
-                  {isMoving ? 'Đang di chuyển...' : 'Bắt đầu di chuyển'}
-                </button>
-              </div>
-            )}
+                  <div className="space-y-1 flex-grow">
+                    <p className="text-[10px] font-bold text-[#8a7e75] uppercase">
+                      Độ dài tuyến đường
+                    </p>
+
+                    <p className="text-xs font-black text-[#303330] flex items-center gap-1">
+                      <Compass size={14} className="text-[#fa7150]" />
+                      {routeInfo.distance} ({routeInfo.duration})
+                    </p>
+
+                    <p className="text-[10px] font-bold text-[#8a7e75]">
+                      Tìm thấy {filteredHotelsList.length} địa điểm
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={startMotorbikeMoving}
+                    disabled={isMoving}
+                    className={`px-4 py-2 rounded-full text-xs font-black text-white shadow-md transition-all whitespace-nowrap ${isMoving
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-[#fa7150] hover:bg-[#a43e24] active:scale-95'
+                      }`}
+                  >
+                    {isMoving ? 'Đang di chuyển...' : 'Bắt đầu di chuyển'}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {loading && (
               <div className="absolute top-[120px] sm:top-[72px] right-4 z-10 bg-white/95 border border-[#e1e3df] rounded-2xl px-4 py-3 shadow-lg text-xs font-bold text-[#303330]">

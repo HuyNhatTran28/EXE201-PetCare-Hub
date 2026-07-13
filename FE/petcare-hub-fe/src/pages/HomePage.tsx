@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   PawPrint,
   Calendar,
@@ -283,6 +284,35 @@ export const HomePage = () => {
     }
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.1
+      }
+    }
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as any }
+    }
+  }
+
+  const imageVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 1, ease: [0.16, 1, 0.3, 1] as any }
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col font-body selection:bg-primary-container selection:text-on-primary-container bg-transparent relative">
       
@@ -293,23 +323,27 @@ export const HomePage = () => {
       <Header />
 
       {/* ── 2. HERO SECTION ───────────────────────────────────── */}
-      <header className="relative pt-32 pb-20 px-8 overflow-hidden text-left">
+      <motion.header 
+        initial="hidden"
+        animate="visible"
+        className="relative pt-32 pb-20 px-8 overflow-hidden text-left"
+      >
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           
           {/* Left Text */}
-          <div className="relative z-10">
-            <span className="inline-block px-4 py-1.5 bg-[#d0fac0]/80 backdrop-blur-sm text-[#3e6135] rounded-full text-sm font-semibold mb-6">
+          <motion.div variants={containerVariants} className="relative z-10">
+            <motion.span variants={itemVariants} className="inline-block px-4 py-1.5 bg-[#d0fac0]/80 backdrop-blur-sm text-[#3e6135] rounded-full text-sm font-semibold mb-6">
               Nền tảng thú cưng đáng tin cậy
-            </span>
-            <h1 className="font-headline text-5xl md:text-7xl font-extrabold leading-[1.1] mb-8 tracking-tight text-[#303330]">
+            </motion.span>
+            <motion.h1 variants={itemVariants} className="font-headline text-5xl md:text-7xl font-extrabold leading-[1.1] mb-8 tracking-tight text-[#303330]">
               Nơi mỗi <span className="text-[#a43e24]">bạn nhỏ</span> tìm thấy bình yên.
-            </h1>
-            <p className="text-lg md:text-xl text-[#5d605c] leading-relaxed mb-10 max-w-lg">
+            </motion.h1>
+            <motion.p variants={itemVariants} className="text-lg md:text-xl text-[#5d605c] leading-relaxed mb-10 max-w-lg">
               Khu nghỉ dưỡng đặc biệt được thiết kế riêng cho sự thoải mái, an toàn và niềm vui của những người bạn nhỏ đáng yêu. Vì chúng cũng xứng đáng có một kỳ nghỉ tuyệt vời.
-            </p>
-
+            </motion.p>
+ 
             {/* Quick Search Bar */}
-            <div className="glass-card sunlight-shadow p-4 rounded-3xl md:rounded-full flex flex-col md:flex-row gap-4 items-center border border-white/40">
+            <motion.div variants={itemVariants} className="glass-card sunlight-shadow p-4 rounded-3xl md:rounded-full flex flex-col md:flex-row gap-4 items-center border border-white/40 glass-card-glow">
               <div className="flex-1 w-full flex items-center gap-3 px-4">
                 <PawPrint className="text-[#a43e24]" size={24} />
                 <div className="flex flex-col">
@@ -344,11 +378,11 @@ export const HomePage = () => {
               >
                 <Search size={20} />
               </button>
-            </div>
-          </div>
-
+            </motion.div>
+          </motion.div>
+ 
           {/* Right Hero Image Card */}
-          <div className="relative">
+          <motion.div variants={imageVariants} className="relative">
             <div className="organic-shape bg-[#ffac98]/20 absolute -top-10 -right-10 w-full h-full -z-10 animate-pulse"></div>
             <div className="rounded-[2rem] overflow-hidden sunlight-shadow relative aspect-[4/5] md:aspect-square border-[8px] border-white">
               <img 
@@ -357,23 +391,35 @@ export const HomePage = () => {
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuDK2JQjwkBQKWNdP_s270Dcbcynv7aZ_CJr9u11H3r2Zg4oNEVBLMhmlrAszV5guVsGRI7c_wgAQvq-UbrsOgZ9aO4LqBiDSX0ro6W9fWQK_Lh-P3bX7rK1juw_r4u0CWrSNN_6USooycJwXWFwF-rH_WnwAyQnidpVa4Dk0tH_TmqYKZbw9I6h8nwMRwGEW4bB2Qe50qS7oYPy3VndoGbW-YDAeQp997wr7dUUBhu5NCmDWNczjwsIpxifU2RrgAfRSQxLMI2DglKd"
               />
             </div>
-          </div>
+          </motion.div>
         </div>
-      </header>
+      </motion.header>
 
       {/* ── 3. WHY CHOOSE US (BENTO GRID) ─────────────────────── */}
       <section className="py-24 px-8 bg-[#f4f4f0]/40 backdrop-blur-md border-y border-[#e1e3df] text-left">
         <div className="max-w-7xl mx-auto">
           
-          <div className="text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
             <h2 className="font-headline text-4xl font-extrabold text-[#303330] mb-4">Thiết kế cho sự hạnh phúc của bé cưng</h2>
             <p className="text-[#5d605c] max-w-2xl mx-auto text-sm sm:text-base">Chúng tôi không chỉ là nơi lưu trữ; chúng tôi mang lại một không gian như ngôi nhà thứ hai tràn đầy yêu thương và chăm sóc chuyên nghiệp.</p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             {/* Card 1: Certified Expert Care */}
-            <div className="md:col-span-2 bg-white/80 backdrop-blur-sm p-10 rounded-3xl border border-white/40 shadow-sm flex flex-col md:flex-row gap-8 items-center">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="md:col-span-2 bg-white/80 backdrop-blur-sm p-10 rounded-3xl border border-white/40 shadow-sm flex flex-col md:flex-row gap-8 items-center premium-hover-card glass-card-glow"
+            >
               <div className="flex-grow">
                 <div className="w-12 h-12 bg-[#d0fac0] rounded-2xl flex items-center justify-center mb-6">
                   <ShieldCheck size={24} className="text-[#2c4e24]" />
@@ -384,12 +430,18 @@ export const HomePage = () => {
               <div className="rounded-2xl overflow-hidden h-64 w-full md:w-80 shrink-0">
                 <img className="w-full h-full object-cover" alt="Bảo mẫu âu yếm mèo cưng" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAb7HwOSSiYlIypTlO4DD6tnUSvk-LXYN3jcXr1oubEQrDAO8P7xhO-jWqeipohnPDwNH-c9xICfKvhxZMB5KDpEe5Mu9sOo3Jgic_GQGzxmSKwz7-tBum3SQojNxLNhwzpRK0VIxtYm0CEoIRh-wyT88WCD8o2E2Dk47trIuuokm9tp18EiCoELi_ZdCmRSNDX4JJ3EX_pGDMYV7kRXl-nobmO4zVF-hxqY5wScN0CbPOLmXivXauXBx1WNdjaD8BTdYfxUi9hl3FX" />
               </div>
-            </div>
+            </motion.div>
 
             {/* Card 2: Care Diary */}
-            <div className="bg-[#ffac98]/20 backdrop-blur-sm p-10 rounded-3xl border border-[#ffac98]/10 flex flex-col justify-between">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="bg-white/80 backdrop-blur-sm p-10 rounded-3xl border border-[#ffac98]/20 flex flex-col justify-between premium-hover-card glass-card-glow"
+            >
               <div>
-                <div className="w-12 h-12 bg-[#ffac98]/30 rounded-2xl flex items-center justify-center mb-6">
+                <div className="w-12 h-12 bg-[#ffac98]/20 rounded-2xl flex items-center justify-center mb-6">
                   <BookOpen size={22} className="text-[#a43e24]" />
                 </div>
                 <h3 className="font-headline text-2xl font-bold text-[#303330] mb-4">Nhật Ký Chăm Sóc Từng Giờ</h3>
@@ -401,19 +453,31 @@ export const HomePage = () => {
               >
                 Tìm hiểu thêm <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
               </button>
-            </div>
+            </motion.div>
 
             {/* Card 3: Gourmet Meals */}
-            <div className="bg-white/80 backdrop-blur-sm p-10 rounded-3xl border border-white/40 shadow-sm">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="bg-white/80 backdrop-blur-sm p-10 rounded-3xl border border-white/40 shadow-sm premium-hover-card glass-card-glow"
+            >
               <div className="w-12 h-12 bg-[#feeadb] rounded-2xl flex items-center justify-center mb-6">
                 <Utensils size={22} className="text-[#a43e24]" />
               </div>
               <h3 className="font-headline text-2xl font-bold text-[#303330] mb-4">Bữa Ăn Hảo Hạng</h3>
               <p className="text-[#5d605c] leading-relaxed text-sm">Chế độ dinh dưỡng cá nhân hóa sử dụng các nguyên liệu tươi ngon chọn lọc chuẩn bị hằng ngày bởi các đầu bếp thú cưng.</p>
-            </div>
+            </motion.div>
 
             {/* Card 4: Spacious Play Zones */}
-            <div className="md:col-span-2 bg-[#44683b] text-white p-10 rounded-3xl overflow-hidden relative group">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="md:col-span-2 bg-[#44683b] text-white p-10 rounded-3xl overflow-hidden relative group premium-hover-card"
+            >
               <div className="relative z-10 flex flex-col justify-center h-full max-w-full md:max-w-[45%]">
                 <h3 className="font-headline text-2xl font-bold mb-4">Không Gian Vui Chơi Đa Dạng</h3>
                 <p className="opacity-90 leading-relaxed text-sm mb-6">Tùy thuộc vào từng cơ sở liên kết, các bé cưng sẽ được trải nghiệm các không gian vui chơi ngoài trời hoặc trong nhà an toàn, lành mạnh để tự do rèn luyện thể chất và kết bạn.</p>
@@ -429,7 +493,7 @@ export const HomePage = () => {
                 alt="Những chú chó vui chơi trên bãi cỏ" 
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUPhHDCIWIiBecR_SfLwBv8qIyb1YbZgFerTfmYit6h7Uj8DTrjO8M2bVVnLLhW-ctyoDlyY_bTsvqXERVqM7qsPwO3WLYyumBQCiVG1-6K3ZJDRJKuEEyMbvMo94ti3tOeV-kSGRLYcIr_IH-7RWlFEV6P0XvHWJNLemm7wNO_0KoeQHpwAejtLOzRokeObA36VmRPkIzbVJzdSklGKwurfk14GO3F9d3h7mLN8GIsDrfqE87h5lspBFoRTpZV2v3D8emupAPxD6J"
               />
-            </div>
+            </motion.div>
 
           </div>
         </div>
@@ -512,48 +576,55 @@ export const HomePage = () => {
               activeRoomsList.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' : 
               'grid-cols-1 md:grid-cols-3'
             }`}>
-              {displayedRooms.map((room: any) => {
-                const isDog = room.allowedPetTypes?.some((t: string) => t.toUpperCase().includes('DOG'))
-                const isCat = room.allowedPetTypes?.some((t: string) => t.toUpperCase().includes('CAT'))
-                const categoryText = isDog ? 'DÀNH CHO CHÓ' : isCat ? 'DÀNH CHO MÈO' : 'THÚ CƯNG KHÁC'
-                const roomImage = (room.images && room.images.length > 0) ? room.images[0] : 'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800'
-                
-                return (
-                  <div 
-                    key={room.id} 
-                    className="group cursor-pointer"
-                    onClick={() => handleRoomClick(room.hotelId)}
-                  >
-                    <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/5] sunlight-shadow bg-white">
-                      <img 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                        alt={room.name} 
-                        src={roomImage}
-                      />
-                      <div className="absolute inset-0 bg-[#a43e24]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-[#a43e24] font-bold text-sm sunlight-shadow">
-                        {room.pricePerNight.toLocaleString('vi-VN')}đ/đêm
+              <AnimatePresence mode="popLayout">
+                {displayedRooms.map((room: any) => {
+                  const isDog = room.allowedPetTypes?.some((t: string) => t.toUpperCase().includes('DOG'))
+                  const isCat = room.allowedPetTypes?.some((t: string) => t.toUpperCase().includes('CAT'))
+                  const categoryText = isDog ? 'DÀNH CHO CHÓ' : isCat ? 'DÀNH CHO MÈO' : 'THÚ CƯNG KHÁC'
+                  const roomImage = (room.images && room.images.length > 0) ? room.images[0] : 'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800'
+                  
+                  return (
+                    <motion.div 
+                      layout
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                      key={room.id} 
+                      className="group cursor-pointer premium-hover-card glass-card-glow bg-white/70 rounded-3xl p-4 border border-white/30"
+                      onClick={() => handleRoomClick(room.hotelId)}
+                    >
+                      <div className="rounded-2xl overflow-hidden mb-6 relative aspect-[4/5] sunlight-shadow bg-white">
+                        <img 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                          alt={room.name} 
+                          src={roomImage}
+                        />
+                        <div className="absolute inset-0 bg-[#a43e24]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-[#a43e24] font-bold text-sm sunlight-shadow">
+                          {room.pricePerNight.toLocaleString('vi-VN')}đ/đêm
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex justify-between items-start text-left">
-                      <div>
-                        <span className="text-xs font-bold text-[#3e6135] uppercase tracking-widest mb-2 block">{categoryText}</span>
-                        <h4 className="font-headline text-xl font-bold mb-1 text-[#303330] group-hover:text-[#a43e24] transition-colors">{room.name}</h4>
-                        <p className="text-sm text-[#5d605c] line-clamp-2">{room.description || 'Không gian nghỉ dưỡng lý tưởng dành cho bé cưng.'}</p>
+                      <div className="flex justify-between items-start text-left px-2 pb-2">
+                        <div>
+                          <span className="text-xs font-bold text-[#3e6135] uppercase tracking-widest mb-2 block">{categoryText}</span>
+                          <h4 className="font-headline text-xl font-bold mb-1 text-[#303330] group-hover:text-[#a43e24] transition-colors">{room.name}</h4>
+                          <p className="text-sm text-[#5d605c] line-clamp-2">{room.description || 'Không gian nghỉ dưỡng lý tưởng dành cho bé cưng.'}</p>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRoomClick(room.hotelId)
+                          }} 
+                          className="w-10 h-10 rounded-full border border-[#b1b2af]/40 flex items-center justify-center text-[#5d605c] hover:bg-[#a43e24] hover:text-white hover:border-[#a43e24] transition-all shrink-0 ml-4 bg-transparent outline-none cursor-pointer"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
                       </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleRoomClick(room.hotelId)
-                        }} 
-                        className="w-10 h-10 rounded-full border border-[#b1b2af]/40 flex items-center justify-center text-[#5d605c] hover:bg-[#a43e24] hover:text-white hover:border-[#a43e24] transition-all shrink-0 ml-4 bg-transparent outline-none cursor-pointer"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+                    </motion.div>
+                  )
+                })}
+              </AnimatePresence>
             </div>
           )}
         </div>
@@ -562,15 +633,27 @@ export const HomePage = () => {
       {/* ── 5. SERVICE HIGHLIGHTS ──────────────────────────────── */}
       <section className="py-24 px-8 bg-[#f4f4f0]/40 backdrop-blur-md relative overflow-hidden text-left border-y border-[#e1e3df]">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col items-center text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col items-center text-center mb-16"
+          >
             <h2 className="font-headline text-4xl font-bold text-[#303330] mb-4">Hơn cả một nơi nghỉ dưỡng</h2>
             <div className="w-20 h-1 bg-[#a43e24] rounded-full mb-6"></div>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             {/* Service 1 */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 text-center border border-white/40 flex flex-col justify-between overflow-hidden group">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 text-center border border-white/40 flex flex-col justify-between overflow-hidden group premium-hover-card glass-card-glow"
+            >
               <div>
                 <div className="relative aspect-video bg-white overflow-hidden">
                   <img 
@@ -582,7 +665,7 @@ export const HomePage = () => {
                     <Scissors className="text-[#a43e24]" size={20} />
                   </div>
                 </div>
-                <div className="p-8 pb-0">
+                <div className="p-8 pb-0 text-left">
                   <h3 className="font-headline text-2xl font-bold text-[#303330] group-hover:text-[#a43e24] transition-colors mb-4">
                     Cắt Tỉa Lông Chuyên Nghiệp
                   </h3>
@@ -599,10 +682,16 @@ export const HomePage = () => {
                   Đặt Lịch Ngay <ArrowRight size={12} />
                 </button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Service 2 */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 text-center border border-white/40 flex flex-col justify-between overflow-hidden group">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 text-center border border-white/40 flex flex-col justify-between overflow-hidden group premium-hover-card glass-card-glow"
+            >
               <div>
                 <div className="relative aspect-video bg-white overflow-hidden">
                   <img 
@@ -614,7 +703,7 @@ export const HomePage = () => {
                     <Sparkles className="text-[#a43e24]" size={20} />
                   </div>
                 </div>
-                <div className="p-8 pb-0">
+                <div className="p-8 pb-0 text-left">
                   <h3 className="font-headline text-2xl font-bold text-[#303330] group-hover:text-[#a43e24] transition-colors mb-4">
                     Spa & Massage Trị Liệu
                   </h3>
@@ -631,10 +720,16 @@ export const HomePage = () => {
                   Đặt Lịch Ngay <ArrowRight size={12} />
                 </button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Service 3 */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 text-center border border-white/40 flex flex-col justify-between overflow-hidden group">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 text-center border border-white/40 flex flex-col justify-between overflow-hidden group premium-hover-card glass-card-glow"
+            >
               <div>
                 <div className="relative aspect-video bg-white overflow-hidden">
                   <img 
@@ -646,7 +741,7 @@ export const HomePage = () => {
                     <Heart className="text-[#a43e24]" size={20} />
                   </div>
                 </div>
-                <div className="p-8 pb-0">
+                <div className="p-8 pb-0 text-left">
                   <h3 className="font-headline text-2xl font-bold text-[#303330] group-hover:text-[#a43e24] transition-colors mb-4">
                     Hoạt Động Mỗi Ngày
                   </h3>
@@ -663,7 +758,7 @@ export const HomePage = () => {
                   Đặt Lịch Ngay <ArrowRight size={12} />
                 </button>
               </div>
-            </div>
+            </motion.div>
 
           </div>
         </div>
@@ -674,23 +769,41 @@ export const HomePage = () => {
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           
           {/* Photo side */}
-          <div className="relative">
+          <motion.div 
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="relative"
+          >
             <div className="absolute -inset-4 bg-[#feeadb]/30 rounded-3xl -rotate-2 backdrop-blur-sm border border-[#feeadb]/20"></div>
             <div className="relative rounded-[2rem] overflow-hidden aspect-video border-[6px] border-white shadow-2xl bg-white">
-              <img 
-                className="w-full h-full object-cover transition-all duration-700" 
-                alt="Gương mặt chú cún tươi cười hạnh phúc" 
-                src={slideshowImages[slideshowIndex]}
-              />
+              <AnimatePresence mode="wait">
+                <motion.img 
+                  key={slideshowIndex}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.8, ease: 'easeInOut' }}
+                  className="w-full h-full object-cover absolute inset-0" 
+                  alt="Gương mặt chú cún tươi cười hạnh phúc" 
+                  src={slideshowImages[slideshowIndex]}
+                />
+              </AnimatePresence>
             </div>
             <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-gradient-to-tr from-[#a43e24] to-[#ffac98] rounded-full flex flex-col items-center justify-center text-white p-6 text-center border-[6px] border-white shadow-xl">
               <span className="text-3xl font-extrabold leading-none">4.9/5</span>
               <span className="text-[10px] font-bold uppercase tracking-wider mt-1.5 opacity-90">Hài lòng tuyệt đối</span>
             </div>
-          </div>
+          </motion.div>
 
           {/* Testimonial info */}
-          <div>
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
             <h2 className="font-headline text-4xl font-bold text-[#303330] mb-8">Nhật Ký Thú Cưng</h2>
             <div className="space-y-8">
               <div className="glass-card p-8 rounded-3xl shadow-md border-l-4 border-[#a43e24] border-t border-r border-b border-[#e1e3df]/60">
@@ -715,9 +828,9 @@ export const HomePage = () => {
                 </div>
               </div>
             </div>
-          </div>
-
+          </motion.div>
         </div>
+
       </section>
 
       {/* ── 7. FOOTER ─────────────────────────────────────────── */}
