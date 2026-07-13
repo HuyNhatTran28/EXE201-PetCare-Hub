@@ -18,11 +18,91 @@ import axiosInstance from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
 import { cleanAddressDisplay } from '@/utils/cleanAddress'
 const formatNumberWithDots = (val: string | number | undefined | null) => {
-  if (val === undefined || val === null || val === '') return ''
-  const numStr = String(val).replace(/[^0-9]/g, '')
-  if (!numStr) return ''
-  return Number(numStr).toLocaleString('vi-VN')
+  if (val === undefined || val === null || val === '' || Number(val) === 0) return ''
+  const num = typeof val === 'number' ? val : parseFloat(String(val))
+  if (isNaN(num)) return ''
+  return Math.round(num).toLocaleString('vi-VN')
 }
+
+const handlePriceChange = (
+  e: React.ChangeEvent<HTMLInputElement>,
+  onChange: (val: string) => void
+) => {
+  const input = e.target;
+  const originalSelectionStart = input.selectionStart || 0;
+  const originalValue = input.value;
+  
+  let rawDigits = originalValue.replace(/[^0-9]/g, '');
+  if (Number(rawDigits) > 10000000) {
+    alert('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
+    rawDigits = '10000000';
+  }
+  
+  let formatted = '';
+  if (rawDigits && Number(rawDigits) > 0) {
+    formatted = Number(rawDigits).toLocaleString('vi-VN');
+  }
+  
+  const prefix = originalValue.slice(0, originalSelectionStart);
+  const digitsBeforeCursor = prefix.replace(/[^0-9]/g, '').length;
+  
+  onChange(rawDigits);
+  
+  setTimeout(() => {
+    let newSelectionStart = 0;
+    let digitCount = 0;
+    for (let i = 0; i < formatted.length; i++) {
+      if (formatted[i] !== '.') {
+        digitCount++;
+      }
+      newSelectionStart = i + 1;
+      if (digitCount === digitsBeforeCursor) {
+        break;
+      }
+    }
+    input.setSelectionRange(newSelectionStart, newSelectionStart);
+  }, 0);
+};
+
+const handlePriceChangeNum = (
+  e: React.ChangeEvent<HTMLInputElement>,
+  onChange: (val: number | null) => void
+) => {
+  const input = e.target;
+  const originalSelectionStart = input.selectionStart || 0;
+  const originalValue = input.value;
+  
+  let rawDigits = originalValue.replace(/[^0-9]/g, '');
+  if (Number(rawDigits) > 10000000) {
+    alert('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
+    rawDigits = '10000000';
+  }
+  
+  let formatted = '';
+  if (rawDigits && Number(rawDigits) > 0) {
+    formatted = Number(rawDigits).toLocaleString('vi-VN');
+  }
+  
+  const prefix = originalValue.slice(0, originalSelectionStart);
+  const digitsBeforeCursor = prefix.replace(/[^0-9]/g, '').length;
+  
+  onChange(rawDigits ? Number(rawDigits) : null);
+  
+  setTimeout(() => {
+    let newSelectionStart = 0;
+    let digitCount = 0;
+    for (let i = 0; i < formatted.length; i++) {
+      if (formatted[i] !== '.') {
+        digitCount++;
+      }
+      newSelectionStart = i + 1;
+      if (digitCount === digitsBeforeCursor) {
+        break;
+      }
+    }
+    input.setSelectionRange(newSelectionStart, newSelectionStart);
+  }, 0);
+};
 
 interface RoomType {
   id: string
@@ -206,6 +286,7 @@ export const RoomManagePage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [editRoom, setEditRoom] = useState<RoomType | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [focusedInput, setFocusedInput] = useState<string | null>(null)
 
   const handleUploadImage = async (file: File) => {
     setUploadingImage(true)
@@ -272,20 +353,41 @@ export const RoomManagePage = () => {
 
   const handleUpdateRoom = async () => {
     if (!editRoom) return
-    if (Number(editRoom.pricePerNight) <= 0) {
+    const priceVal = Number(editRoom.pricePerNight)
+    const dayRateVal = editRoom.dayRate !== undefined && editRoom.dayRate !== null && String(editRoom.dayRate) !== '' ? Number(editRoom.dayRate) : null
+    const totalRoomsVal = Number(editRoom.totalRooms)
+    const maxPetsVal = Number(editRoom.maxPets)
+
+    if (priceVal <= 0) {
       alert('Giá thuê phải lớn hơn 0!')
       return
     }
-    if (editRoom.dayRate !== undefined && editRoom.dayRate !== null && String(editRoom.dayRate) !== '' && Number(editRoom.dayRate) <= 0) {
+    if (priceVal > 10000000) {
+      alert('Giá thuê qua đêm tối đa là 10.000.000 đ!')
+      return
+    }
+    if (dayRateVal !== null && dayRateVal <= 0) {
       alert('Giá gửi ngày phải lớn hơn 0!')
       return
     }
-    if (Number(editRoom.totalRooms) <= 0) {
+    if (dayRateVal !== null && dayRateVal > 10000000) {
+      alert('Giá gửi ngày tối đa là 10.000.000 đ!')
+      return
+    }
+    if (totalRoomsVal <= 0) {
       alert('Tổng số phòng phải lớn hơn 0!')
       return
     }
-    if (Number(editRoom.maxPets) <= 0) {
+    if (totalRoomsVal > 1000) {
+      alert('Tổng số phòng tối đa là 1.000 phòng!')
+      return
+    }
+    if (maxPetsVal <= 0) {
       alert('Số lượng tối đa thú cưng phải lớn hơn 0!')
+      return
+    }
+    if (maxPetsVal > 30) {
+      alert('Số lượng thú cưng tối đa trong một phòng là 30!')
       return
     }
     setSubmitting(true)
@@ -313,20 +415,41 @@ export const RoomManagePage = () => {
 
   const handleCreateRoom = async () => {
     if (!form.name || !form.pricePerNight || !form.totalRooms) return
-    if (Number(form.pricePerNight) <= 0) {
+    const priceVal = Number(form.pricePerNight)
+    const dayRateVal = form.dayRate ? Number(form.dayRate) : null
+    const totalRoomsVal = Number(form.totalRooms)
+    const maxPetsVal = form.maxPets ? Number(form.maxPets) : null
+
+    if (priceVal <= 0) {
       alert('Giá thuê phải lớn hơn 0!')
       return
     }
-    if (form.dayRate && Number(form.dayRate) <= 0) {
+    if (priceVal > 10000000) {
+      alert('Giá thuê qua đêm tối đa là 10.000.000 đ!')
+      return
+    }
+    if (dayRateVal !== null && dayRateVal <= 0) {
       alert('Giá gửi ngày phải lớn hơn 0!')
       return
     }
-    if (Number(form.totalRooms) <= 0) {
+    if (dayRateVal !== null && dayRateVal > 10000000) {
+      alert('Giá gửi ngày tối đa là 10.000.000 đ!')
+      return
+    }
+    if (totalRoomsVal <= 0) {
       alert('Tổng số phòng phải lớn hơn 0!')
       return
     }
-    if (form.maxPets && Number(form.maxPets) <= 0) {
+    if (totalRoomsVal > 1000) {
+      alert('Tổng số phòng tối đa là 1.000 phòng!')
+      return
+    }
+    if (maxPetsVal !== null && maxPetsVal <= 0) {
       alert('Số lượng tối đa thú cưng phải lớn hơn 0!')
+      return
+    }
+    if (maxPetsVal !== null && maxPetsVal > 30) {
+      alert('Số lượng thú cưng tối đa trong một phòng là 30!')
       return
     }
     setSubmitting(true)
@@ -663,10 +786,20 @@ export const RoomManagePage = () => {
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá/đêm (đ) *</label>
                   <input
                     type="text"
-                    value={formatNumberWithDots(form.pricePerNight)}
+                    value={
+                      focusedInput === 'createPrice'
+                        ? form.pricePerNight
+                        : formatNumberWithDots(form.pricePerNight)
+                    }
+                    onFocus={() => setFocusedInput('createPrice')}
+                    onBlur={() => setFocusedInput(null)}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      setForm({ ...form, pricePerNight: val })
+                      let val = e.target.value.replace(/[^0-9]/g, '');
+                      if (Number(val) > 10000000) {
+                        alert('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
+                        val = '10000000';
+                      }
+                      setForm({ ...form, pricePerNight: val });
                     }}
                     placeholder="350.000"
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
@@ -676,10 +809,20 @@ export const RoomManagePage = () => {
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá gửi ngày (đ)</label>
                   <input
                     type="text"
-                    value={formatNumberWithDots(form.dayRate)}
+                    value={
+                      focusedInput === 'createDayRate'
+                        ? form.dayRate
+                        : formatNumberWithDots(form.dayRate)
+                    }
+                    onFocus={() => setFocusedInput('createDayRate')}
+                    onBlur={() => setFocusedInput(null)}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      setForm({ ...form, dayRate: val })
+                      let val = e.target.value.replace(/[^0-9]/g, '');
+                      if (Number(val) > 10000000) {
+                        alert('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
+                        val = '10000000';
+                      }
+                      setForm({ ...form, dayRate: val });
                     }}
                     placeholder="Để trống nếu không nhận gửi ngày"
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
@@ -694,7 +837,7 @@ export const RoomManagePage = () => {
                     type="text"
                     value={form.totalRooms}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
                       setForm({ ...form, totalRooms: val })
                     }}
                     placeholder="5"
@@ -707,7 +850,7 @@ export const RoomManagePage = () => {
                     type="text"
                     value={form.maxPets}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                       setForm({ ...form, maxPets: val })
                     }}
                     placeholder="2"
@@ -852,11 +995,22 @@ export const RoomManagePage = () => {
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá/đêm</label>
                   <input
                     type="text"
-                    value={formatNumberWithDots(editRoom.pricePerNight)}
+                    value={
+                      focusedInput === 'editPrice'
+                        ? (editRoom.pricePerNight || '')
+                        : formatNumberWithDots(editRoom.pricePerNight)
+                    }
+                    onFocus={() => setFocusedInput('editPrice')}
+                    onBlur={() => setFocusedInput(null)}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      setEditRoom({ ...editRoom, pricePerNight: Number(val) })
+                      let val = e.target.value.replace(/[^0-9]/g, '');
+                      if (Number(val) > 10000000) {
+                        alert('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
+                        val = '10000000';
+                      }
+                      setEditRoom({ ...editRoom, pricePerNight: Number(val) });
                     }}
+                    placeholder="VD: 500.000"
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
                   />
                 </div>
@@ -864,10 +1018,20 @@ export const RoomManagePage = () => {
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giá gửi ngày (đ)</label>
                   <input
                     type="text"
-                    value={formatNumberWithDots(editRoom.dayRate)}
+                    value={
+                      focusedInput === 'editDayRate'
+                        ? (editRoom.dayRate || '')
+                        : formatNumberWithDots(editRoom.dayRate)
+                    }
+                    onFocus={() => setFocusedInput('editDayRate')}
+                    onBlur={() => setFocusedInput(null)}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      setEditRoom({ ...editRoom, dayRate: val ? Number(val) : null })
+                      let val = e.target.value.replace(/[^0-9]/g, '');
+                      if (Number(val) > 10000000) {
+                        alert('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
+                        val = '10000000';
+                      }
+                      setEditRoom({ ...editRoom, dayRate: val ? Number(val) : null });
                     }}
                     placeholder="Không nhận gửi ngày"
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
@@ -882,7 +1046,7 @@ export const RoomManagePage = () => {
                     type="text"
                     value={editRoom.totalRooms === 0 ? '' : editRoom.totalRooms}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
                       setEditRoom({ ...editRoom, totalRooms: Number(val) })
                     }}
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
@@ -894,7 +1058,7 @@ export const RoomManagePage = () => {
                     type="text"
                     value={editRoom.maxPets === 0 ? '' : editRoom.maxPets}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
                       setEditRoom({ ...editRoom, maxPets: Number(val) })
                     }}
                     className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"

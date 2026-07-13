@@ -93,7 +93,7 @@ export const HotelListPage = () => {
           address: h.address || 'Hồ Chí Minh, Việt Nam',
           rating: h.averageRating || null,
           totalReviews: h.totalReviews || 0,
-          price: h.minPrice || (300000 + (idx % 4) * 100000),
+          price: h.minPrice || undefined,
           tags: h.allowedPetTypes?.length > 0 ? h.allowedPetTypes : (idx % 2 === 0 ? ['Dogs', 'Cats'] : ['Small Pets']),
           image: (h.imageUrls && h.imageUrls.length > 0)
             ? h.imageUrls[0]
@@ -312,7 +312,11 @@ export const HotelListPage = () => {
                       <HotelCardImage images={hotel.imageUrls || []} name={hotel.name} />
                       {/* Price Badge */}
                       <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-1.5 rounded-full text-[#a43e24] font-black text-xs shadow-sm border border-[#e1e3df]">
-                        {(hotel.price ?? 0).toLocaleString('vi-VN')}đ/đêm
+                        {hotel.price && hotel.price > 0 ? (
+                          `${hotel.price.toLocaleString('vi-VN')}đ/đêm`
+                        ) : (
+                          'Chưa có phòng'
+                        )}
                       </div>
                       {/* Area/Distance Badge if any */}
                       {hotel.amenities?.includes('Private Garden') && (
