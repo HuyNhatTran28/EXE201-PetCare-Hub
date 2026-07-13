@@ -31,23 +31,23 @@ const handlePriceChange = (
   const input = e.target;
   const originalSelectionStart = input.selectionStart || 0;
   const originalValue = input.value;
-  
+
   let rawDigits = originalValue.replace(/[^0-9]/g, '');
   if (Number(rawDigits) > 10000000) {
     alert('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
     rawDigits = '10000000';
   }
-  
+
   let formatted = '';
   if (rawDigits && Number(rawDigits) > 0) {
     formatted = Number(rawDigits).toLocaleString('vi-VN');
   }
-  
+
   const prefix = originalValue.slice(0, originalSelectionStart);
   const digitsBeforeCursor = prefix.replace(/[^0-9]/g, '').length;
-  
+
   onChange(rawDigits);
-  
+
   setTimeout(() => {
     let newSelectionStart = 0;
     let digitCount = 0;
@@ -71,23 +71,23 @@ const handlePriceChangeNum = (
   const input = e.target;
   const originalSelectionStart = input.selectionStart || 0;
   const originalValue = input.value;
-  
+
   let rawDigits = originalValue.replace(/[^0-9]/g, '');
   if (Number(rawDigits) > 10000000) {
     alert('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
     rawDigits = '10000000';
   }
-  
+
   let formatted = '';
   if (rawDigits && Number(rawDigits) > 0) {
     formatted = Number(rawDigits).toLocaleString('vi-VN');
   }
-  
+
   const prefix = originalValue.slice(0, originalSelectionStart);
   const digitsBeforeCursor = prefix.replace(/[^0-9]/g, '').length;
-  
+
   onChange(rawDigits ? Number(rawDigits) : null);
-  
+
   setTimeout(() => {
     let newSelectionStart = 0;
     let digitCount = 0;
@@ -150,9 +150,8 @@ const RoomImageSlideshow = ({ images, name }: { images: string[]; name: string }
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
-                className={`h-1 rounded-full transition-all duration-300 ${
-                  idx === currentIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/60'
-                }`}
+                className={`h-1 rounded-full transition-all duration-300 ${idx === currentIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/60'
+                  }`}
               />
             ))}
           </div>
@@ -645,92 +644,18 @@ export const RoomManagePage = () => {
                 style={cardShadow}
               >
                 {/* Ảnh phòng & Slideshow */}
-                <RoomImageSlideshow images={room.images} name={room.name} />
-
-                {/* Content area with padding */}
-                <div className="p-7">
-                  {/* Room name + status badge */}
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="space-y-2">
-                      <h3 className="text-2xl font-black text-[#303330]">{room.name}</h3>
-                      <div>
-                        {room.isActive !== false ? (
-                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2.5 py-1 rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Đang hoạt động
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2.5 py-1 rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                            Tạm ngưng
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-[#5a5550] leading-relaxed mb-5 h-10 line-clamp-2">{room.description}</p>
-
-                  {/* Action buttons — elegant pill toolbar */}
-                  <div className="flex gap-2 mb-5">
-                    <button
-                      onClick={() => setEditRoom(room)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#faf9f6] border border-[#e5d8d0] text-[#5a5550] hover:bg-[#fa7150] hover:text-white hover:border-[#fa7150] transition-all text-[11px] font-bold cursor-pointer group"
-                    >
-                      <Edit3 size={13} className="group-hover:rotate-12 transition-transform" /> Chỉnh sửa
-                    </button>
-                    <button
-                      onClick={() => handleToggleRoomActive(room.id, room.isActive !== false)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border transition-all text-[11px] font-bold cursor-pointer ${
-                        room.isActive !== false
-                          ? 'bg-amber-50/60 border-amber-200/80 text-amber-600 hover:bg-amber-500 hover:text-white hover:border-amber-500'
-                          : 'bg-emerald-50/60 border-emerald-200/80 text-emerald-600 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'
-                      }`}
-                    >
-                      {room.isActive !== false ? <><EyeOff size={13} /> Tạm ngưng</> : <><Eye size={13} /> Kích hoạt</>}
-                    </button>
-                    <button
-                      onClick={() => handleDeleteRoom(room.id)}
-                      className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-50/60 border border-rose-200/80 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all text-[11px] font-bold cursor-pointer"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 flex flex-col justify-between">
-                    <div>
-                      <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1">Giá Qua Đêm</span>
-                      <span className="text-lg font-black text-[#303330]">{room.pricePerNight.toLocaleString('vi-VN')} đ</span>
-                    </div>
-                    {room.dayRate !== undefined && room.dayRate !== null && (
-                      <div className="border-t border-[#e5d8d0]/40 mt-2 pt-2">
-                        <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1">Giá Gửi Ngày</span>
-                        <span className="text-sm font-black text-[#303330]">{room.dayRate.toLocaleString('vi-VN')} đ</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 flex flex-col justify-between">
-                    <div>
-                      <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1">Sức Chứa Tối Đa</span>
-                      <span className="text-lg font-black text-[#303330]">{room.maxPets} thú cưng</span>
-                    </div>
-                    <div className="border-t border-[#e5d8d0]/40 mt-2 pt-2">
-                      <span className="block text-[10px] font-black text-[#a43e24] uppercase mb-1">Tổng Số Phòng</span>
-                      <span className="text-sm font-black text-[#303330]">{room.totalRooms} phòng</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-[#e5d8d0]/60 pt-4 text-xs font-bold">
-                  <div className="flex gap-1.5">
+                <div className="relative">
+                  <RoomImageSlideshow images={room.images} name={room.name} />
+                  
+                  {/* Overlay Badges on top of image */}
+                  <div className="absolute top-4 left-4 flex gap-1.5 z-20">
                     {room.allowedPetTypes.map((type, idx) => {
                       const cleanType = type.toUpperCase()
                       let label = type
                       if (cleanType === 'CAT') label = 'Mèo'
                       else if (cleanType === 'DOG') label = 'Chó'
                       return (
-                        <span key={idx} className="bg-[#f5ede8] px-3.5 py-1.5 rounded-xl text-[#8a7e75] text-[10px] font-black uppercase tracking-wider">
+                        <span key={idx} className="bg-white/95 backdrop-blur-sm px-3.5 py-1 rounded-full text-[#fa7150] text-[10px] font-black uppercase tracking-wider border border-[#fa7150]/10 shadow-sm">
                           {label}
                         </span>
                       )
@@ -738,15 +663,100 @@ export const RoomManagePage = () => {
                   </div>
 
                   {room.hasWebcam && (
-                    <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Có Webcam 24/7
-                    </span>
+                    <div className="absolute top-4 right-4 z-20">
+                      <span className="px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white shadow-sm flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        Webcam 24/7
+                      </span>
+                    </div>
                   )}
                 </div>
 
+                {/* Content area with padding */}
+                <div className="p-7 pb-24 text-left">
+                  {/* Room name + status badge */}
+                  <div className="flex justify-between items-start gap-4 mb-2">
+                    <h3 className="text-xl font-bold text-[#303330] line-clamp-1">{room.name}</h3>
+                    <div className="shrink-0">
+                      {room.isActive !== false ? (
+                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Đang hoạt động
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                          Tạm ngưng
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#8a7e75] leading-relaxed mb-5 h-10 line-clamp-2">{room.description || 'Chưa có mô tả cho loại phòng này.'}</p>
+
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 space-y-3">
+                      <div>
+                        <span className="block text-[9px] font-black text-[#8a7e75] uppercase tracking-wider mb-0.5">Giá Qua Đêm</span>
+                        <span className="text-base font-black text-[#fa7150]">
+                          {room.pricePerNight.toLocaleString('vi-VN')} đ<span className="text-[10px] font-normal text-[#8a7e75]">/đêm</span>
+                        </span>
+                      </div>
+                      <div className="border-t border-[#e5d8d0]/30 pt-2">
+                        <span className="block text-[9px] font-black text-[#8a7e75] uppercase tracking-wider mb-0.5">Giá Gửi Ngày</span>
+                        <span className="text-sm font-black text-[#303330]">
+                          {room.dayRate !== undefined && room.dayRate !== null
+                            ? `${room.dayRate.toLocaleString('vi-VN')} đ`
+                            : 'Không nhận'
+                          }
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 space-y-3">
+                      <div>
+                        <span className="block text-[9px] font-black text-[#8a7e75] uppercase tracking-wider mb-0.5">Sức Chứa Tối Đa</span>
+                        <span className="text-base font-black text-[#303330]">
+                          {room.maxPets} <span className="text-xs font-normal text-[#8a7e75]">thú cưng</span>
+                        </span>
+                      </div>
+                      <div className="border-t border-[#e5d8d0]/30 pt-2">
+                        <span className="block text-[9px] font-black text-[#8a7e75] uppercase tracking-wider mb-0.5">Tổng Số Phòng</span>
+                        <span className="text-sm font-black text-[#303330]">
+                          {room.totalRooms} <span className="text-xs font-normal text-[#8a7e75]">phòng</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action buttons (fixed at the absolute bottom of the card) */}
+                  <div className="absolute bottom-0 left-0 right-0 border-t border-[#e5d8d0]/60 bg-[#faf9f6] p-4 flex gap-2 rounded-b-[32px]">
+                    <button
+                      onClick={() => setEditRoom(room)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-[#e5d8d0] bg-white text-[#5a5550] hover:bg-[#fa7150] hover:text-white hover:border-[#fa7150] transition-all text-xs font-bold cursor-pointer group"
+                    >
+                      <Edit3 size={13} className="group-hover:rotate-12 transition-transform" /> Chỉnh sửa
+                    </button>
+                    <button
+                      onClick={() => handleToggleRoomActive(room.id, room.isActive !== false)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border transition-all text-xs font-bold cursor-pointer ${room.isActive !== false
+                          ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-500 hover:text-white hover:border-amber-500'
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'
+                        }`}
+                    >
+                      {room.isActive !== false ? <><EyeOff size={13} /> Tạm ngưng</> : <><Eye size={13} /> Kích hoạt</>}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteRoom(room.id)}
+                      className="w-10 flex items-center justify-center rounded-xl bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all cursor-pointer"
+                      title="Xóa loại phòng"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+
                 </div>
                 {/* end p-7 content wrapper */}
-                </div>
+              </div>
             ))}
           </div>
         )}

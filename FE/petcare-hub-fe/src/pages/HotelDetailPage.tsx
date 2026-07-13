@@ -1140,9 +1140,11 @@ export const HotelDetailPage = () => {
                             </div>
 
                             {/* Comment */}
-                            <p className="text-xs text-[#5d605c] leading-relaxed italic">
-                              "{rev.comment || 'Khách sạn sạch sẽ, nhân viên chăm sóc bé rất chu đáo. Rất yên tâm gửi bé ở đây.'}"
-                            </p>
+                            {rev.comment && (
+                              <p className="text-xs text-[#5d605c] leading-relaxed italic">
+                                "{rev.comment}"
+                              </p>
+                            )}
                           </div>
 
                           {/* Review Photos */}

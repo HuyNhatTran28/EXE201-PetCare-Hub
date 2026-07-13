@@ -74,7 +74,7 @@ const playSynthFallback = () => {
 }
 
 export const PartnerLayout = () => {
-  const { user, logout } = useAuthStore()
+  const { user, logout, updateUser } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const { openChatWindows, closeChatWindow, selectedHotelId, setSelectedHotelId } = useHotelStore()
@@ -86,6 +86,53 @@ export const PartnerLayout = () => {
   const NAV_ITEMS = isStaff ? STAFF_NAV_ITEMS : PARTNER_NAV_ITEMS
 
   const orangeGradient = { background: 'linear-gradient(135deg, #fa7150 0%, #a43e24 100%)' }
+
+  // ── Profile Modal States ──
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const [profileForm, setProfileForm] = useState({
+    fullName: '',
+    phone: '',
+    address: ''
+  })
+
+  const openProfileModal = () => {
+    setProfileForm({
+      fullName: user?.fullName || '',
+      phone: user?.phone || '',
+      address: user?.address || ''
+    })
+    setShowProfileModal(true)
+  }
+
+  useEffect(() => {
+    if (showProfileModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showProfileModal])
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!profileForm.fullName.trim()) {
+      alert('Vui lòng nhập Họ và tên!')
+      return
+    }
+    if (!profileForm.phone.trim()) {
+      alert('Vui lòng nhập Số điện thoại!')
+      return
+    }
+    updateUser({
+      fullName: profileForm.fullName,
+      phone: profileForm.phone,
+      address: profileForm.address
+    })
+    alert('Cập nhật thông tin liên hệ thành công!')
+    setShowProfileModal(false)
+  }
 
   // ── Global System Notification Dropdown States ──
   interface ToastNotification {
@@ -294,12 +341,16 @@ export const PartnerLayout = () => {
           </Link>
 
           {/* User Brief */}
-          <div className="bg-[#faf9f6] p-4 rounded-2xl flex items-center gap-3 border border-[#e5d8d0]/60">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-[#e5d8d0] text-sm font-black text-[#fa7150] shrink-0">
+          <div
+            onClick={openProfileModal}
+            className="bg-[#faf9f6] p-4 rounded-2xl flex items-center gap-3 border border-[#e5d8d0]/60 hover:bg-[#fa7150]/5 hover:border-[#fa7150]/30 transition-all cursor-pointer group"
+            title="Nhấp để cập nhật thông tin liên hệ"
+          >
+            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-[#e5d8d0] text-sm font-black text-[#fa7150] shrink-0 group-hover:border-[#fa7150]/40 transition-all">
               {user?.fullName?.charAt(0) || 'P'}
             </div>
             <div className="text-left overflow-hidden">
-              <span className="text-sm font-bold text-[#303330] block truncate">{user?.fullName || 'Đối tác'}</span>
+              <span className="text-sm font-bold text-[#303330] block truncate group-hover:text-[#fa7150] transition-colors">{user?.fullName || 'Đối tác'}</span>
               <span className="text-[10px] font-semibold text-[#8a7e75] block truncate">{user?.email || 'partner@gmail.com'}</span>
             </div>
           </div>
@@ -468,6 +519,81 @@ export const PartnerLayout = () => {
           />
         ))}
       </div>
+      {/* ── PROFILE UPDATE MODAL ── */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-left border border-[#e5d8d0] animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-black text-[#303330] mb-2">Thông tin liên hệ</h3>
+            <p className="text-xs text-[#8a7e75] mb-6">Cập nhật thông tin cá nhân của bạn giúp Ban quản trị (Admin) dễ dàng liên lạc khi cần hỗ trợ đối tác.</p>
+            
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Email (Không thể thay đổi)</label>
+                <input
+                  type="text"
+                  disabled
+                  value={user?.email || ''}
+                  className="w-full border border-[#e5d8d0] bg-[#faf9f6] text-[#8a7e75] rounded-2xl px-4 py-3 text-sm outline-none cursor-not-allowed font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Họ và tên *</label>
+                <input
+                  type="text"
+                  required
+                  value={profileForm.fullName}
+                  onChange={e => setProfileForm({ ...profileForm, fullName: e.target.value })}
+                  placeholder="Nhập họ và tên của bạn"
+                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Số điện thoại *</label>
+                <input
+                  type="text"
+                  required
+                  value={profileForm.phone}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 11)
+                    setProfileForm({ ...profileForm, phone: val })
+                  }}
+                  placeholder="Nhập số điện thoại liên lạc"
+                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Địa chỉ liên hệ</label>
+                <input
+                  type="text"
+                  value={profileForm.address}
+                  onChange={e => setProfileForm({ ...profileForm, address: e.target.value })}
+                  placeholder="Số nhà, Tên đường, Quận/Huyện..."
+                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#fa7150]"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowProfileModal(false)}
+                  className="flex-1 py-3 rounded-2xl border border-[#e5d8d0] text-sm font-bold text-[#8a7e75] hover:bg-[#faf9f6]"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-2xl bg-[#fa7150] hover:bg-[#a43e24] text-white text-sm font-bold transition-colors"
+                >
+                  Lưu thông tin
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

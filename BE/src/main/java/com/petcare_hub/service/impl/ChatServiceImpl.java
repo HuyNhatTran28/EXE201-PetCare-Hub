@@ -100,6 +100,7 @@ public class ChatServiceImpl implements ChatService {
         }
 
         // Lớp 3: kiểm tra hạn mức ngày
+        
         if (!tryAcquireDailySlot()) {
             log.warn("[DailyLimit] Đã đạt {}/ngày, bỏ qua gọi Groq", dailyChatLimit);
             return ChatResponse.builder().reply(DAILY_LIMIT_REPLY).build();
