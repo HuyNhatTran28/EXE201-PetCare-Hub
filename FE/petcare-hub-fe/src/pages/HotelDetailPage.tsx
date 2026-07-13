@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import {
   PawPrint,
   MapPin,
@@ -23,7 +24,9 @@ import {
   Loader2,
   Plus,
   AlertCircle,
-  AlertTriangle
+  AlertTriangle,
+  Flag,
+  X
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { Header } from '@/components/Header'
@@ -225,8 +228,16 @@ export const HotelDetailPage = () => {
   // Custom Toast notification state
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
 
+  // ── Hotel Report States ──
+  const [hasReported, setHasReported] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportReason, setReportReason] = useState('Lừa đảo')
+  const [reportDetail, setReportDetail] = useState('')
+  const [reportImages, setReportImages] = useState<string[]>([])
+  const [submittingReport, setSubmittingReport] = useState(false)
+
   useEffect(() => {
-    if (isEditDescOpen || isEditImagesOpen || toast) {
+    if (isEditDescOpen || isEditImagesOpen || toast || showReportModal) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -234,7 +245,96 @@ export const HotelDetailPage = () => {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [isEditDescOpen, isEditImagesOpen, toast])
+  }, [isEditDescOpen, isEditImagesOpen, toast, showReportModal])
+
+  useEffect(() => {
+    const checkReportedStatus = async () => {
+      if (!user || user.role !== 'OWNER' || !id) return
+      try {
+        const res = await axiosInstance.get(`/api/reports/hotels/${id}/check`)
+        setHasReported(res.data?.reported || false)
+      } catch (err) {
+        console.error('Failed to check reported status', err)
+      }
+    }
+    checkReportedStatus()
+  }, [user, id])
+
+  const handleReportImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    
+    if (reportImages.length + files.length > 3) {
+      alert('Bạn chỉ được upload tối đa 3 ảnh chứng cứ.')
+      return
+    }
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const validation = validateImageFile(file)
+      if (!validation.isValid) {
+        alert(validation.message)
+        return
+      }
+      
+      setUploadingField('reportImages')
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      try {
+        const res = await axiosInstance.post('/api/upload/image', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        setReportImages(prev => [...prev, res.data.url])
+      } catch (err) {
+        console.error('Failed to upload report image', err)
+        alert('Không thể tải ảnh lên. Vui lòng thử lại.')
+      } finally {
+        setUploadingField(null)
+      }
+    }
+  }
+
+  const handleRemoveReportImage = (indexToRemove: number) => {
+    setReportImages(prev => prev.filter((_, idx) => idx !== indexToRemove))
+  }
+
+  const handleOpenReportModal = () => {
+    setReportReason('Lừa đảo')
+    setReportDetail('')
+    setReportImages([])
+    setShowReportModal(true)
+  }
+
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!reportDetail.trim()) {
+      alert('Vui lòng nhập mô tả chi tiết nội dung vi phạm.')
+      return
+    }
+    setSubmittingReport(true)
+    try {
+      await axiosInstance.post(`/api/reports/hotels/${id}`, {
+        reason: `[${reportReason}] ${reportDetail.trim()}`,
+        imageUrls: reportImages
+      })
+      // Dispatch notification to client's own notification bell
+      window.dispatchEvent(new CustomEvent('petcare-notification', {
+        detail: {
+          title: 'Báo cáo vi phạm đã gửi',
+          message: `Cảm ơn bạn đã gửi báo cáo vi phạm về cơ sở "${hotelName || 'khách sạn'}". Ban quản trị sẽ xem xét và xử phạt trong thời gian sớm nhất.`,
+          type: 'message'
+        }
+      }))
+      alert('Gửi báo cáo vi phạm thành công! Ban quản trị sẽ sớm xem xét xử lý.')
+      setHasReported(true)
+      setShowReportModal(false)
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Không thể gửi báo cáo. Vui lòng thử lại.')
+    } finally {
+      setSubmittingReport(false)
+    }
+  }
   
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'error') => {
     setToast({ type, message })
@@ -882,19 +982,36 @@ export const HotelDetailPage = () => {
                 </div>
               </div>
               
-              {/* Rating Summary */}
-              <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-[#e1e3df] shadow-sm self-start md:self-auto">
-                <div className="flex text-amber-400">
-                  <Star size={18} fill="currentColor" />
+              {/* Rating Summary & Report */}
+              <div className="flex flex-col items-end gap-2 self-start md:self-auto">
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-[#e1e3df] shadow-sm">
+                  <div className="flex text-amber-400">
+                    <Star size={18} fill="currentColor" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-black text-[#303330]">
+                      {reviews.length > 0 
+                        ? (reviews.reduce((acc, r) => acc + (r.starRating || 0), 0) / reviews.length).toFixed(1) 
+                        : '5.0'} / 5.0
+                    </p>
+                    <p className="text-[10px] text-[#8a7e75] font-bold">({reviews.length} đánh giá)</p>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-black text-[#303330]">
-                    {reviews.length > 0 
-                      ? (reviews.reduce((acc, r) => acc + (r.starRating || 0), 0) / reviews.length).toFixed(1) 
-                      : '5.0'} / 5.0
-                  </p>
-                  <p className="text-[10px] text-[#8a7e75] font-bold">({reviews.length} đánh giá)</p>
-                </div>
+
+                {user && user.role === 'OWNER' && (
+                  <button
+                    onClick={handleOpenReportModal}
+                    disabled={hasReported}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black transition-all shadow-sm border ${
+                      hasReported
+                        ? 'bg-stone-100 border-stone-200 text-stone-400 cursor-not-allowed'
+                        : 'bg-white border-rose-200 text-rose-500 hover:bg-rose-50 cursor-pointer'
+                    }`}
+                  >
+                    <Flag size={12} className={hasReported ? 'text-stone-300' : 'text-rose-500'} />
+                    {hasReported ? 'Đã báo cáo vi phạm' : 'Báo cáo vi phạm'}
+                  </button>
+                )}
               </div>
             </div>
             </ScrollReveal>
@@ -2315,6 +2432,106 @@ export const HotelDetailPage = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── REPORT MODAL ── */}
+      {showReportModal && createPortal(
+        <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-[9998] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-left border border-[#e5d8d0] animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-black text-[#303330] mb-2 flex items-center gap-2">
+              <Flag size={20} className="text-rose-500" /> Báo cáo Khách sạn
+            </h3>
+            <p className="text-xs text-[#8a7e75] mb-6">
+              Bạn có thể báo cáo khách sạn nếu thấy có dấu hiệu lừa đảo, ngược đãi thú cưng hoặc thông tin sai lệch. Góp ý của bạn sẽ giúp hệ thống minh bạch hơn.
+            </p>
+            
+            <form onSubmit={handleSubmitReport} className="space-y-4 text-xs font-bold">
+              <div>
+                <label className="block text-[#8a7e75] mb-2 uppercase">Lý do báo cáo *</label>
+                <select
+                  value={reportReason}
+                  onChange={e => setReportReason(e.target.value)}
+                  className="w-full p-3 bg-[#faf9f6] border border-[#e5d8d0] rounded-2xl outline-none focus:border-[#fa7150]"
+                >
+                  <option value="Lừa đảo">Lừa đảo / Giả mạo</option>
+                  <option value="Thông tin sai lệch">Thông tin dịch vụ sai lệch</option>
+                  <option value="Vệ sinh kém">Cơ sở vật chất / Vệ sinh kém</option>
+                  <option value="Ngược đãi thú cưng">Ngược đãi thú cưng</option>
+                  <option value="Khác">Lý do khác</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[#8a7e75] mb-2 uppercase">Mô tả chi tiết *</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={reportDetail}
+                  onChange={e => setReportDetail(e.target.value)}
+                  placeholder="Mô tả cụ thể hành vi vi phạm hoặc lừa đảo của khách sạn..."
+                  className="w-full p-3 bg-[#faf9f6] border border-[#e5d8d0] rounded-2xl outline-none focus:border-[#fa7150] font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#8a7e75] mb-2 uppercase">Ảnh bằng chứng (Tối đa 3 ảnh)</label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {reportImages.map((url, idx) => (
+                    <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#e5d8d0] group">
+                      <img src={url} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveReportImage(idx)}
+                        className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-800 transition-colors shadow-md flex items-center justify-center cursor-pointer"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {reportImages.length < 3 && (
+                    <label className="w-16 h-16 rounded-xl border border-dashed border-[#e5d8d0] bg-[#faf9f6] hover:bg-[#fa7150]/5 hover:border-[#fa7150]/40 flex flex-col items-center justify-center text-[#8a7e75] cursor-pointer transition-colors relative">
+                      {uploadingField === 'reportImages' ? (
+                        <span className="w-4 h-4 border-2 border-[#fa7150]/20 border-t-[#fa7150] rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Upload size={16} className="text-[#fa7150]" />
+                          <span className="text-[8px] font-bold block mt-1">Tải ảnh</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        disabled={uploadingField === 'reportImages'}
+                        onChange={handleReportImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowReportModal(false)}
+                  className="flex-1 py-3 rounded-2xl border border-[#e5d8d0] text-sm font-bold text-[#8a7e75] hover:bg-[#faf9f6] cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReport || uploadingField === 'reportImages'}
+                  className="flex-1 py-3 rounded-2xl bg-[#fa7150] hover:bg-[#a43e24] text-white text-sm font-bold transition-colors text-center cursor-pointer disabled:opacity-50"
+                >
+                  {submittingReport ? 'Đang gửi...' : 'Gửi báo cáo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )

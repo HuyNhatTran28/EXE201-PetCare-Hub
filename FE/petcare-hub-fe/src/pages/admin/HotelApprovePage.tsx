@@ -27,6 +27,10 @@ export const HotelApprovePage = () => {
   const [roomTypes, setRoomTypes] = useState<any[]>([])
   const [loadingRooms, setLoadingRooms] = useState(false)
 
+  const [hotelReports, setHotelReports] = useState<any[]>([])
+  const [loadingReports, setLoadingReports] = useState(false)
+  const [blockingHotel, setBlockingHotel] = useState(false)
+
   useEffect(() => {
     if (selectedHotel) {
       setLoadingRooms(true)
@@ -41,8 +45,25 @@ export const HotelApprovePage = () => {
         .finally(() => {
           setLoadingRooms(false)
         })
+
+      // Fetch reports for this hotel
+      setLoadingReports(true)
+      axiosInstance.get('/api/admin/reports')
+        .then(res => {
+          const allReports = res.data || []
+          const matching = allReports.filter((r: any) => r.hotelId === selectedHotel.id)
+          setHotelReports(matching)
+        })
+        .catch(err => {
+          console.error("Failed to load reports for hotel:", err)
+          setHotelReports([])
+        })
+        .finally(() => {
+          setLoadingReports(false)
+        })
     } else {
       setRoomTypes([])
+      setHotelReports([])
     }
   }, [selectedHotel])
 
@@ -133,6 +154,34 @@ export const HotelApprovePage = () => {
       alert('Không thể tạm ngưng khách sạn')
     } finally {
       setProcessing(null)
+    }
+  }
+
+  const handleToggleHotelSuspend = async () => {
+    if (!selectedHotel) return
+    const currentSuspended = selectedHotel.status === 'SUSPENDED'
+    const confirmMsg = currentSuspended
+      ? `Xác nhận KÍCH HOẠT LẠI khách sạn "${selectedHotel.name}"?`
+      : `Xác nhận ĐÌNH CHỈ HOẠT ĐỘNG khách sạn "${selectedHotel.name}"?`
+    if (!window.confirm(confirmMsg)) return
+
+    setBlockingHotel(true)
+    try {
+      const newStatus = currentSuspended ? 'ACTIVE' : 'SUSPENDED'
+      await axiosInstance.patch(`/api/hotels/${selectedHotel.id}/status?status=${newStatus}`)
+      
+      // Update locally
+      setSelectedHotel((prev: any) => ({ ...prev, status: newStatus }))
+      setHotels(prev => prev.map(h => 
+        h.id === selectedHotel.id ? { ...h, status: newStatus } : h
+      ))
+      
+      alert(currentSuspended ? 'Đã kích hoạt lại khách sạn thành công!' : 'Đã đình chỉ hoạt động khách sạn thành công!')
+    } catch (err: any) {
+      console.error(err)
+      alert(err.response?.data?.message || 'Không thể thay đổi trạng thái khách sạn.')
+    } finally {
+      setBlockingHotel(false)
     }
   }
 
@@ -614,6 +663,113 @@ export const HotelApprovePage = () => {
                   </div>
                 </div>
 
+                {/* Lịch sử báo cáo & Mức độ vi phạm */}
+                <div className="border-t border-[#e5d8d0] pt-6 mt-6">
+                  <div className="bg-[#faf9f6] p-6 rounded-3xl border border-[#e5d8d0]/60 space-y-4">
+                    <div className="flex justify-between items-center border-b border-[#e5d8d0] pb-2">
+                      <h3 className="text-xs font-black text-rose-600 uppercase tracking-wider flex items-center gap-1.5">
+                        🚩 Lịch sử báo cáo vi phạm ({hotelReports.length})
+                      </h3>
+                      {loadingReports && <span className="text-[10px] text-stone-400 italic">Đang tải lịch sử báo cáo...</span>}
+                    </div>
+
+                    {/* Mức độ vi phạm */}
+                    <div className="bg-white border border-[#e5d8d0] p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black text-[#8a7e75] uppercase block">Mức độ vi phạm tích lũy</span>
+                        <div className="flex items-center gap-2">
+                          {hotelReports.length === 0 ? (
+                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[10px] font-black uppercase">
+                              An Toàn (0 vi phạm)
+                            </span>
+                          ) : hotelReports.length === 1 ? (
+                            <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-lg text-[10px] font-black uppercase">
+                              Nhẹ (1 vi phạm - Cảnh cáo)
+                            </span>
+                          ) : hotelReports.length === 2 ? (
+                            <span className="px-2.5 py-1 bg-orange-50 text-orange-700 border border-orange-100 rounded-lg text-[10px] font-black uppercase animate-pulse">
+                              Trung Bình (2 vi phạm - Cảnh cáo nghiêm trọng)
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-100 rounded-lg text-[10px] font-black uppercase animate-bounce">
+                              Nguy Hiểm ({hotelReports.length} vi phạm - Khách sạn đã bị đình chỉ!)
+                            </span>
+                          )}
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            {hotelReports.length >= 3 ? '(Quá giới hạn 3 lần báo cáo vi phạm)' : `(Giới hạn tối đa: 3 lần)`}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        <button
+                          type="button"
+                          onClick={handleToggleHotelSuspend}
+                          disabled={blockingHotel}
+                          className={`px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+                            selectedHotel.status === 'SUSPENDED'
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                              : 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'
+                          }`}
+                        >
+                          {blockingHotel ? (
+                            <span>Đang xử lý...</span>
+                          ) : selectedHotel.status === 'SUSPENDED' ? (
+                            <span>Kích hoạt lại khách sạn</span>
+                          ) : (
+                            <span>Đình chỉ khách sạn</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Danh sách các báo cáo */}
+                    {hotelReports.length > 0 ? (
+                      <div className="space-y-3">
+                        {hotelReports.map((rep, idx) => (
+                          <div key={idx} className="bg-white p-4 rounded-2xl border border-[#e5d8d0] shadow-sm space-y-2">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="text-[10px] font-black text-[#fa7150] block">Báo cáo #{idx + 1}</span>
+                                <span className="text-gray-400 text-[10px] font-normal">Người báo cáo: {rep.reporterEmail || 'Khách hàng'}</span>
+                              </div>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                rep.status === 'APPROVED' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                                rep.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                'bg-gray-50 text-gray-500 border border-gray-100'
+                              }`}>
+                                {rep.status === 'APPROVED' ? 'Đã duyệt phạt' : rep.status === 'PENDING' ? 'Đang chờ xử lý' : 'Đã bác bỏ'}
+                              </span>
+                            </div>
+                            <p className="text-gray-700 font-bold leading-relaxed">{rep.reason}</p>
+                            
+                            {rep.imageUrls && rep.imageUrls.length > 0 && (
+                              <div className="flex gap-1.5 flex-wrap pt-1">
+                                {rep.imageUrls.map((img: string, i: number) => (
+                                  <a key={i} href={img} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 block shrink-0 hover:opacity-90">
+                                    <img src={img} className="w-full h-full object-cover" />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                            
+                            <div className="text-[10px] text-gray-400 font-normal flex justify-between pt-1 border-t border-gray-50">
+                              <span>Ngày báo cáo: {rep.createdAt ? new Date(rep.createdAt).toLocaleString('vi-VN') : '—'}</span>
+                              {rep.adminNote && (
+                                <span className="text-rose-600 font-bold">Ghi chú phạt: {rep.adminNote}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      !loadingReports && (
+                        <p className="text-stone-400 italic text-[11px] text-left">Chưa có lịch sử báo cáo vi phạm nào cho cơ sở này.</p>
+                      )
+                    )}
+                  </div>
+                </div>
+
                 {/* Room Types Section */}
                 <div className="border-t border-[#e5d8d0] pt-6 mt-6">
                   <div className="bg-[#faf9f6] p-6 rounded-3xl border border-[#e5d8d0]/60 space-y-4">
@@ -708,14 +864,14 @@ export const HotelApprovePage = () => {
                     <Ban size={14} /> Tạm ngưng hoạt động
                   </button>
                 )}
-                {selectedHotel.status === 'REJECTED' && (
+                {(selectedHotel.status === 'REJECTED' || selectedHotel.status === 'SUSPENDED') && (
                   <button
                     type="button"
                     onClick={() => { handleApprove(selectedHotel.id); setSelectedHotel(null) }}
                     disabled={processing === selectedHotel.id}
                     className="px-5 py-2.5 rounded-xl font-bold bg-[#fa7150] hover:bg-[#a43e24] text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <RefreshCw size={14} /> Duyệt lại hồ sơ
+                    <RefreshCw size={14} /> Duyệt lại / Kích hoạt lại
                   </button>
                 )}
               </div>

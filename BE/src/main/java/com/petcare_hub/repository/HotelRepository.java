@@ -24,6 +24,7 @@ public interface HotelRepository extends
 
     // Lấy KS theo partner
     Page<Hotel> findByPartnerId(UUID partnerId, Pageable pageable);
+    List<Hotel> findAllByPartnerId(UUID partnerId);
 
     // Kiểm tra KS thuộc đúng partner (dùng cho authorization)
     Optional<Hotel> findByIdAndPartnerId(UUID id, UUID partnerId);
