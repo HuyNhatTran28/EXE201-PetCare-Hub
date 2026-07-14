@@ -277,7 +277,7 @@ export const Header = () => {
           if (status === 'APPROVED' || status === 'REJECTED') {
             const notifKey = `report-notified-${rep.id}-${status}`
             const alreadyNotified = localStorage.getItem(notifKey)
-            
+
             if (!alreadyNotified) {
               const newTitle = 'Cập nhật báo cáo vi phạm'
               const newMsg = status === 'APPROVED'
@@ -343,7 +343,7 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-50 bg-[#fcf8f5]/90 backdrop-blur-md border-b border-[#f0e4de] px-6 py-4 w-full shrink-0">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        
+
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <PawPrint size={28} className="text-[#fa7150] animate-bounce" />
@@ -377,13 +377,13 @@ export const Header = () => {
 
         {/* User Actions */}
         <div className="flex items-center gap-4 relative">
-          
+
           {/* OWNER specific notifications icon */}
           {user && user.role === 'OWNER' && (
             <div className="flex items-center gap-3 mr-2">
               {/* Notifications Dropdown (Bell Icon) */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setShowNotifDropdown(!showNotifDropdown)}
                   className="w-10 h-10 rounded-full bg-white border border-[#e5d8d0] flex items-center justify-center text-[#5a5550] hover:text-[#fa7150] hover:border-[#fa7150]/30 transition-all cursor-pointer relative"
                 >
@@ -397,14 +397,14 @@ export const Header = () => {
 
                 {/* Dropdown Tray */}
                 {showNotifDropdown && (
-                  <div 
+                  <div
                     className="absolute right-0 w-80 bg-white border border-[#e5d8d0] rounded-2xl shadow-xl z-50 overflow-hidden text-xs mt-2 text-left"
                     style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}
                   >
                     <div className="px-4 py-3 border-b border-[#e5d8d0] flex justify-between items-center bg-[#faf9f6]">
                       <span className="font-extrabold text-[#303330]">Thông báo của bạn ({notifications.length})</span>
                       {notifications.length > 0 && (
-                        <button 
+                        <button
                           onClick={() => setNotifications([])}
                           className="text-[10px] text-[#fa7150] hover:underline font-extrabold cursor-pointer"
                         >
@@ -420,8 +420,8 @@ export const Header = () => {
                         </div>
                       ) : (
                         notifications.map(n => (
-                          <div 
-                            key={n.id} 
+                          <div
+                            key={n.id}
                             onClick={() => {
                               navigate('/pet-diaries')
                               setNotifications(prev => prev.filter(x => x.id !== n.id))
@@ -446,7 +446,7 @@ export const Header = () => {
 
           {user ? (
             <div className="relative">
-              <div 
+              <div
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                 className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#fa7150] to-[#ff9880] text-white flex items-center justify-center shadow-md cursor-pointer hover:scale-105 hover:shadow-[#fa7150]/20 active:scale-95 transition-all select-none border-2 border-white"
                 title="Tài khoản cá nhân"
@@ -477,22 +477,22 @@ export const Header = () => {
                   <div className="flex flex-col gap-1 mb-3">
                     {user.role === 'OWNER' && (
                       <>
-                        <Link 
-                          to="/pets" 
+                        <Link
+                          to="/pets"
                           onClick={() => setShowProfileDropdown(false)}
                           className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                         >
                           Hồ sơ Thú cưng
                         </Link>
-                        <Link 
-                          to="/my-bookings" 
+                        <Link
+                          to="/my-bookings"
                           onClick={() => setShowProfileDropdown(false)}
                           className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                         >
                           Lịch đặt phòng
                         </Link>
-                        <Link 
-                          to="/profile" 
+                        <Link
+                          to="/profile"
                           onClick={() => setShowProfileDropdown(false)}
                           className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                         >
@@ -502,8 +502,8 @@ export const Header = () => {
                     )}
 
                     {user.role === 'PARTNER' && (
-                      <Link 
-                        to="/partner/dashboard" 
+                      <Link
+                        to="/partner/dashboard"
                         onClick={() => setShowProfileDropdown(false)}
                         className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                       >
@@ -512,8 +512,8 @@ export const Header = () => {
                     )}
 
                     {user.role === 'ADMIN' && (
-                      <Link 
-                        to="/admin/dashboard" 
+                      <Link
+                        to="/admin/dashboard"
                         onClick={() => setShowProfileDropdown(false)}
                         className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                       >
@@ -522,8 +522,8 @@ export const Header = () => {
                     )}
 
                     {user.role === 'STAFF' && (
-                      <Link 
-                        to="/partner/messages" 
+                      <Link
+                        to="/partner/messages"
                         onClick={() => setShowProfileDropdown(false)}
                         className="px-3.5 py-2.5 rounded-2xl hover:bg-[#fff0e6] hover:text-[#fa7150] text-xs font-bold text-[#5a5550] transition-all flex items-center"
                       >
@@ -566,34 +566,32 @@ export const Header = () => {
           </Link>
         </div>
       </div>
-       {/* ── PROFILE UPDATE MODAL ── */}
+      {/* ── PROFILE UPDATE MODAL ── */}
       {showProfileModal && createPortal(
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-left border border-[#e5d8d0] animate-in fade-in zoom-in duration-200">
             <h3 className="text-xl font-black text-[#303330] mb-2">Tài khoản & Thiết lập</h3>
             <p className="text-xs text-[#8a7e75] mb-6">Quản lý thông tin liên lạc cá nhân hoặc thiết lập lại mật khẩu bảo vệ tài khoản.</p>
-            
+
             {/* Tab Switcher */}
             <div className="flex bg-[#faf9f6] p-1 rounded-xl mb-6 border border-[#e5d8d0]/60">
               <button
                 type="button"
                 onClick={() => setActiveTab('info')}
-                className={`flex-1 py-2 text-center text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  activeTab === 'info'
+                className={`flex-1 py-2 text-center text-xs font-bold rounded-lg transition-all cursor-pointer ${activeTab === 'info'
                     ? 'bg-[#fa7150] text-white shadow-sm'
                     : 'text-[#8a7e75] hover:text-[#fa7150]'
-                }`}
+                  }`}
               >
                 Thông tin cá nhân
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('password')}
-                className={`flex-1 py-2 text-center text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  activeTab === 'password'
+                className={`flex-1 py-2 text-center text-xs font-bold rounded-lg transition-all cursor-pointer ${activeTab === 'password'
                     ? 'bg-[#fa7150] text-white shadow-sm'
                     : 'text-[#8a7e75] hover:text-[#fa7150]'
-                }`}
+                  }`}
               >
                 Đổi mật khẩu
               </button>
@@ -671,7 +669,7 @@ export const Header = () => {
               <form onSubmit={handleChangePassword} className="space-y-4">
                 {passError && <div className="text-xs font-bold text-rose-500">{passError}</div>}
                 {passSuccess && <div className="text-xs font-bold text-emerald-600">{passSuccess}</div>}
-                
+
                 <div>
                   <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Mật khẩu cũ *</label>
                   <input
