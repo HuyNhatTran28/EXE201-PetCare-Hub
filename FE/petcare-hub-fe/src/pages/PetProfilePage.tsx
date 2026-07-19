@@ -87,7 +87,13 @@ export const PetProfilePage = () => {
     feedingSchedule: '',
     isIndoorOnly: false,
     hasSpecialDiet: false,
-    personalityTags: [] as string[]
+    personalityTags: [] as string[],
+    gender: '',
+    furColor: '',
+    parasiteInternal: '',
+    parasiteExternal: '',
+    allergies: '',
+    vaccines: [] as any[]
   })
 
   // Popup/Modal States
@@ -99,6 +105,15 @@ export const PetProfilePage = () => {
     title: string
     message: string
     type: 'success' | 'error' | 'warning'
+    petData?: {
+      name: string
+      species: string
+      breed?: string
+      ageYears: number
+      weightKg: number
+      isVaccinated: boolean
+      avatarUrl?: string
+    }
   }>({
     show: false,
     title: '',
@@ -106,8 +121,13 @@ export const PetProfilePage = () => {
     type: 'error'
   })
 
-  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' = 'error') => {
-    setAlertModal({ show: true, title, message, type })
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'warning' = 'error',
+    petData?: typeof alertModal.petData
+  ) => {
+    setAlertModal({ show: true, title, message, type, petData })
   }
 
   const mapPets = (list: any[]) => list.map((p: any) => {
@@ -275,6 +295,20 @@ export const PetProfilePage = () => {
     }
     setSubmitting(true)
     try {
+      const medicalRecordObj = {
+        gender: form.gender,
+        furColor: form.furColor,
+        parasites: {
+          internal: form.parasiteInternal,
+          external: form.parasiteExternal
+        },
+        allergies: form.allergies,
+        vaccines: form.vaccines,
+        vaccineBookUrls: form.vaccineBookUrls,
+        clinicalHistory: [],
+        specialNotes: form.specialNotes
+      }
+
       await axiosInstance.post('/api/pets', {
         name: form.name.trim(),
         species: form.species,
@@ -282,7 +316,7 @@ export const PetProfilePage = () => {
         ageYears: Number(form.ageYears) || 0,
         weightKg: Number(form.weightKg) || 0,
         foodType: form.foodType,
-        specialNotes: form.specialNotes,
+        specialNotes: JSON.stringify(medicalRecordObj),
         avatarUrl: form.avatarUrl,
         isVaccinated: form.isVaccinated,
         vaccineBookUrls: form.vaccineBookUrls,
@@ -299,6 +333,15 @@ export const PetProfilePage = () => {
         setSelectedPetId(fetchedPets[fetchedPets.length - 1].id)
       }
       setShowModal(false)
+      const newPetData = {
+        name: form.name.trim(),
+        species: form.species === 'CAT' ? 'Mèo' : 'Chó',
+        breed: form.breed || 'Không rõ',
+        ageYears: Number(form.ageYears) || 0,
+        weightKg: Number(form.weightKg) || 0,
+        isVaccinated: form.isVaccinated,
+        avatarUrl: form.avatarUrl
+      }
       setForm({
         name: '',
         species: '',
@@ -314,9 +357,15 @@ export const PetProfilePage = () => {
         feedingSchedule: '',
         isIndoorOnly: false,
         hasSpecialDiet: false,
-        personalityTags: []
+        personalityTags: [],
+        gender: '',
+        furColor: '',
+        parasiteInternal: '',
+        parasiteExternal: '',
+        allergies: '',
+        vaccines: []
       })
-      showAlert('Thành công', 'Đã thêm thú cưng mới thành công!', 'success')
+      showAlert('Thành công', 'Đã thêm thú cưng mới thành công!', 'success', newPetData)
     } catch (err: any) {
       console.error('Failed to create pet:', err);
       const errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể tạo thú cưng';
@@ -338,6 +387,13 @@ export const PetProfilePage = () => {
     }
     setSubmitting(true)
     try {
+      const medicalRecordObj = {
+        ...(editPet.medicalRecord || {}),
+        specialNotes: editPet.specialNotes,
+        vaccineBookUrls: editPet.vaccineBookUrls || []
+      }
+      const updatedNotesJson = JSON.stringify(medicalRecordObj)
+
       await axiosInstance.put(`/api/pets/${editPet.id}`, {
         name: editPet.name.trim(),
         species: editPet.species || '',
@@ -345,7 +401,7 @@ export const PetProfilePage = () => {
         ageYears: editPet.ageYears,
         weightKg: editPet.weightKg,
         foodType: editPet.foodType,
-        specialNotes: editPet.specialNotes,
+        specialNotes: updatedNotesJson,
         avatarUrl: editPet.avatarUrl,
         isVaccinated: editPet.isVaccinated || false,
         vaccineBookUrls: editPet.vaccineBookUrls || [],
@@ -358,8 +414,17 @@ export const PetProfilePage = () => {
       const response = await axiosInstance.get('/api/pets/my')
       const fetchedPets = mapPets(response.data)
       setPets(fetchedPets)
+      const updatedPetData = {
+        name: editPet.name.trim(),
+        species: editPet.species === 'CAT' ? 'Mèo' : 'Chó',
+        breed: editPet.breed || 'Không rõ',
+        ageYears: Number(editPet.ageYears) || 0,
+        weightKg: Number(editPet.weightKg) || 0,
+        isVaccinated: editPet.isVaccinated || false,
+        avatarUrl: editPet.avatarUrl
+      }
       setEditPet(null)
-      showAlert('Thành công', 'Đã cập nhật hồ sơ thú cưng thành công!', 'success')
+      showAlert('Thành công', 'Đã cập nhật hồ sơ thú cưng thành công!', 'success', updatedPetData)
     } catch (err: any) {
       console.error('Failed to update pet:', err);
       const errMsg = err.response?.data?.message || err.response?.data || err.message || 'Không thể cập nhật';
@@ -686,22 +751,6 @@ export const PetProfilePage = () => {
                             <span className="text-[#8a7e75] font-bold">MÃ CHIP (MICROCHIP)</span>
                             <span className="font-black text-[#303330] font-mono">{activePet.microchipId || 'Không có'}</span>
                           </div>
-
-                          {/* Owner sub-section */}
-                          <div className="mt-6 pt-4 border-t border-dashed border-stone-200">
-                            <p className="font-headline font-black text-xs text-[#a43e24] uppercase tracking-wider mb-3">Thông tin chủ nuôi</p>
-                            <div className="space-y-2.5">
-
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="text-[#8a7e75] font-semibold">SĐT liên hệ:</span>
-                                <span className="font-bold text-[#303330]">{activePet.medicalRecord?.ownerPhone || 'Chưa cập nhật'}</span>
-                              </div>
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="text-[#8a7e75] font-semibold">Địa chỉ:</span>
-                                <span className="font-bold text-[#303330] text-right max-w-[180px] truncate" title={activePet.medicalRecord?.ownerAddress}>{activePet.medicalRecord?.ownerAddress || 'Chưa cập nhật'}</span>
-                              </div>
-                            </div>
-                          </div>
                         </div>
                       </div>
 
@@ -891,33 +940,8 @@ export const PetProfilePage = () => {
                         )}
                       </div>
 
-                      {/* Hobbies Card (Sinh hoạt) */}
-                      <div className="bg-white p-8 rounded-2xl border border-[#e5d8d0] shadow-sm flex flex-col items-center text-center justify-center transition-all duration-300">
-                        <h3 className="font-headline font-extrabold text-base mb-3 text-[#303330]">Sinh hoạt</h3>
-                        <div className="flex flex-col gap-2 w-full text-xs font-bold text-left">
-                          <div className="flex justify-between items-center py-1 border-b border-stone-100">
-                            <span className="text-[#8a7e75] uppercase text-[9px]">Môi trường:</span>
-                            <span className={activePet.isIndoorOnly ? 'text-sky-600' : 'text-stone-600'}>
-                              {activePet.isIndoorOnly ? 'Trong nhà' : 'Tự do'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center py-1 border-b border-stone-100">
-                            <span className="text-[#8a7e75] uppercase text-[9px]">Dinh dưỡng:</span>
-                            <span className={activePet.hasSpecialDiet ? 'text-[#a43e24]' : 'text-stone-600'}>
-                              {activePet.hasSpecialDiet ? 'Ăn đặc biệt' : 'Ăn thường'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center py-1">
-                            <span className="text-[#8a7e75] uppercase text-[9px]">Tiêm phòng:</span>
-                            <span className={activePet.isVaccinated ? 'text-emerald-600' : 'text-[#a43e24]'}>
-                              {activePet.isVaccinated ? 'Đã tiêm đủ' : 'Chưa tiêm đủ'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
                       {/* Quote Card */}
-                      <div className="md:col-span-2 relative rounded-2xl overflow-hidden h-48 shadow-md bg-gradient-to-r from-stone-800 to-stone-700 flex flex-col justify-center items-center p-8 text-center">
+                      <div className="md:col-span-3 relative rounded-2xl overflow-hidden h-48 shadow-md bg-gradient-to-r from-stone-800 to-stone-700 flex flex-col justify-center items-center p-8 text-center">
                         <div className="absolute inset-0 bg-black/10"></div>
                         <div className="relative z-10 w-full max-w-xl">
                           <p className="text-white text-xs font-bold uppercase tracking-wider opacity-75 mb-2.5">
@@ -1102,278 +1126,581 @@ export const PetProfilePage = () => {
                 </label>
               </div>
 
-              {/* Tên */}
-              <div>
-                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Tên thú cưng *</label>
-                <input
-                  value={editPet ? editPet.name : form.name}
-                  onChange={e => editPet
-                    ? setEditPet({...editPet, name: e.target.value})
-                    : setForm({...form, name: e.target.value})}
-                  placeholder="VD: Mimi, Bông, Lucky..."
-                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
-                />
-              </div>
+              {/* Section 1: Thông tin cơ bản */}
+              <div className="bg-[#faf9f6] p-5 rounded-3xl border-2 border-[#e5d8d0] space-y-4 shadow-sm">
+                <h4 className="text-[13px] font-black text-[#a43e24] uppercase tracking-wider border-b border-[#e5d8d0] pb-2 border-l-3 border-[#a43e24] pl-2.5 mb-2">
+                  1. Thông tin cơ bản
+                </h4>
 
-              {/* Loài */}
-              <div>
-                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Loài *</label>
-                <div className="flex gap-2">
-                  {['CAT', 'DOG'].map(s => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => editPet
-                        ? setEditPet({...editPet, species: s} as any)
-                        : setForm({...form, species: s})}
-                      className={`flex-1 py-2.5 rounded-2xl text-xs font-bold border transition-all ${
-                        (editPet ? (editPet as any).species : form.species) === s
-                          ? 'bg-[#a43e24] text-white border-[#a43e24]'
-                          : 'border-[#e5d8d0] text-[#8a7e75] hover:border-[#a43e24]'
-                      }`}
-                    >
-                      {s === 'CAT' ? 'Mèo' : 'Chó'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Giống */}
-              <div>
-                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Giống</label>
-                <input
-                  value={editPet ? editPet.breed : form.breed}
-                  onChange={e => editPet
-                    ? setEditPet({...editPet, breed: e.target.value})
-                    : setForm({...form, breed: e.target.value})}
-                  placeholder="VD: Golden Retriever, Persian..."
-                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
-                />
-              </div>
-
-              {/* Mã định danh Microchip */}
-              <div>
-                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Mã định danh Microchip (nếu có)</label>
-                <input
-                  value={editPet ? (editPet.microchipId || '') : form.microchipId}
-                  onChange={e => editPet
-                    ? setEditPet({...editPet, microchipId: e.target.value})
-                    : setForm({...form, microchipId: e.target.value})}
-                  placeholder="Nhập mã microchip định danh của bé..."
-                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
-                />
-              </div>
-
-              {/* Tuổi + Cân nặng */}
-              <div className="grid grid-cols-2 gap-3">
+                {/* Tên */}
                 <div>
-                  <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Tuổi (năm)</label>
+                  <label className="text-xs font-black text-[#4a433d] uppercase mb-1.5 block tracking-wide">
+                    Tên thú cưng <span className="text-red-600 font-bold">*</span>
+                  </label>
                   <input
-                    type="text"
-                    value={editPet ? editPet.ageYears : form.ageYears}
-                    onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '')
-                      if (editPet) {
-                        setEditPet({...editPet, ageYears: Number(val) || 0})
-                      } else {
-                        setForm({...form, ageYears: val})
-                      }
-                    }}
-                    placeholder="2"
-                    className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
+                    value={editPet ? editPet.name : form.name}
+                    onChange={e => editPet
+                      ? setEditPet({...editPet, name: e.target.value})
+                      : setForm({...form, name: e.target.value})}
+                    placeholder="VD: Mimi, Bông, Lucky..."
+                    className="w-full border-2 border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm bg-white outline-none focus:border-[#a43e24] focus:ring-4 focus:ring-[#a43e24]/10 transition-all shadow-sm"
                   />
                 </div>
+
+                {/* Loài */}
                 <div>
-                  <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Cân nặng (kg)</label>
-                  <input
-                    type="text"
-                    value={editPet ? editPet.weightKg : form.weightKg}
-                    onChange={e => {
-                      // Chỉ cho phép nhập số và tối đa 1 dấu chấm thập phân
-                      let val = e.target.value.replace(/[^0-9.]/g, '')
-                      const parts = val.split('.')
-                      if (parts.length > 2) {
-                        val = parts[0] + '.' + parts.slice(1).join('')
-                      }
-                      if (editPet) {
-                        setEditPet({...editPet, weightKg: Number(val) || 0})
-                      } else {
-                        setForm({...form, weightKg: val})
-                      }
-                    }}
-                    placeholder="4.5"
-                    className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
-                  />
-                </div>
-              </div>
-
-              {/* Thức ăn */}
-              <div>
-                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Loại thức ăn</label>
-                <input
-                  value={editPet ? (editPet.foodType || '') : form.foodType}
-                  onChange={e => editPet
-                    ? setEditPet({...editPet, foodType: e.target.value})
-                    : setForm({...form, foodType: e.target.value})}
-                  placeholder="VD: Hạt Royal Canin, đồ ăn ướt..."
-                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
-                />
-              </div>
-
-              {/* Lịch ăn uống */}
-              <div>
-                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Lịch trình & Khẩu phần ăn</label>
-                <input
-                  value={editPet ? (editPet.feedingSchedule || '') : form.feedingSchedule}
-                  onChange={e => editPet
-                    ? setEditPet({...editPet, feedingSchedule: e.target.value})
-                    : setForm({...form, feedingSchedule: e.target.value})}
-                  placeholder="VD: Hai bữa chính lúc 8:00 và 18:00..."
-                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24]"
-                />
-              </div>
-
-              {/* Ghi chú */}
-              <div>
-                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-1 block">Ghi chú đặc biệt</label>
-                <textarea
-                  value={editPet ? (editPet.specialNotes || '') : form.specialNotes}
-                  onChange={e => editPet
-                    ? setEditPet({...editPet, specialNotes: e.target.value})
-                    : setForm({...form, specialNotes: e.target.value})}
-                  placeholder="Dị ứng, thuốc cần uống, tính cách đặc biệt..."
-                  rows={3}
-                  className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#a43e24] resize-none"
-                />
-              </div>
-
-              {/* Lựa chọn Cá tính */}
-              <div>
-                <label className="text-xs font-bold text-[#8a7e75] uppercase mb-2 block">Cá tính & Đặc điểm nổi bật</label>
-                <div className="flex flex-wrap gap-2 p-3 bg-stone-50 rounded-2xl border border-[#e5d8d0]">
-                  {['Thân thiện', 'Năng động', 'Ngoan ngoãn', 'Nhút nhát', 'Dễ gần', 'Thích vuốt ve', 'Tò mò', 'Ham chơi'].map(tag => {
-                    const currentTags = editPet ? (editPet.personalityTags || []) : form.personalityTags
-                    const isSelected = currentTags.includes(tag)
-                    return (
+                  <label className="text-xs font-black text-[#4a433d] uppercase mb-1.5 block tracking-wide">
+                    Loài <span className="text-red-600 font-bold">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    {['CAT', 'DOG'].map(s => (
                       <button
-                        key={tag}
+                        key={s}
                         type="button"
-                        onClick={() => {
-                          let nextTags: string[]
-                          if (isSelected) {
-                            nextTags = currentTags.filter(t => t !== tag)
-                          } else {
-                            nextTags = [...currentTags, tag]
-                          }
-                          if (editPet) {
-                            setEditPet({...editPet, personalityTags: nextTags})
-                          } else {
-                            setForm({...form, personalityTags: nextTags})
-                          }
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                          isSelected
-                            ? 'bg-[#44683b] text-white border-[#44683b]'
-                            : 'bg-white text-[#5d605c] border-[#e5d8d0] hover:border-[#44683b]/60'
+                        onClick={() => editPet
+                          ? setEditPet({...editPet, species: s} as any)
+                          : setForm({...form, species: s})}
+                        className={`flex-1 py-3 rounded-2xl text-xs font-black uppercase tracking-wider border-2 transition-all ${
+                          (editPet ? (editPet as any).species : form.species) === s
+                            ? 'bg-[#a43e24] text-white border-[#a43e24] shadow-md shadow-[#a43e24]/10'
+                            : 'border-[#e5d8d0] bg-white text-[#5a5550] hover:border-[#a43e24] hover:text-[#a43e24]'
                         }`}
                       >
-                        {tag}
+                        {s === 'CAT' ? 'Mèo' : 'Chó'}
                       </button>
-                    )
-                  })}
+                    ))}
+                  </div>
+                </div>
+
+                {/* Giống */}
+                <div>
+                  <label className="text-xs font-black text-[#4a433d] uppercase mb-1.5 block tracking-wide">Giống (Breed)</label>
+                  <input
+                    value={editPet ? editPet.breed : form.breed}
+                    onChange={e => editPet
+                      ? setEditPet({...editPet, breed: e.target.value})
+                      : setForm({...form, breed: e.target.value})}
+                    placeholder="VD: Golden Retriever, Persian..."
+                    className="w-full border-2 border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm bg-white outline-none focus:border-[#a43e24] focus:ring-4 focus:ring-[#a43e24]/10 transition-all shadow-sm"
+                  />
+                </div>
+
+                {/* Mã định danh Microchip */}
+                <div>
+                  <label className="text-xs font-black text-[#4a433d] uppercase mb-1.5 block tracking-wide">Mã định danh Microchip (nếu có)</label>
+                  <input
+                    value={editPet ? (editPet.microchipId || '') : form.microchipId}
+                    onChange={e => editPet
+                      ? setEditPet({...editPet, microchipId: e.target.value})
+                      : setForm({...form, microchipId: e.target.value})}
+                    placeholder="Nhập mã microchip định danh của bé..."
+                    className="w-full border-2 border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm bg-white outline-none focus:border-[#a43e24] focus:ring-4 focus:ring-[#a43e24]/10 transition-all shadow-sm"
+                  />
+                </div>
+
+                {/* Tuổi + Cân nặng */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-black text-[#4a433d] uppercase mb-1.5 block tracking-wide">Tuổi (năm)</label>
+                    <input
+                      type="text"
+                      value={editPet ? editPet.ageYears : form.ageYears}
+                      onChange={e => {
+                        const val = e.target.value.replace(/[^0-9]/g, '')
+                        if (editPet) {
+                          setEditPet({...editPet, ageYears: Number(val) || 0})
+                        } else {
+                          setForm({...form, ageYears: val})
+                        }
+                      }}
+                      placeholder="2"
+                      className="w-full border-2 border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm bg-white outline-none focus:border-[#a43e24] focus:ring-4 focus:ring-[#a43e24]/10 transition-all shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black text-[#4a433d] uppercase mb-1.5 block tracking-wide">Cân nặng (kg)</label>
+                    <input
+                      type="text"
+                      value={editPet ? editPet.weightKg : form.weightKg}
+                      onChange={e => {
+                        // Chỉ cho phép nhập số và tối đa 1 dấu chấm thập phân
+                        let val = e.target.value.replace(/[^0-9.]/g, '')
+                        const parts = val.split('.')
+                        if (parts.length > 2) {
+                          val = parts[0] + '.' + parts.slice(1).join('')
+                        }
+                        if (editPet) {
+                          setEditPet({...editPet, weightKg: Number(val) || 0})
+                        } else {
+                          setForm({...form, weightKg: val})
+                        }
+                      }}
+                      placeholder="4.5"
+                      className="w-full border-2 border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm bg-white outline-none focus:border-[#a43e24] focus:ring-4 focus:ring-[#a43e24]/10 transition-all shadow-sm"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Tùy chọn Sức khỏe & Sinh hoạt */}
-              <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0] space-y-3">
-                <label className="text-xs font-bold text-[#8a7e75] uppercase block">Tùy chọn Sức khỏe & Sinh hoạt</label>
-                
-                <label className="flex items-center gap-3 cursor-pointer">
+              {/* Section 2: Chế độ ăn uống & Ghi chú */}
+              <div className="bg-[#faf9f6] p-5 rounded-3xl border-2 border-[#e5d8d0] space-y-4 shadow-sm">
+                <h4 className="text-[13px] font-black text-[#a43e24] uppercase tracking-wider border-b border-[#e5d8d0] pb-2 border-l-3 border-[#a43e24] pl-2.5 mb-2">
+                  2. Chế độ ăn uống & Ghi chú
+                </h4>
+
+                {/* Thức ăn */}
+                <div>
+                  <label className="text-xs font-black text-[#4a433d] uppercase mb-1.5 block tracking-wide">Loại thức ăn</label>
                   <input
-                    type="checkbox"
-                    checked={editPet ? (editPet.isIndoorOnly || false) : form.isIndoorOnly}
+                    value={editPet ? (editPet.foodType || '') : form.foodType}
                     onChange={e => editPet
-                      ? setEditPet({...editPet, isIndoorOnly: e.target.checked})
-                      : setForm({...form, isIndoorOnly: e.target.checked})}
-                    className="rounded text-[#a43e24]"
+                      ? setEditPet({...editPet, foodType: e.target.value})
+                      : setForm({...form, foodType: e.target.value})}
+                    placeholder="VD: Hạt Royal Canin, đồ ăn ướt..."
+                    className="w-full border-2 border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm bg-white outline-none focus:border-[#a43e24] focus:ring-4 focus:ring-[#a43e24]/10 transition-all shadow-sm"
                   />
-                  <span className="text-xs font-bold text-[#303330]">Chỉ nuôi trong nhà (Indoor only)</span>
-                </label>
+                </div>
 
-                <label className="flex items-center gap-3 cursor-pointer">
+                {/* Lịch ăn uống */}
+                <div>
+                  <label className="text-xs font-black text-[#4a433d] uppercase mb-1.5 block tracking-wide">Lịch trình & Khẩu phần ăn</label>
                   <input
-                    type="checkbox"
-                    checked={editPet ? (editPet.hasSpecialDiet || false) : form.hasSpecialDiet}
+                    value={editPet ? (editPet.feedingSchedule || '') : form.feedingSchedule}
                     onChange={e => editPet
-                      ? setEditPet({...editPet, hasSpecialDiet: e.target.checked})
-                      : setForm({...form, hasSpecialDiet: e.target.checked})}
-                    className="rounded text-[#a43e24]"
+                      ? setEditPet({...editPet, feedingSchedule: e.target.value})
+                      : setForm({...form, feedingSchedule: e.target.value})}
+                    placeholder="VD: Hai bữa chính lúc 8:00 và 18:00..."
+                    className="w-full border-2 border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm bg-white outline-none focus:border-[#a43e24] focus:ring-4 focus:ring-[#a43e24]/10 transition-all shadow-sm"
                   />
-                  <span className="text-xs font-bold text-[#303330]">Có chế độ ăn kiêng / đặc biệt (Special Diet)</span>
-                </label>
+                </div>
 
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editPet ? (editPet.isVaccinated || false) : form.isVaccinated}
+                {/* Ghi chú */}
+                <div>
+                  <label className="text-xs font-black text-[#4a433d] uppercase mb-1.5 block tracking-wide">Ghi chú đặc biệt</label>
+                  <textarea
+                    value={editPet ? (editPet.specialNotes || '') : form.specialNotes}
                     onChange={e => editPet
-                      ? setEditPet({...editPet, isVaccinated: e.target.checked} as any)
-                      : setForm({...form, isVaccinated: e.target.checked})}
-                    className="rounded text-[#a43e24]"
+                      ? setEditPet({...editPet, specialNotes: e.target.value})
+                      : setForm({...form, specialNotes: e.target.value})}
+                    placeholder="Dị ứng, thuốc cần uống, tính cách đặc biệt..."
+                    rows={3}
+                    className="w-full border-2 border-[#e5d8d0] rounded-2xl px-4 py-3 text-sm bg-white outline-none focus:border-[#a43e24] focus:ring-4 focus:ring-[#a43e24]/10 transition-all shadow-sm resize-none"
                   />
-                  <span className="text-xs font-bold text-[#303330]">Đã tiêm vaccine đầy đủ</span>
-                </label>
+                </div>
+              </div>
 
-                {((editPet ? editPet.isVaccinated : form.isVaccinated)) && (
-                  <div className="bg-white p-4 rounded-xl border border-[#e5d8d0] space-y-3 mt-2">
-                    <label className="text-xs font-bold text-[#8a7e75] uppercase block">Ảnh sổ tiêm phòng / Hồ sơ vaccine</label>
-                    
-                    {/* Danh sách ảnh sổ vaccine đã upload */}
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {(editPet ? editPet.vaccineBookUrls : form.vaccineBookUrls)?.map((url, i) => (
-                        <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#e5d8d0]">
-                          <img src={url} alt={`vaccine-book-${i}`} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (editPet) {
-                                setEditPet({
-                                  ...editPet,
-                                  vaccineBookUrls: (editPet.vaccineBookUrls || []).filter((_, idx) => idx !== i)
-                                })
-                              } else {
-                                setForm({
-                                  ...form,
-                                  vaccineBookUrls: form.vaccineBookUrls.filter((_, idx) => idx !== i)
-                                })
-                              }
-                            }}
-                            className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] hover:bg-red-600 font-bold"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+              {/* Section 3: Cá tính & Sức khỏe */}
+              <div className="bg-[#faf9f6] p-5 rounded-3xl border-2 border-[#e5d8d0] space-y-5 shadow-sm">
+                <h4 className="text-[13px] font-black text-[#a43e24] uppercase tracking-wider border-b border-[#e5d8d0] pb-2 border-l-3 border-[#a43e24] pl-2.5">
+                  3. Cá tính & Sức khỏe
+                </h4>
 
-                    <label className={`w-full py-2.5 px-4 border-2 border-dashed rounded-2xl cursor-pointer text-xs font-bold transition-all block text-center ${
-                      uploadingVaccine ? 'border-[#ffac98] text-[#fa7150]' : 'border-[#e5d8d0] text-[#8a7e75] hover:border-[#a43e24]'
-                    }`}>
+                {/* Lựa chọn Cá tính */}
+                <div>
+                  <label className="text-xs font-black text-[#4a433d] uppercase mb-2 block tracking-wide">Cá tính & Đặc điểm nổi bật</label>
+                  <div className="flex flex-wrap gap-2 p-3 bg-white rounded-2xl border-2 border-[#e5d8d0] shadow-inner">
+                    {['Thân thiện', 'Năng động', 'Ngoan ngoãn', 'Nhút nhát', 'Dễ gần', 'Thích vuốt ve', 'Tò mò', 'Ham chơi'].map(tag => {
+                      const currentTags = editPet ? (editPet.personalityTags || []) : form.personalityTags
+                      const isSelected = currentTags.includes(tag)
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => {
+                            let nextTags: string[]
+                            if (isSelected) {
+                              nextTags = currentTags.filter(t => t !== tag)
+                            } else {
+                              nextTags = [...currentTags, tag]
+                            }
+                            if (editPet) {
+                              setEditPet({...editPet, personalityTags: nextTags})
+                            } else {
+                              setForm({...form, personalityTags: nextTags})
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-black transition-all border-2 ${
+                            isSelected
+                              ? 'bg-[#44683b] text-white border-[#44683b] shadow-md shadow-[#44683b]/10'
+                              : 'bg-white text-[#5d605c] border-[#e5d8d0] hover:border-[#44683b]/60'
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Tùy chọn Sức khỏe & Sinh hoạt */}
+                <div className="space-y-3 pt-2">
+                  <label className="text-xs font-black text-[#4a433d] uppercase block tracking-wide">Tùy chọn Sinh hoạt & Phòng bệnh</label>
+                  
+                  <div className="space-y-2.5 bg-white p-4 rounded-2xl border-2 border-[#e5d8d0]">
+                    <label className="flex items-center gap-3 cursor-pointer">
                       <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={uploadingVaccine}
-                        onChange={e => {
-                          const file = e.target.files?.[0]
-                          if (file) handleUploadVaccineBook(file, !!editPet)
-                          e.target.value = ''
-                        }}
+                        type="checkbox"
+                        checked={editPet ? (editPet.isIndoorOnly || false) : form.isIndoorOnly}
+                        onChange={e => editPet
+                          ? setEditPet({...editPet, isIndoorOnly: e.target.checked})
+                          : setForm({...form, isIndoorOnly: e.target.checked})}
+                        className="rounded text-[#a43e24] focus:ring-[#a43e24] h-4.5 w-4.5"
                       />
-                      {uploadingVaccine ? 'Đang upload sổ tiêm...' : 'Tải lên ảnh sổ tiêm phòng'}
+                      <span className="text-xs font-bold text-[#303330]">Chỉ nuôi trong nhà (Indoor only)</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editPet ? (editPet.hasSpecialDiet || false) : form.hasSpecialDiet}
+                        onChange={e => editPet
+                          ? setEditPet({...editPet, hasSpecialDiet: e.target.checked})
+                          : setForm({...form, hasSpecialDiet: e.target.checked})}
+                        className="rounded text-[#a43e24] focus:ring-[#a43e24] h-4.5 w-4.5"
+                      />
+                      <span className="text-xs font-bold text-[#303330]">Có chế độ ăn kiêng / đặc biệt (Special Diet)</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editPet ? (editPet.isVaccinated || false) : form.isVaccinated}
+                        onChange={e => editPet
+                          ? setEditPet({...editPet, isVaccinated: e.target.checked} as any)
+                          : setForm({...form, isVaccinated: e.target.checked})}
+                        className="rounded text-[#a43e24] focus:ring-[#a43e24] h-4.5 w-4.5"
+                      />
+                      <span className="text-xs font-bold text-[#303330]">Đã tiêm vaccine đầy đủ</span>
                     </label>
                   </div>
-                )}
+
+                  {((editPet ? editPet.isVaccinated : form.isVaccinated)) && (
+                    <div className="bg-white p-4 rounded-xl border-2 border-[#e5d8d0] space-y-3 mt-2">
+                      <label className="text-xs font-black text-[#4a433d] uppercase block tracking-wide">Ảnh sổ tiêm phòng / Hồ sơ vaccine</label>
+                      
+                      {/* Danh sách ảnh sổ vaccine đã upload */}
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {(editPet ? editPet.vaccineBookUrls : form.vaccineBookUrls)?.map((url, i) => (
+                          <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#e5d8d0]">
+                            <img src={url} alt={`vaccine-book-${i}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (editPet) {
+                                  setEditPet({
+                                    ...editPet,
+                                    vaccineBookUrls: (editPet.vaccineBookUrls || []).filter((_, idx) => idx !== i)
+                                  })
+                                } else {
+                                  setForm({
+                                    ...form,
+                                    vaccineBookUrls: form.vaccineBookUrls.filter((_, idx) => idx !== i)
+                                  })
+                                }
+                              }}
+                              className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] hover:bg-red-600 font-bold"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <label className={`w-full py-2.5 px-4 border-2 border-dashed rounded-2xl cursor-pointer text-xs font-bold transition-all block text-center ${
+                        uploadingVaccine ? 'border-[#ffac98] text-[#fa7150]' : 'border-[#e5d8d0] text-[#8a7e75] hover:border-[#a43e24]'
+                      }`}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={uploadingVaccine}
+                          onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) handleUploadVaccineBook(file, !!editPet)
+                            e.target.value = ''
+                          }}
+                        />
+                        {uploadingVaccine ? 'Đang upload sổ tiêm...' : 'Tải lên ảnh sổ tiêm phòng'}
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Chi tiết sổ sức khỏe */}
+              <div className="bg-[#feeadb]/20 p-5 rounded-2xl border border-[#feeadb] space-y-4 text-left">
+                <h4 className="text-[13px] font-black text-[#a43e24] uppercase tracking-wider border-b border-[#feeadb] pb-2 border-l-3 border-[#a43e24] pl-2.5">
+                  Sổ sức khỏe & tiêm phòng chi tiết
+                </h4>
+
+                {/* Giới tính & Màu lông */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Giới tính</label>
+                    <select
+                      value={editPet ? (editPet.medicalRecord?.gender || '') : form.gender}
+                      onChange={e => {
+                        if (editPet) {
+                          const med = editPet.medicalRecord || {}
+                          setEditPet({
+                            ...editPet,
+                            medicalRecord: { ...med, gender: e.target.value }
+                          })
+                        } else {
+                          setForm({ ...form, gender: e.target.value })
+                        }
+                      }}
+                      className="w-full bg-white border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    >
+                      <option value="">Chưa chọn</option>
+                      <option value="Đực">Đực</option>
+                      <option value="Cái">Cái</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Màu lông</label>
+                    <input
+                      value={editPet ? (editPet.medicalRecord?.furColor || '') : form.furColor}
+                      onChange={e => {
+                        if (editPet) {
+                          const med = editPet.medicalRecord || {}
+                          setEditPet({
+                            ...editPet,
+                            medicalRecord: { ...med, furColor: e.target.value }
+                          })
+                        } else {
+                          setForm({ ...form, furColor: e.target.value })
+                        }
+                      }}
+                      placeholder="VD: Trắng, vàng, đen..."
+                      className="w-full bg-white border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                </div>
+
+                {/* Phòng ký sinh trùng */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Nội ký sinh (Tẩy giun định kỳ)</label>
+                    <input
+                      value={editPet ? (editPet.medicalRecord?.parasites?.internal || '') : form.parasiteInternal}
+                      onChange={e => {
+                        if (editPet) {
+                          const med = editPet.medicalRecord || {}
+                          const par = med.parasites || {}
+                          setEditPet({
+                            ...editPet,
+                            medicalRecord: { ...med, parasites: { ...par, internal: e.target.value } }
+                          })
+                        } else {
+                          setForm({ ...form, parasiteInternal: e.target.value })
+                        }
+                      }}
+                      placeholder="VD: Sanpet (uống ngày...)"
+                      className="w-full bg-white border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Ngoại ký sinh (Ve rận, bọ chét)</label>
+                    <input
+                      value={editPet ? (editPet.medicalRecord?.parasites?.external || '') : form.parasiteExternal}
+                      onChange={e => {
+                        if (editPet) {
+                          const med = editPet.medicalRecord || {}
+                          const par = med.parasites || {}
+                          setEditPet({
+                            ...editPet,
+                            medicalRecord: { ...med, parasites: { ...par, external: e.target.value } }
+                          })
+                        } else {
+                          setForm({ ...form, parasiteExternal: e.target.value })
+                        }
+                      }}
+                      placeholder="VD: Frontline (nhỏ gáy...)"
+                      className="w-full bg-white border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                    />
+                  </div>
+                </div>
+
+                {/* Dị ứng */}
+                <div>
+                  <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Tiền sử dị ứng</label>
+                  <input
+                    value={editPet ? (editPet.medicalRecord?.allergies || '') : form.allergies}
+                    onChange={e => {
+                      if (editPet) {
+                        const med = editPet.medicalRecord || {}
+                        setEditPet({
+                          ...editPet,
+                          medicalRecord: { ...med, allergies: e.target.value }
+                        })
+                      } else {
+                        setForm({ ...form, allergies: e.target.value })
+                      }
+                    }}
+                    placeholder="VD: Dị ứng thịt gà, phấn hoa..."
+                    className="w-full bg-white border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
+                  />
+                </div>
+
+                {/* Lịch sử tiêm phòng */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center border-t border-dashed border-[#feeadb] pt-3">
+                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block">Danh sách mũi tiêm vắc-xin</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editPet) {
+                          const med = editPet.medicalRecord || {}
+                          const vaccines = med.vaccines || []
+                          setEditPet({
+                            ...editPet,
+                            medicalRecord: {
+                              ...med,
+                              vaccines: [...vaccines, { name: '', date: '', nextDate: '', doctor: '', status: 'COMPLETED' }]
+                            }
+                          })
+                        } else {
+                          setForm({
+                            ...form,
+                            vaccines: [...form.vaccines, { name: '', date: '', nextDate: '', doctor: '', status: 'COMPLETED' }]
+                          })
+                        }
+                      }}
+                      className="text-[10px] font-black text-[#a43e24] hover:underline"
+                    >
+                      + Thêm mũi tiêm
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {((editPet ? (editPet.medicalRecord?.vaccines || []) : form.vaccines) || []).map((vax: any, i: number) => (
+                      <div key={i} className="p-3 bg-white rounded-xl border border-[#e5d8d0] relative space-y-2.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editPet) {
+                              const med = editPet.medicalRecord || {}
+                              const vaccines = med.vaccines || []
+                              setEditPet({
+                                ...editPet,
+                                medicalRecord: {
+                                  ...med,
+                                  vaccines: vaccines.filter((_, idx) => idx !== i)
+                                }
+                              })
+                            } else {
+                              setForm({
+                                ...form,
+                                vaccines: form.vaccines.filter((_, idx) => idx !== i)
+                              })
+                            }
+                          }}
+                          className="absolute top-2 right-2 text-stone-400 hover:text-red-500 font-bold text-[10px]"
+                        >
+                          Xóa
+                        </button>
+                        <div className="grid grid-cols-2 gap-2 pr-6">
+                          <div>
+                            <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Tên vắc-xin</label>
+                            <input
+                              value={vax.name || ''}
+                              onChange={e => {
+                                if (editPet) {
+                                  const med = editPet.medicalRecord || {}
+                                  const vaccines = [...(med.vaccines || [])]
+                                  vaccines[i] = { ...vaccines[i], name: e.target.value }
+                                  setEditPet({
+                                    ...editPet,
+                                    medicalRecord: { ...med, vaccines }
+                                  })
+                                } else {
+                                  const vaccines = [...form.vaccines]
+                                  vaccines[i] = { ...vaccines[i], name: e.target.value }
+                                  setForm({ ...form, vaccines })
+                                }
+                              }}
+                              placeholder="VD: Dại, 4 bệnh..."
+                              className="w-full bg-[#faf9f6] border border-[#e5d8d0] rounded-lg px-2 py-1 text-[11px] outline-none focus:border-[#a43e24]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Bác sĩ thú y</label>
+                            <input
+                              value={vax.doctor || ''}
+                              onChange={e => {
+                                if (editPet) {
+                                  const med = editPet.medicalRecord || {}
+                                  const vaccines = [...(med.vaccines || [])]
+                                  vaccines[i] = { ...vaccines[i], doctor: e.target.value }
+                                  setEditPet({
+                                    ...editPet,
+                                    medicalRecord: { ...med, doctor: e.target.value }
+                                  })
+                                } else {
+                                  const vaccines = [...form.vaccines]
+                                  vaccines[i] = { ...vaccines[i], doctor: e.target.value }
+                                  setForm({ ...form, vaccines })
+                                }
+                              }}
+                              placeholder="Tên bác sĩ..."
+                              className="w-full bg-[#faf9f6] border border-[#e5d8d0] rounded-lg px-2 py-1 text-[11px] outline-none focus:border-[#a43e24]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Ngày tiêm</label>
+                            <input
+                              type="date"
+                              value={vax.date || ''}
+                              onChange={e => {
+                                if (editPet) {
+                                  const med = editPet.medicalRecord || {}
+                                  const vaccines = [...(med.vaccines || [])]
+                                  vaccines[i] = { ...vaccines[i], date: e.target.value }
+                                  setEditPet({
+                                    ...editPet,
+                                    medicalRecord: { ...med, vaccines }
+                                  })
+                                } else {
+                                  const vaccines = [...form.vaccines]
+                                  vaccines[i] = { ...vaccines[i], date: e.target.value }
+                                  setForm({ ...form, vaccines })
+                                }
+                              }}
+                              className="w-full bg-[#faf9f6] border border-[#e5d8d0] rounded-lg px-2 py-1 text-[11px] outline-none focus:border-[#a43e24]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-[#8a7e75] uppercase block">Ngày nhắc lại</label>
+                            <input
+                              type="date"
+                              value={vax.nextDate || ''}
+                              onChange={e => {
+                                if (editPet) {
+                                  const med = editPet.medicalRecord || {}
+                                  const vaccines = [...(med.vaccines || [])]
+                                  vaccines[i] = { ...vaccines[i], nextDate: e.target.value }
+                                  setEditPet({
+                                    ...editPet,
+                                    medicalRecord: { ...med, vaccines }
+                                  })
+                                } else {
+                                  const vaccines = [...form.vaccines]
+                                  vaccines[i] = { ...vaccines[i], nextDate: e.target.value }
+                                  setForm({ ...form, vaccines })
+                                }
+                              }}
+                              className="w-full bg-[#faf9f6] border border-[#e5d8d0] rounded-lg px-2 py-1 text-[11px] outline-none focus:border-[#a43e24]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {((editPet ? (editPet.medicalRecord?.vaccines || []) : form.vaccines) || []).length === 0 && (
+                      <p className="text-[10px] text-stone-400 italic">Chưa thêm mũi tiêm nào.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1408,10 +1735,59 @@ export const PetProfilePage = () => {
               {alertModal.type === 'success' ? <CheckCircle2 size={32} /> : <AlertCircle size={32} />}
             </div>
             <h3 className="text-lg font-black text-[#303330] mb-2">{alertModal.title}</h3>
-            <p className="text-xs text-[#5d605c] leading-relaxed mb-6 whitespace-pre-line">{alertModal.message}</p>
+            <p className="text-xs text-[#5d605c] leading-relaxed whitespace-pre-line">{alertModal.message}</p>
+
+            {alertModal.petData && (
+              <div className="mt-4 mb-6 p-4 bg-[#faf9f6] border border-[#e5d8d0] rounded-2xl text-left space-y-2.5">
+                <div className="flex items-center gap-3 border-b border-[#e1e3df] pb-2.5">
+                  {alertModal.petData.avatarUrl ? (
+                    <img 
+                      src={alertModal.petData.avatarUrl} 
+                      alt="Pet avatar" 
+                      className="w-10 h-10 rounded-full object-cover border border-[#e5d8d0] shadow-sm" 
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[#a43e24]/10 text-[#a43e24] flex items-center justify-center font-black text-sm">
+                      {alertModal.petData.name.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-bold text-sm text-[#303330]">{alertModal.petData.name}</h4>
+                    <span className="text-[10px] text-[#8a7e75] font-bold uppercase">
+                      {alertModal.petData.species} • {alertModal.petData.breed}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[#8a7e75] block text-[9px] font-bold uppercase">Tuổi</span>
+                    <strong className="text-[#303330]">{alertModal.petData.ageYears} tuổi</strong>
+                  </div>
+                  <div>
+                    <span className="text-[#8a7e75] block text-[9px] font-bold uppercase">Cân nặng</span>
+                    <strong className="text-[#303330]">{alertModal.petData.weightKg} kg</strong>
+                  </div>
+                </div>
+
+                <div className="border-t border-[#e1e3df] pt-2 flex items-center justify-between text-xs">
+                  <span className="text-[#8a7e75]">Trạng thái tiêm phòng:</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                    alertModal.petData.isVaccinated 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                      : 'bg-rose-50 text-rose-700 border border-rose-100'
+                  }`}>
+                    {alertModal.petData.isVaccinated ? 'Đã tiêm chủng' : 'Chưa tiêm chủng'}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <button
-              onClick={() => setAlertModal(prev => ({ ...prev, show: false }))}
-              className="w-full py-3 rounded-full text-white text-xs font-bold transition-all bg-[#a43e24] hover:bg-[#a43e24]/90"
+              onClick={() => setAlertModal(prev => ({ ...prev, show: false, petData: undefined }))}
+              className={`w-full py-3 rounded-full text-white text-xs font-bold transition-all bg-[#a43e24] hover:bg-[#a43e24]/90 ${
+                alertModal.petData ? 'mt-0' : 'mt-6'
+              }`}
             >
               Đồng ý
             </button>
@@ -1468,7 +1844,7 @@ export const PetProfilePage = () => {
             <div className="space-y-6">
               {/* Section 1: Basic Admin Info */}
               <div className="space-y-3">
-                <h4 className="text-xs font-black text-[#a43e24] uppercase tracking-wider border-b border-stone-100 pb-1">1. Thông tin hành chính & Chủ nuôi</h4>
+                <h4 className="text-xs font-black text-[#a43e24] uppercase tracking-wider border-b border-stone-100 pb-1">1. Thông tin hành chính</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Giới tính</label>
@@ -1488,25 +1864,6 @@ export const PetProfilePage = () => {
                       value={medForm.furColor || ''}
                       onChange={e => setMedForm({ ...medForm, furColor: e.target.value })}
                       placeholder="VD: Vàng kem, đen trắng..."
-                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">SĐT liên lạc</label>
-                    <input
-                      value={medForm.ownerPhone || ''}
-                      onChange={e => setMedForm({ ...medForm, ownerPhone: e.target.value })}
-                      placeholder="Nhập số điện thoại liên hệ..."
-                      className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-[#8a7e75] uppercase block mb-1">Địa chỉ nhà</label>
-                    <input
-                      value={medForm.ownerAddress || ''}
-                      onChange={e => setMedForm({ ...medForm, ownerAddress: e.target.value })}
-                      placeholder="Nhập địa chỉ nhà..."
                       className="w-full border border-[#e5d8d0] rounded-2xl px-4 py-2.5 text-xs outline-none focus:border-[#a43e24]"
                     />
                   </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
   PawPrint,
@@ -42,6 +42,25 @@ const getLocalDateString = (d = new Date()) => {
   return `${year}-${month}-${day}`
 }
 
+const parseRoomDescription = (descStr: string | null | undefined) => {
+  if (!descStr) return { text: '', schedule: [] as { time: string; activity: string }[] }
+  const trimmed = descStr.trim()
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed)
+      if (parsed && typeof parsed === 'object') {
+        return {
+          text: parsed.text || '',
+          schedule: Array.isArray(parsed.schedule) ? parsed.schedule : ([] as { time: string; activity: string }[])
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+  return { text: descStr, schedule: [] as { time: string; activity: string }[] }
+}
+
 interface RoomType {
   id: string
   name: string
@@ -51,6 +70,10 @@ interface RoomType {
   description: string
   image: string
   isPopular?: boolean
+  images?: string[]
+  maxPets?: number
+  webcam?: boolean
+  totalRooms?: number
 }
 
 interface ExtraService {
@@ -227,6 +250,16 @@ export const HotelDetailPage = () => {
 
   // Custom Toast notification state
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
+
+  // Trạng thái modal chi tiết loại phòng (đãi ngộ, hình ảnh,...)
+  const [selectedDetailRoom, setSelectedDetailRoom] = useState<RoomType | null>(null)
+  const [activeDetailImage, setActiveDetailImage] = useState<string>('')
+
+  useEffect(() => {
+    if (selectedDetailRoom) {
+      setActiveDetailImage(selectedDetailRoom.image)
+    }
+  }, [selectedDetailRoom])
 
   // ── Hotel Report States ──
   const [hasReported, setHasReported] = useState(false)
@@ -450,7 +483,11 @@ export const HotelDetailPage = () => {
             dayRate: r.dayRate,
             petType: translatePetTypes(r.allowedPetTypes),
             description: r.description || 'Không gian ấm cúng, đầy đủ tiện ích cơ bản cho bé cưng.',
-            image: r.images && r.images.length > 0 ? r.images[0] : 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800'
+            image: r.images && r.images.length > 0 ? r.images[0] : 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800',
+            images: r.images || [],
+            maxPets: r.maxPets || 1,
+            webcam: r.webcam || false,
+            totalRooms: r.totalRooms || 1
           }))
           setRoomTypes(list)
           setSelectedRoomId(list[0].id)
@@ -1164,7 +1201,7 @@ export const HotelDetailPage = () => {
                             <span className="inline-block text-[9px] font-black text-[#2c4e24] bg-[#d0fac0] px-3 py-1 rounded-full uppercase tracking-wider">
                               {room.petType}
                             </span>
-                            <p className="text-xs text-[#5d605c] leading-relaxed line-clamp-3">{room.description}</p>
+                            <p className="text-xs text-[#5d605c] leading-relaxed line-clamp-3">{parseRoomDescription(room.description).text}</p>
                           </div>
                           {(() => {
                             const avail = availabilityMap[room.id]
@@ -1176,25 +1213,34 @@ export const HotelDetailPage = () => {
                                     {isFull ? 'Hết phòng trong thời gian đã chọn' : `Còn ${avail} phòng trống`}
                                   </p>
                                 )}
-                                <button
-                                  disabled={isFull}
-                                  onClick={() => {
-                                    if (!user) {
-                                      navigate('/login', { state: { from: `/hotels/${id}` } })
-                                    } else {
-                                      setSelectedRoomId(room.id)
-                                      setShowBookingFlow(true)
-                                      setStep(2)
-                                    }
-                                  }}
-                                  className={`w-full py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                                    isFull
-                                      ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                                      : 'bg-[#a43e24] text-white hover:bg-[#a43e24]/90'
-                                  }`}
-                                >
-                                  {isFull ? 'Hết phòng' : (<>Đặt ngay phòng này <ArrowRight size={14} /></>)}
-                                </button>
+                                <div className="flex gap-3 items-center w-full">
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedDetailRoom(room)}
+                                    className="flex-1 py-3 rounded-full border border-[#a43e24] text-[#a43e24] hover:bg-[#a43e24]/5 text-xs font-bold transition-all text-center cursor-pointer"
+                                  >
+                                    Chi tiết
+                                  </button>
+                                  <button
+                                    disabled={isFull}
+                                    onClick={() => {
+                                      if (!user) {
+                                        navigate('/login', { state: { from: `/hotels/${id}` } })
+                                      } else {
+                                        setSelectedRoomId(room.id)
+                                        setShowBookingFlow(true)
+                                        setStep(2)
+                                      }
+                                    }}
+                                    className={`flex-[2] py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                      isFull
+                                        ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                                        : 'bg-[#a43e24] text-white hover:bg-[#a43e24]/90'
+                                    }`}
+                                  >
+                                    {isFull ? 'Hết phòng' : (<>Đặt ngay <ArrowRight size={14} /></>)}
+                                  </button>
+                                </div>
                               </>
                             )
                           })()}
@@ -2151,6 +2197,57 @@ export const HotelDetailPage = () => {
         )}
       </main>
 
+      {/* ── FOOTER ─────────────────────────────────────────── */}
+      <footer className="bg-[#f4f4f0]/60 backdrop-blur-xl py-16 px-8 border-t border-[#b1b2af]/20 text-left mt-24">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            
+            <div className="md:col-span-1">
+              <div className="text-2xl font-bold text-[#a43e24] tracking-tight font-headline mb-6">PetCare Hub</div>
+              <p className="text-stone-600 font-body text-sm leading-relaxed mb-6">Nền tảng kết nối chủ nuôi thú cưng với các khách sạn và dịch vụ chăm sóc cao cấp trên toàn quốc.</p>
+            </div>
+
+            <div>
+              <h5 className="font-extrabold text-sm uppercase tracking-wider text-[#303330] mb-6">Liên Kết Nhanh</h5>
+              <ul className="space-y-4 text-sm font-semibold text-stone-600">
+                <li><Link to="/hotels" className="hover:text-[#a43e24] transition-colors">Đặt Phòng</Link></li>
+                <li><Link to="/route-search" className="hover:text-[#a43e24] transition-colors">Tìm Tuyến Đường</Link></li>
+                <li><Link to="/my-bookings" className="hover:text-[#a43e24] transition-colors">Lịch Đặt Phòng</Link></li>
+                <li><Link to="/profile" className="hover:text-[#a43e24] transition-colors">Thông Tin Cá Nhân</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="font-extrabold text-sm uppercase tracking-wider text-[#303330] mb-6">Dịch Vụ Nổi Bật</h5>
+              <ul className="space-y-4 text-sm font-semibold text-stone-600">
+                <li><Link to="/hotels" className="hover:text-[#a43e24] transition-colors">Khách Sạn Chó Cưng</Link></li>
+                <li><Link to="/hotels" className="hover:text-[#a43e24] transition-colors">Căn Hộ Mèo Cưng</Link></li>
+                <li><Link to="/hotels" className="hover:text-[#a43e24] transition-colors">Grooming & Cắt Tỉa</Link></li>
+                <li><Link to="/hotels" className="hover:text-[#a43e24] transition-colors">Spa & Massage</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="font-extrabold text-sm uppercase tracking-wider text-[#303330] mb-6">Đăng Ký Nhận Bản Tin</h5>
+              <p className="text-stone-600 text-sm mb-4">Nhận ngay mẹo chăm sóc thú cưng hữu ích & ưu đãi đặc biệt mới nhất.</p>
+              <div className="relative">
+                <input className="w-full bg-white/80 border border-[#b1b2af]/30 rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-[#a43e24]/20 outline-none" placeholder="Địa chỉ email" type="email" />
+                <button className="absolute right-1.5 top-1.5 bottom-1.5 bg-[#a43e24] hover:bg-[#a43e24]/90 text-white px-5 rounded-full text-xs font-bold transition-all cursor-pointer">Gửi</button>
+              </div>
+            </div>
+
+          </div>
+
+          <div className="pt-8 border-t border-[#b1b2af]/20 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-stone-500 font-semibold">
+            <p>© 2026 PetCare Hub. Mọi quyền được bảo lưu.</p>
+            <div className="flex gap-6">
+              <a href="#" className="hover:text-[#a43e24]">Chính sách bảo mật</a>
+              <a href="#" className="hover:text-[#a43e24]">Điều khoản sử dụng</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+
       {/* MODAL EDIT DESCRIPTION */}
       {isEditDescOpen && (
         <div className="fixed inset-0 z-50 bg-[#303330]/65 backdrop-blur-sm flex items-center justify-center p-4">
@@ -2529,6 +2626,161 @@ export const HotelDetailPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {selectedDetailRoom && createPortal(
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-sm z-[9998] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl overflow-hidden max-w-xl w-full shadow-2xl border border-[#e1e3df] text-left animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+            
+            {/* Modal Image Header */}
+            <div className="relative h-60 bg-stone-100 shrink-0">
+              <img 
+                src={activeDetailImage || selectedDetailRoom.image} 
+                alt={selectedDetailRoom.name} 
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setSelectedDetailRoom(null)}
+                className="absolute top-4 right-4 bg-black/40 hover:bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer shadow-md"
+              >
+                <X size={16} />
+              </button>
+              
+              {selectedDetailRoom.isPopular && (
+                <span className="absolute top-4 left-4 bg-[#a43e24] text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm">
+                  Phổ biến
+                </span>
+              )}
+            </div>
+
+            {/* Image Gallery Row if multiple images */}
+            {selectedDetailRoom.images && selectedDetailRoom.images.length > 1 && (
+              <div className="flex gap-2 p-3 bg-[#faf9f6] border-b border-[#e1e3df] overflow-x-auto shrink-0 scrollbar-none">
+                {selectedDetailRoom.images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActiveDetailImage(img)}
+                    className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                      activeDetailImage === img ? 'border-[#a43e24]' : 'border-transparent opacity-75 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} className="w-full h-full object-cover" alt={`Room view ${idx + 1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Modal Body (Scrollable) */}
+            <div className="p-6 overflow-y-auto space-y-4 flex-grow text-xs">
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <h3 className="text-lg font-black text-[#303330]">{selectedDetailRoom.name}</h3>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    <span className="inline-block text-[9px] font-bold text-[#2c4e24] bg-[#d0fac0] px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      {selectedDetailRoom.petType}
+                    </span>
+                    {selectedDetailRoom.webcam && (
+                      <span className="inline-block text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                        Webcam 24/7
+                      </span>
+                    )}
+                    {selectedDetailRoom.maxPets && (
+                      <span className="inline-block text-[9px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                        Tối đa {selectedDetailRoom.maxPets} bé
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[#a43e24] font-black text-sm block">
+                    {selectedDetailRoom.pricePerNight.toLocaleString('vi-VN')} đ/đêm
+                  </span>
+                  {selectedDetailRoom.dayRate && (
+                    <span className="text-[10px] text-stone-500 font-semibold block mt-0.5">Gửi ngày: {selectedDetailRoom.dayRate.toLocaleString('vi-VN')} đ</span>
+                  )}
+                </div>
+              </div>
+
+              {(() => {
+                const parsed = parseRoomDescription(selectedDetailRoom.description)
+                return (
+                  <>
+                    <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#eeeeea]">
+                      <h4 className="text-[10px] font-bold text-[#8a7e75] uppercase tracking-wider mb-1">Giới thiệu không gian</h4>
+                      <p className="text-xs text-[#5d605c] leading-relaxed font-medium">
+                        {parsed.text || 'Chưa có mô tả cho loại phòng này.'}
+                      </p>
+                    </div>
+
+                    {/* Privileges/Benefits list */}
+                    <div className="space-y-3 pt-3 border-t border-[#e1e3df]/60">
+                      <h4 className="text-[10px] font-bold text-[#8a7e75] uppercase tracking-wider">Thời khóa biểu & Lộ trình nghỉ dưỡng</h4>
+                      
+                      {parsed.schedule && parsed.schedule.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs text-[#5d605c] font-semibold">
+                          {parsed.schedule.map((item, idx) => (
+                            <div key={idx} className="flex items-start gap-2.5 p-2 bg-[#faf9f6] rounded-xl border border-[#eeeeea]">
+                              <span className="text-[10px] font-black text-[#a43e24] bg-[#feeadb] px-2 py-0.5 rounded shrink-0">{item.time}</span>
+                              <span className="leading-tight text-[#303330] mt-0.5">{item.activity}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-6 text-stone-400 font-semibold text-center space-y-1.5 bg-stone-50 rounded-2xl border border-dashed border-[#e1e3df] mt-2">
+                          <Calendar size={20} className="text-stone-400" />
+                          <p className="text-xs text-[#5d605c] font-bold">Cơ sở đang cập nhật</p>
+                          <p className="text-[10px] text-stone-500 font-medium">Chi tiết lộ trình chăm sóc & hoạt động hàng ngày của bé cưng.</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 bg-stone-50 border-t border-[#e1e3df] flex gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedDetailRoom(null)}
+                className="flex-1 py-3 rounded-full border border-[#e1e3df] text-xs font-bold text-[#8a7e75] hover:bg-stone-100 transition-all cursor-pointer text-center"
+              >
+                Đóng
+              </button>
+              
+              {(() => {
+                const avail = availabilityMap[selectedDetailRoom.id]
+                const isFull = avail !== undefined && avail !== null && avail <= 0
+                return (
+                  <button
+                    disabled={isFull}
+                    onClick={() => {
+                      if (!user) {
+                        navigate('/login', { state: { from: `/hotels/${id}` } })
+                      } else {
+                        setSelectedRoomId(selectedDetailRoom.id)
+                        setShowBookingFlow(true)
+                        setStep(2)
+                        setSelectedDetailRoom(null)
+                      }
+                    }}
+                    className={`flex-grow-[2] py-3 rounded-full font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md ${
+                      isFull
+                        ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                        : 'bg-[#a43e24] text-white hover:bg-[#a43e24]/95 shadow-[#a43e24]/10 cursor-pointer'
+                    }`}
+                  >
+                    {isFull ? 'Hết phòng' : (<>Đặt phòng này ngay <ArrowRight size={14} /></>)}
+                  </button>
+                )
+              })()}
+            </div>
+
           </div>
         </div>,
         document.body

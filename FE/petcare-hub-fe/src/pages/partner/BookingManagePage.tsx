@@ -26,6 +26,9 @@ interface Booking {
   totalAmount: number
   status: 'PENDING' | 'CONFIRMED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED'
   createdAt?: string
+  bookingType?: string
+  dropOffTime?: string
+  pickUpTime?: string
 }
 
 export const BookingManagePage = () => {
@@ -63,7 +66,10 @@ export const BookingManagePage = () => {
         checkOutDate: b.checkOutDate,
         totalAmount: b.totalAmount || 0,
         status: b.status,
-        createdAt: b.createdAt
+        createdAt: b.createdAt,
+        bookingType: b.bookingType,
+        dropOffTime: b.dropOffTime,
+        pickUpTime: b.pickUpTime
       }))
       setBookings(list)
     } catch (error) {
@@ -424,10 +430,17 @@ export const BookingManagePage = () => {
  
                         {/* Dates */}
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-[#5a5550]">
-                            <span className="font-bold text-[#303330]">{formatDateCompact(booking.checkInDate)}</span>
-                            <ArrowRight size={10} className="text-[#fa7150]" />
-                            <span className="font-bold text-[#303330]">{formatDateCompact(booking.checkOutDate)}</span>
+                          <div>
+                            <div className="flex items-center gap-2 text-[#5a5550]">
+                              <span className="font-bold text-[#303330]">{formatDateCompact(booking.checkInDate)}</span>
+                              <ArrowRight size={10} className="text-[#fa7150]" />
+                              <span className="font-bold text-[#303330]">{formatDateCompact(booking.checkOutDate)}</span>
+                            </div>
+                            <span className="text-[10px] text-[#fa7150] font-bold mt-1.5 block">
+                              {booking.bookingType === 'DAYCARE' 
+                                ? `Gửi: ${booking.dropOffTime?.substring(0, 5)} - Đón: ${booking.pickUpTime?.substring(0, 5)}`
+                                : `Nhận: ${booking.dropOffTime?.substring(0, 5) || '14:00'} | Trả: ${booking.pickUpTime?.substring(0, 5) || '12:00'}`}
+                            </span>
                           </div>
                         </td>
  

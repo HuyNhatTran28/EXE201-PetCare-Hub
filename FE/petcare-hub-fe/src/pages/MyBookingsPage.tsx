@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { cleanAddressDisplay } from '@/utils/cleanAddress'
 import { maskAccountNumber } from '@/utils/maskAccountNumber'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Header } from '@/components/Header'
 import {
   CheckCircle, XCircle,
@@ -51,7 +51,7 @@ export const MyBookingsPage = () => {
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [payingBooking, setPayingBooking] = useState<Booking | null>(null)
   const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null)
-  const [chatState, setChatState] = useState<{ conversationId: string; hotelName: string } | null>(null)
+  const [chatState, setChatState] = useState<{ conversationId: string; hotelName: string; bookingStatus: string } | null>(null)
   const [openingChatFor, setOpeningChatFor] = useState<string | null>(null)
 
   useEffect(() => {
@@ -107,7 +107,11 @@ export const MyBookingsPage = () => {
       const res = await axiosInstance.post<{ data: { id: string } }>(
         `/api/conversations/booking/${booking.id}`
       )
-      setChatState({ conversationId: res.data.data.id, hotelName: booking.hotelName })
+      setChatState({ 
+        conversationId: res.data.data.id, 
+        hotelName: booking.hotelName, 
+        bookingStatus: booking.status 
+      })
     } catch (err: any) {
       alert(err.response?.data?.message || 'Không thể mở chat. Vui lòng thử lại.')
     } finally {
@@ -250,7 +254,9 @@ export const MyBookingsPage = () => {
                         )}
                       </p>
                       <p className="text-[10px] text-[#fa7150] font-bold mt-1.5 flex items-center gap-1">
-                        <span>🕒 {booking.bookingType === 'DAYCARE' ? `Giờ gửi: ${booking.dropOffTime?.substring(0, 5)} - ${booking.pickUpTime?.substring(0, 5)}` : `Nhận: ${booking.hotelCheckInTime || '08:00'} | Trả: ${booking.hotelCheckOutTime || '20:00'}`}</span>
+                        <span>🕒 {booking.bookingType === 'DAYCARE' 
+                          ? `Giờ gửi: ${booking.dropOffTime?.substring(0, 5)} - ${booking.pickUpTime?.substring(0, 5)}` 
+                          : `Nhận: ${booking.dropOffTime?.substring(0, 5) || booking.hotelCheckInTime || '14:00'} | Trả: ${booking.pickUpTime?.substring(0, 5) || booking.hotelCheckOutTime || '12:00'}`}</span>
                       </p>
                     </div>
                     <div>
@@ -381,6 +387,57 @@ export const MyBookingsPage = () => {
 
       </main>
 
+      {/* ── FOOTER ─────────────────────────────────────────── */}
+      <footer className="bg-[#f4f4f0]/60 backdrop-blur-xl py-16 px-8 border-t border-[#b1b2af]/20 text-left mt-24">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            
+            <div className="md:col-span-1">
+              <div className="text-2xl font-bold text-[#a43e24] tracking-tight font-headline mb-6">PetCare Hub</div>
+              <p className="text-stone-600 font-body text-sm leading-relaxed mb-6">Nền tảng kết nối chủ nuôi thú cưng với các khách sạn và dịch vụ chăm sóc cao cấp trên toàn quốc.</p>
+            </div>
+
+            <div>
+              <h5 className="font-extrabold text-sm uppercase tracking-wider text-[#303330] mb-6">Liên Kết Nhanh</h5>
+              <ul className="space-y-4 text-sm font-semibold text-stone-600">
+                <li><Link to="/hotels" className="hover:text-[#a43e24] transition-colors">Đặt Phòng</Link></li>
+                <li><Link to="/route-search" className="hover:text-[#a43e24] transition-colors">Tìm Tuyến Đường</Link></li>
+                <li><Link to="/my-bookings" className="hover:text-[#a43e24] transition-colors">Lịch Đặt Phòng</Link></li>
+                <li><Link to="/profile" className="hover:text-[#a43e24] transition-colors">Thông Tin Cá Nhân</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="font-extrabold text-sm uppercase tracking-wider text-[#303330] mb-6">Dịch Vụ Nổi Bật</h5>
+              <ul className="space-y-4 text-sm font-semibold text-stone-600">
+                <li><Link to="/hotels" className="hover:text-[#a43e24] transition-colors">Khách Sạn Chó Cưng</Link></li>
+                <li><Link to="/hotels" className="hover:text-[#a43e24] transition-colors">Căn Hộ Mèo Cưng</Link></li>
+                <li><Link to="/hotels" className="hover:text-[#a43e24] transition-colors">Grooming & Cắt Tỉa</Link></li>
+                <li><Link to="/hotels" className="hover:text-[#a43e24] transition-colors">Spa & Massage</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="font-extrabold text-sm uppercase tracking-wider text-[#303330] mb-6">Đăng Ký Nhận Bản Tin</h5>
+              <p className="text-stone-600 text-sm mb-4">Nhận ngay mẹo chăm sóc thú cưng hữu ích & ưu đãi đặc biệt mới nhất.</p>
+              <div className="relative">
+                <input className="w-full bg-white/80 border border-[#b1b2af]/30 rounded-full px-6 py-3 text-sm focus:ring-2 focus:ring-[#a43e24]/20 outline-none" placeholder="Địa chỉ email" type="email" />
+                <button className="absolute right-1.5 top-1.5 bottom-1.5 bg-[#a43e24] hover:bg-[#a43e24]/90 text-white px-5 rounded-full text-xs font-bold transition-all cursor-pointer">Gửi</button>
+              </div>
+            </div>
+
+          </div>
+
+          <div className="pt-8 border-t border-[#b1b2af]/20 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-stone-500 font-semibold">
+            <p>© 2026 PetCare Hub. Mọi quyền được bảo lưu.</p>
+            <div className="flex gap-6">
+              <a href="#" className="hover:text-[#a43e24]">Chính sách bảo mật</a>
+              <a href="#" className="hover:text-[#a43e24]">Điều khoản sử dụng</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+
       {payingBooking && (
         <PaymentModal
           booking={payingBooking}
@@ -411,6 +468,7 @@ export const MyBookingsPage = () => {
         <BookingChatModal
           conversationId={chatState.conversationId}
           hotelName={chatState.hotelName}
+          bookingStatus={chatState.bookingStatus}
           onClose={() => setChatState(null)}
         />
       )}

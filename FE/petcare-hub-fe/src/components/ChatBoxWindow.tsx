@@ -21,10 +21,24 @@ export const ChatBoxWindow = ({ conversationId, bookingId, onClose, rightOffset 
   const [loading, setLoading] = useState(true)
   const [input, setInput] = useState('')
 
+  const [bookingStatus, setBookingStatus] = useState<string | null>(null)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { status, connect, subscribe, sendMessage, disconnect } = useChatSocket()
+
+  // ── Load booking details to check status ──────────────────────────────────
+  useEffect(() => {
+    if (!bookingId) return
+    axiosInstance.get(`/api/bookings/${bookingId}`)
+      .then(res => {
+        setBookingStatus(res.data.status)
+      })
+      .catch(err => {
+        console.error('Không thể tải thông tin đặt phòng trong ChatBox:', err)
+      })
+  }, [bookingId])
 
   // ── Load initial messages ─────────────────────────────────────────────────
   useEffect(() => {
@@ -183,53 +197,59 @@ export const ChatBoxWindow = ({ conversationId, bookingId, onClose, rightOffset 
             <div ref={bottomRef} />
           </div>
 
-          {/* Action strip & Input bar */}
-          <div className="px-2 py-2 border-t border-[#e5d8d0] bg-white flex items-center gap-1.5 shrink-0">
-            {/* Quick action buttons */}
-            <div className="flex items-center gap-0.5 text-[#0084ff]">
-              <button className="p-1 rounded-full hover:bg-[#f0f2f5] cursor-pointer" title="Đính kèm ảnh">
-                <Image size={15} />
-              </button>
-              <button className="p-1 rounded-full hover:bg-[#f0f2f5] cursor-pointer" title="Đính kèm file">
-                <Paperclip size={15} />
-              </button>
-              <button className="p-1 rounded-full hover:bg-[#f0f2f5] cursor-pointer" title="Chọn sticker">
-                <Smile size={15} />
-              </button>
+          {/* Action strip & Input bar (LOCKED if completed or cancelled) */}
+          {bookingStatus === 'COMPLETED' || bookingStatus === 'CANCELLED' ? (
+            <div className="px-4 py-3 bg-[#faf9f6] border-t border-[#e5d8d0] text-center text-[10px] text-[#8a7e75] font-bold select-none leading-relaxed shrink-0">
+              🔒 Lượt lưu trú này đã {bookingStatus === 'COMPLETED' ? 'hoàn thành' : 'bị hủy'}. Cuộc hội thoại đã được đóng lại theo điều khoản hệ thống.
             </div>
-
-            {/* Aa Text Input Box */}
-            <div className="flex-grow relative">
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Aa"
-                className="w-full bg-[#f0f2f5] rounded-full py-1.5 px-3.5 text-xs outline-none focus:bg-[#e4e6eb] transition-colors text-[#050505] placeholder:text-[#8a7e75]"
-              />
-            </div>
-
-            {/* Send / Like button */}
-            <div className="shrink-0">
-              {input.trim() ? (
-                <button
-                  onClick={handleSend}
-                  className="p-1.5 rounded-full text-[#0084ff] hover:bg-[#f0f2f5] cursor-pointer transition-all active:scale-90"
-                >
-                  <Send size={14} />
+          ) : (
+            <div className="px-2 py-2 border-t border-[#e5d8d0] bg-white flex items-center gap-1.5 shrink-0">
+              {/* Quick action buttons */}
+              <div className="flex items-center gap-0.5 text-[#0084ff]">
+                <button className="p-1 rounded-full hover:bg-[#f0f2f5] cursor-pointer" title="Đính kèm ảnh">
+                  <Image size={15} />
                 </button>
-              ) : (
-                <button
-                  onClick={handleSendLike}
-                  className="p-1.5 rounded-full text-[#0084ff] hover:bg-[#f0f2f5] cursor-pointer transition-all active:scale-90"
-                >
-                  <ThumbsUp size={14} />
+                <button className="p-1 rounded-full hover:bg-[#f0f2f5] cursor-pointer" title="Đính kèm file">
+                  <Paperclip size={15} />
                 </button>
-              )}
+                <button className="p-1 rounded-full hover:bg-[#f0f2f5] cursor-pointer" title="Chọn sticker">
+                  <Smile size={15} />
+                </button>
+              </div>
+
+              {/* Aa Text Input Box */}
+              <div className="flex-grow relative">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Aa"
+                  className="w-full bg-[#f0f2f5] rounded-full py-1.5 px-3.5 text-xs outline-none focus:bg-[#e4e6eb] transition-colors text-[#050505] placeholder:text-[#8a7e75]"
+                />
+              </div>
+
+              {/* Send / Like button */}
+              <div className="shrink-0">
+                {input.trim() ? (
+                  <button
+                    onClick={handleSend}
+                    className="p-1.5 rounded-full text-[#0084ff] hover:bg-[#f0f2f5] cursor-pointer transition-all active:scale-90"
+                  >
+                    <Send size={14} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSendLike}
+                    className="p-1.5 rounded-full text-[#0084ff] hover:bg-[#f0f2f5] cursor-pointer transition-all active:scale-90"
+                  >
+                    <ThumbsUp size={14} />
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
     </div>

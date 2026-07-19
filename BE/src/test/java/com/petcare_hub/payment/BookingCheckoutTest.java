@@ -51,6 +51,7 @@ class BookingCheckoutTest {
     @Mock private ReviewRepository          reviewRepository;
     @Mock private PartnerWalletRepository   partnerWalletRepository;
     @Mock private ServiceRepository         serviceRepository;
+    @Mock private PaymentRepository         paymentRepository;
 
     @InjectMocks
     private BookingServiceImpl bookingService;
@@ -313,6 +314,11 @@ class BookingCheckoutTest {
         when(bookingRepository.findById(BOOKING_ID)).thenReturn(Optional.of(booking));
         when(bookingRepository.save(any())).thenReturn(booking);
         when(reviewRepository.existsByBookingId(any())).thenReturn(false);
+        
+        Payment successPay = new Payment();
+        successPay.setPaymentStatus(PaymentStatus.SUCCESS);
+        when(paymentRepository.findByBookingId(any())).thenReturn(List.of(successPay));
+
         bookingService.confirmBooking(BOOKING_ID);
 
         verify(booking).setStatus(BookingStatus.CONFIRMED);

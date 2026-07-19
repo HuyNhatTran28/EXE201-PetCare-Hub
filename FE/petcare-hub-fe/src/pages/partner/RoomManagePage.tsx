@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -12,7 +12,13 @@ import {
   EyeOff,
   MapPin,
   Upload,
-  Trash2
+  Trash2,
+  Calendar,
+  ChevronDown,
+  Check,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle
 } from 'lucide-react'
 import axiosInstance from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
@@ -22,6 +28,99 @@ const formatNumberWithDots = (val: string | number | undefined | null) => {
   const num = typeof val === 'number' ? val : parseFloat(String(val))
   if (isNaN(num)) return ''
   return Math.round(num).toLocaleString('vi-VN')
+}
+
+const parseRoomDescription = (descStr: string | null | undefined) => {
+  if (!descStr) return { text: '', schedule: [] as { time: string; activity: string }[] }
+  const trimmed = descStr.trim()
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed)
+      if (parsed && typeof parsed === 'object') {
+        return {
+          text: parsed.text || '',
+          schedule: Array.isArray(parsed.schedule) ? parsed.schedule : ([] as { time: string; activity: string }[])
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+  return { text: descStr, schedule: [] as { time: string; activity: string }[] }
+}
+
+const TimePickerDropdown = ({
+  value,
+  onChange,
+  hasError
+}: {
+  value: string
+  onChange: (val: string) => void
+  hasError?: boolean
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const TIME_SLOTS = [
+    '06:00', '06:30', '07:00', '07:30', '08:00', '08:30',
+    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
+    '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
+    '21:00', '21:30', '22:00'
+  ]
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div className="relative shrink-0" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-28 border rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+          hasError
+            ? 'border-rose-500 bg-rose-50 text-rose-600 ring-2 ring-rose-300'
+            : isOpen
+            ? 'border-[#fa7150] bg-white text-[#fa7150] ring-2 ring-[#fa7150]/20'
+            : 'border-[#e5d8d0] bg-white text-[#303330] hover:border-[#fa7150]'
+        }`}
+      >
+        <span>{value || 'Chọn giờ'}</span>
+        <ChevronDown size={14} className={`transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180 text-[#fa7150]' : 'text-[#8a7e75]'}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1.5 w-32 bg-white border border-[#e5d8d0] rounded-2xl shadow-xl z-50 p-1.5 max-h-48 overflow-y-auto space-y-0.5 animate-fadeIn">
+          {TIME_SLOTS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => {
+                onChange(t)
+                setIsOpen(false)
+              }}
+              className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                value === t
+                  ? 'bg-[#fa7150] text-white'
+                  : 'text-[#303330] hover:bg-[#fa7150]/10 hover:text-[#fa7150]'
+              }`}
+            >
+              <span>{t}</span>
+              {value === t && <Check size={12} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 const handlePriceChange = (
@@ -271,11 +370,11 @@ export const RoomManagePage = () => {
         setHotel(res.data)
         setOriginalHotelExtra(updatedExtra)
         setShowEditHotelModal(false)
-        alert('Cập nhật thông tin cơ sở thành công!')
+        triggerSuccess('Cập nhật thông tin cơ sở thành công!')
       }
     } catch (err: any) {
       console.error('Failed to update hotel basic details', err)
-      alert(err.response?.data?.message || 'Không thể lưu thông tin cơ sở. Vui lòng kiểm tra lại.')
+      triggerError(err.response?.data?.message || 'Không thể lưu thông tin cơ sở. Vui lòng kiểm tra lại.')
     } finally {
       setSavingHotel(false)
     }
@@ -286,6 +385,145 @@ export const RoomManagePage = () => {
   const [editRoom, setEditRoom] = useState<RoomType | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [focusedInput, setFocusedInput] = useState<string | null>(null)
+
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [scheduleRoom, setScheduleRoom] = useState<RoomType | null>(null)
+  const [scheduleList, setScheduleList] = useState<{ time: string; activity: string }[]>([])
+  const [scheduleErrors, setScheduleErrors] = useState<{ [key: number]: { time?: boolean; activity?: boolean; message?: string } }>({})
+
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string>('')
+
+  const [showErrorModal, setShowErrorModal] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string>('')
+
+  const triggerSuccess = (msg: string) => {
+    setSuccessMessage(msg)
+    setShowSuccessModal(true)
+  }
+
+  const triggerError = (msg: string) => {
+    setErrorMessage(msg)
+    setShowErrorModal(true)
+  }
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+    isDanger?: boolean
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    isDanger: false
+  })
+
+  const triggerConfirm = (title: string, message: string, onConfirm: () => void, isDanger = false) => {
+    setConfirmConfig({
+      isOpen: true,
+      title,
+      message,
+      onConfirm,
+      isDanger
+    })
+  }
+
+  const handleOpenScheduleModal = (room: RoomType) => {
+    const parsed = parseRoomDescription(room.description)
+    setScheduleRoom(room)
+    setScheduleList(parsed.schedule || [])
+    setScheduleErrors({})
+    setShowScheduleModal(true)
+  }
+
+  const handleSaveSchedule = async () => {
+    if (!scheduleRoom) return
+
+    const newErrors: { [key: number]: { time?: boolean; activity?: boolean; message?: string } } = {}
+    let hasAnyError = false
+
+    // 1. Kiểm tra từng dòng
+    for (let i = 0; i < scheduleList.length; i++) {
+      const item = scheduleList[i]
+      if (!item.time && (!item.activity || !item.activity.trim())) {
+        newErrors[i] = { time: true, activity: true, message: 'Vui lòng chọn mốc thời gian và nhập tên hoạt động' }
+        hasAnyError = true
+      } else if (!item.time) {
+        newErrors[i] = { ...newErrors[i], time: true, message: 'Vui lòng chọn mốc thời gian' }
+        hasAnyError = true
+      } else if (!item.activity || !item.activity.trim()) {
+        newErrors[i] = { ...newErrors[i], activity: true, message: 'Vui lòng nhập tên hoạt động' }
+        hasAnyError = true
+      }
+    }
+
+    // 2. Kiểm tra trùng lặp mốc thời gian
+    const times = scheduleList.map(item => item.time)
+    scheduleList.forEach((item, idx) => {
+      if (item.time && times.filter(t => t === item.time).length > 1) {
+        const existingMsg = newErrors[idx]?.message
+        newErrors[idx] = {
+          ...newErrors[idx],
+          time: true,
+          message: existingMsg ? `${existingMsg} & mốc giờ bị trùng` : `Mốc thời gian ${item.time} bị trùng lặp`
+        }
+        hasAnyError = true
+      }
+    })
+
+    if (hasAnyError) {
+      setScheduleErrors(newErrors)
+      return
+    }
+
+    setScheduleErrors({})
+
+    // 3. Tự động sắp xếp lịch trình theo thứ tự thời gian (VD: 06:00 -> 13:30 -> 22:00)
+    const sortedSchedule = [...scheduleList].sort((a, b) => a.time.localeCompare(b.time))
+
+    setSubmitting(true)
+    try {
+      const parsedOriginal = parseRoomDescription(scheduleRoom.description)
+      const descriptionJson = JSON.stringify({
+        text: parsedOriginal.text,
+        schedule: sortedSchedule
+      })
+
+      await axiosInstance.put(`/api/room-types/${scheduleRoom.id}`, {
+        name: scheduleRoom.name,
+        description: descriptionJson,
+        pricePerNight: Number(scheduleRoom.pricePerNight),
+        dayRate: scheduleRoom.dayRate,
+        maxPets: Number(scheduleRoom.maxPets),
+        totalRooms: Number(scheduleRoom.totalRooms),
+        allowedPetTypes: scheduleRoom.allowedPetTypes || [],
+        images: scheduleRoom.images || []
+      })
+
+      // Reload rooms
+      const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
+      setRooms(res.data || [])
+      setShowScheduleModal(false)
+      setScheduleRoom(null)
+      triggerSuccess('Cập nhật thời khóa biểu thành công!')
+    } catch (err: any) {
+      console.error('Failed to save schedule', err)
+      triggerError(err.response?.data?.message || 'Không thể lưu thời khóa biểu')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleStartEditRoom = (room: RoomType) => {
+    const parsed = parseRoomDescription(room.description)
+    setEditRoom({
+      ...room,
+      description: parsed.text
+    })
+  }
 
   const handleUploadImage = async (file: File) => {
     setUploadingImage(true)
@@ -309,7 +547,7 @@ export const RoomManagePage = () => {
       }
     } catch (err) {
       console.error('Upload failed', err)
-      alert('Upload ảnh thất bại')
+      triggerError('Upload ảnh thất bại')
     } finally {
       setUploadingImage(false)
     }
@@ -325,29 +563,43 @@ export const RoomManagePage = () => {
     images: [] as string[],
   })
 
-  const handleToggleRoomActive = async (roomId: string, currentStatus: boolean) => {
+  const handleToggleRoomActive = (roomId: string, currentStatus: boolean) => {
     const actionText = currentStatus ? 'tạm ngưng hoạt động' : 'kích hoạt lại'
-    if (!confirm(`Bạn có chắc muốn ${actionText} loại phòng này?`)) return
-    try {
-      await axiosInstance.patch(`/api/room-types/${roomId}/toggle`)
-      const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
-      setRooms(res.data || [])
-    } catch (err: any) {
-      console.error('Failed to toggle room active status', err)
-      alert(err.response?.data?.message || 'Không thể thay đổi trạng thái')
-    }
+    triggerConfirm(
+      'Xác nhận thay đổi trạng thái',
+      `Bạn có chắc muốn ${actionText} loại phòng này?`,
+      async () => {
+        try {
+          await axiosInstance.patch(`/api/room-types/${roomId}/toggle`)
+          const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
+          setRooms(res.data || [])
+          triggerSuccess(`Đã ${actionText} loại phòng thành công!`)
+        } catch (err: any) {
+          console.error('Failed to toggle room active status', err)
+          triggerError(err.response?.data?.message || 'Không thể thay đổi trạng thái')
+        }
+      },
+      currentStatus
+    )
   }
 
-  const handleDeleteRoom = async (roomId: string) => {
-    if (!confirm('Bạn có chắc muốn xóa loại phòng này? LƯU Ý: Thao tác này sẽ ẩn và ngưng hoạt động loại phòng này.')) return
-    try {
-      await axiosInstance.delete(`/api/room-types/${roomId}`)
-      const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
-      setRooms(res.data || [])
-    } catch (err: any) {
-      console.error('Failed to delete room', err)
-      alert(err.response?.data?.message || 'Không thể xóa loại phòng')
-    }
+  const handleDeleteRoom = (roomId: string) => {
+    triggerConfirm(
+      'Xác nhận xóa loại phòng',
+      'Bạn có chắc muốn xóa loại phòng này? LƯU Ý: Thao tác này sẽ ẩn và ngưng hoạt động loại phòng này.',
+      async () => {
+        try {
+          await axiosInstance.delete(`/api/room-types/${roomId}`)
+          const res = await axiosInstance.get(`/api/room-types/hotel/${hotelId}?activeOnly=false`)
+          setRooms(res.data || [])
+          triggerSuccess('Đã xóa loại phòng thành công!')
+        } catch (err: any) {
+          console.error('Failed to delete room', err)
+          triggerError(err.response?.data?.message || 'Không thể xóa loại phòng')
+        }
+      },
+      true
+    )
   }
 
   const handleUpdateRoom = async () => {
@@ -358,42 +610,49 @@ export const RoomManagePage = () => {
     const maxPetsVal = Number(editRoom.maxPets)
 
     if (priceVal <= 0) {
-      alert('Giá thuê phải lớn hơn 0!')
+      triggerError('Giá thuê phải lớn hơn 0!')
       return
     }
     if (priceVal > 10000000) {
-      alert('Giá thuê qua đêm tối đa là 10.000.000 đ!')
+      triggerError('Giá thuê qua đêm tối đa là 10.000.000 đ!')
       return
     }
     if (dayRateVal !== null && dayRateVal <= 0) {
-      alert('Giá gửi ngày phải lớn hơn 0!')
+      triggerError('Giá gửi ngày phải lớn hơn 0!')
       return
     }
     if (dayRateVal !== null && dayRateVal > 10000000) {
-      alert('Giá gửi ngày tối đa là 10.000.000 đ!')
+      triggerError('Giá gửi ngày tối đa là 10.000.000 đ!')
       return
     }
     if (totalRoomsVal <= 0) {
-      alert('Tổng số phòng phải lớn hơn 0!')
+      triggerError('Tổng số phòng phải lớn hơn 0!')
       return
     }
     if (totalRoomsVal > 1000) {
-      alert('Tổng số phòng tối đa là 1.000 phòng!')
+      triggerError('Tổng số phòng tối đa là 1.000 phòng!')
       return
     }
     if (maxPetsVal <= 0) {
-      alert('Số lượng tối đa thú cưng phải lớn hơn 0!')
+      triggerError('Số lượng tối đa thú cưng phải lớn hơn 0!')
       return
     }
     if (maxPetsVal > 30) {
-      alert('Số lượng thú cưng tối đa trong một phòng là 30!')
+      triggerError('Số lượng thú cưng tối đa trong một phòng là 30!')
       return
     }
     setSubmitting(true)
     try {
+      const originalRoom = rooms.find(r => r.id === editRoom.id)
+      const parsedOriginal = parseRoomDescription(originalRoom?.description)
+      const descriptionJson = JSON.stringify({
+        text: editRoom.description,
+        schedule: parsedOriginal.schedule || []
+      })
+
       await axiosInstance.put(`/api/room-types/${editRoom.id}`, {
         name: editRoom.name,
-        description: editRoom.description,
+        description: descriptionJson,
         pricePerNight: Number(editRoom.pricePerNight),
         dayRate: (editRoom.dayRate !== undefined && editRoom.dayRate !== null && String(editRoom.dayRate) !== '') ? Number(editRoom.dayRate) : null,
         maxPets: Number(editRoom.maxPets),
@@ -406,7 +665,7 @@ export const RoomManagePage = () => {
       setEditRoom(null)
     } catch (err: any) {
       console.error('Failed to update:', err.response?.data || err.message)
-      alert(err.response?.data?.message || 'Không thể cập nhật loại phòng')
+      triggerError(err.response?.data?.message || 'Không thể cập nhật loại phòng')
     } finally {
       setSubmitting(false)
     }
@@ -420,42 +679,42 @@ export const RoomManagePage = () => {
     const maxPetsVal = form.maxPets ? Number(form.maxPets) : null
 
     if (priceVal <= 0) {
-      alert('Giá thuê phải lớn hơn 0!')
+      triggerError('Giá thuê phải lớn hơn 0!')
       return
     }
     if (priceVal > 10000000) {
-      alert('Giá thuê qua đêm tối đa là 10.000.000 đ!')
+      triggerError('Giá thuê qua đêm tối đa là 10.000.000 đ!')
       return
     }
     if (dayRateVal !== null && dayRateVal <= 0) {
-      alert('Giá gửi ngày phải lớn hơn 0!')
+      triggerError('Giá gửi ngày phải lớn hơn 0!')
       return
     }
     if (dayRateVal !== null && dayRateVal > 10000000) {
-      alert('Giá gửi ngày tối đa là 10.000.000 đ!')
+      triggerError('Giá gửi ngày tối đa là 10.000.000 đ!')
       return
     }
     if (totalRoomsVal <= 0) {
-      alert('Tổng số phòng phải lớn hơn 0!')
+      triggerError('Tổng số phòng phải lớn hơn 0!')
       return
     }
     if (totalRoomsVal > 1000) {
-      alert('Tổng số phòng tối đa là 1.000 phòng!')
+      triggerError('Tổng số phòng tối đa là 1.000 phòng!')
       return
     }
     if (maxPetsVal !== null && maxPetsVal <= 0) {
-      alert('Số lượng tối đa thú cưng phải lớn hơn 0!')
+      triggerError('Số lượng tối đa thú cưng phải lớn hơn 0!')
       return
     }
     if (maxPetsVal !== null && maxPetsVal > 30) {
-      alert('Số lượng thú cưng tối đa trong một phòng là 30!')
+      triggerError('Số lượng thú cưng tối đa trong một phòng là 30!')
       return
     }
     setSubmitting(true)
     try {
       await axiosInstance.post(`/api/room-types/${hotelId}`, {
         name: form.name,
-        description: form.description,
+        description: JSON.stringify({ text: form.description, schedule: [] }),
         pricePerNight: Number(form.pricePerNight),
         dayRate: form.dayRate ? Number(form.dayRate) : null,
         maxPets: Number(form.maxPets) || 2,
@@ -516,7 +775,7 @@ export const RoomManagePage = () => {
   }, [hotelId])
 
   useEffect(() => {
-    if (showEditHotelModal || showModal || editRoom) {
+    if (showEditHotelModal || showModal || editRoom || showScheduleModal) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -524,7 +783,7 @@ export const RoomManagePage = () => {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [showEditHotelModal, showModal, editRoom])
+  }, [showEditHotelModal, showModal, editRoom, showScheduleModal])
 
   // Design Tokens
   const cardShadow = { boxShadow: '0 20px 40px rgba(164, 62, 36, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02)' }
@@ -691,7 +950,7 @@ export const RoomManagePage = () => {
                     </div>
                   </div>
 
-                  <p className="text-xs text-[#8a7e75] leading-relaxed mb-5 h-10 line-clamp-2">{room.description || 'Chưa có mô tả cho loại phòng này.'}</p>
+                  <p className="text-xs text-[#8a7e75] leading-relaxed mb-5 h-10 line-clamp-2">{parseRoomDescription(room.description).text || 'Chưa có mô tả cho loại phòng này.'}</p>
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="bg-[#faf9f6] p-4 rounded-2xl border border-[#e5d8d0]/60 space-y-3">
@@ -731,23 +990,29 @@ export const RoomManagePage = () => {
                   {/* Action buttons (fixed at the absolute bottom of the card) */}
                   <div className="absolute bottom-0 left-0 right-0 border-t border-[#e5d8d0]/60 bg-[#faf9f6] p-4 flex gap-2 rounded-b-[32px]">
                     <button
-                      onClick={() => setEditRoom(room)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-[#e5d8d0] bg-white text-[#5a5550] hover:bg-[#fa7150] hover:text-white hover:border-[#fa7150] transition-all text-xs font-bold cursor-pointer group"
+                      onClick={() => handleStartEditRoom(room)}
+                      className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl border border-[#e5d8d0] bg-white text-[#5a5550] hover:bg-[#fa7150] hover:text-white hover:border-[#fa7150] transition-all text-[11px] font-bold cursor-pointer group"
                     >
-                      <Edit3 size={13} className="group-hover:rotate-12 transition-transform" /> Chỉnh sửa
+                      <Edit3 size={12} className="group-hover:rotate-12 transition-transform" /> Sửa
+                    </button>
+                    <button
+                      onClick={() => handleOpenScheduleModal(room)}
+                      className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl border border-[#e5d8d0] bg-white text-[#5a5550] hover:bg-[#fa7150] hover:text-white hover:border-[#fa7150] transition-all text-[11px] font-bold cursor-pointer group"
+                    >
+                      <Calendar size={12} className="group-hover:scale-110 transition-transform" /> TKB
                     </button>
                     <button
                       onClick={() => handleToggleRoomActive(room.id, room.isActive !== false)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border transition-all text-xs font-bold cursor-pointer ${room.isActive !== false
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl border transition-all text-[11px] font-bold cursor-pointer ${room.isActive !== false
                           ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-500 hover:text-white hover:border-amber-500'
                           : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'
                         }`}
                     >
-                      {room.isActive !== false ? <><EyeOff size={13} /> Tạm ngưng</> : <><Eye size={13} /> Kích hoạt</>}
+                      {room.isActive !== false ? <><EyeOff size={12} /> Ngưng</> : <><Eye size={12} /> Mở</>}
                     </button>
                     <button
                       onClick={() => handleDeleteRoom(room.id)}
-                      className="w-10 flex items-center justify-center rounded-xl bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all cursor-pointer"
+                      className="w-8 flex items-center justify-center rounded-xl bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all cursor-pointer"
                       title="Xóa loại phòng"
                     >
                       <Trash2 size={13} />
@@ -806,7 +1071,7 @@ export const RoomManagePage = () => {
                     onChange={e => {
                       let val = e.target.value.replace(/[^0-9]/g, '');
                       if (Number(val) > 10000000) {
-                        alert('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
+                        triggerError('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
                         val = '10000000';
                       }
                       setForm({ ...form, pricePerNight: val });
@@ -1015,7 +1280,7 @@ export const RoomManagePage = () => {
                     onChange={e => {
                       let val = e.target.value.replace(/[^0-9]/g, '');
                       if (Number(val) > 10000000) {
-                        alert('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
+                        triggerError('Giá tối đa được phép thiết lập là 10.000.000 đ. Nếu dịch vụ của bạn muốn đặt giá cao hơn thì liên hệ với hệ thống của chúng tôi.');
                         val = '10000000';
                       }
                       setEditRoom({ ...editRoom, pricePerNight: Number(val) });
@@ -1461,6 +1726,215 @@ export const RoomManagePage = () => {
                 className="flex-1 py-3 rounded-2xl text-white text-sm font-bold bg-[#fa7150] hover:bg-[#a43e24] transition-all disabled:bg-[#ffac98]"
               >
                 {savingHotel ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showScheduleModal && scheduleRoom && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl text-left max-h-[90vh] overflow-y-auto my-8 space-y-6">
+            <div>
+              <h3 className="text-xl font-black text-[#303330]">Thời khóa biểu & Lộ trình</h3>
+              <p className="text-xs text-[#8a7e75] mt-1">
+                Thiết lập lịch trình hoạt động và chăm sóc hàng ngày cho loại phòng <strong className="text-[#a43e24]">{scheduleRoom.name}</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {scheduleList.length === 0 ? (
+                <div className="text-center py-8 border border-dashed border-[#e5d8d0] rounded-2xl text-[#8a7e75] text-xs font-semibold">
+                  Chưa có khung giờ nào được thiết lập. Hãy thêm khung giờ đầu tiên bên dưới.
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[45vh] overflow-y-auto pr-1">
+                  {scheduleList.map((item, idx) => {
+                    const rowErr = scheduleErrors[idx]
+                    const hasTimeErr = rowErr?.time
+                    const hasActErr = rowErr?.activity
+                    return (
+                      <div key={idx} className="space-y-1">
+                        <div className={`flex gap-2 items-center p-3 rounded-2xl border transition-all ${hasTimeErr || hasActErr ? 'bg-rose-50/40 border-rose-300 ring-1 ring-rose-200' : 'bg-[#faf9f6] border-[#eeeeea]'}`}>
+                          <TimePickerDropdown
+                            value={item.time}
+                            hasError={hasTimeErr}
+                            onChange={(selectedTime) => {
+                              const newList = [...scheduleList]
+                              newList[idx].time = selectedTime
+                              setScheduleList(newList)
+                              if (scheduleErrors[idx]) {
+                                setScheduleErrors(prev => {
+                                  const copy = { ...prev }
+                                  delete copy[idx]
+                                  return copy
+                                })
+                              }
+                            }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Cho bé ăn sáng & kiểm tra sức khỏe..."
+                            value={item.activity}
+                            onChange={(e) => {
+                              const newList = [...scheduleList]
+                              newList[idx].activity = e.target.value
+                              setScheduleList(newList)
+                              if (scheduleErrors[idx]) {
+                                setScheduleErrors(prev => {
+                                  const copy = { ...prev }
+                                  delete copy[idx]
+                                  return copy
+                                })
+                              }
+                            }}
+                            className={`flex-grow border rounded-xl px-3 py-2 text-xs font-medium outline-none transition-all ${
+                              hasActErr
+                                ? 'border-rose-500 bg-rose-50 text-rose-600 placeholder:text-rose-300 ring-2 ring-rose-300 focus:border-rose-600'
+                                : 'border-[#e5d8d0] bg-white focus:border-[#fa7150]'
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setScheduleList(scheduleList.filter((_, i) => i !== idx))
+                              setScheduleErrors(prev => {
+                                const copy = { ...prev }
+                                delete copy[idx]
+                                return copy
+                              })
+                            }}
+                            className="w-8 h-8 rounded-xl bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-600 hover:text-white transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                        {rowErr?.message && (
+                          <p className="text-[11px] font-bold text-rose-500 pl-3 animate-fadeIn">
+                            {rowErr.message}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setScheduleList([...scheduleList, { time: '', activity: '' }])
+                  setScheduleErrors({})
+                }}
+                className="w-full py-3 rounded-2xl border border-dashed border-[#fa7150]/40 text-[#fa7150] hover:bg-[#fa7150]/5 hover:border-[#fa7150] transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                + Thêm khung giờ & hoạt động
+              </button>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowScheduleModal(false)
+                  setScheduleRoom(null)
+                }}
+                className="flex-1 py-3 rounded-full border border-[#e1e3df] text-xs font-bold text-[#8a7e75] hover:bg-stone-50 transition-all cursor-pointer text-center"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleSaveSchedule}
+                className="flex-[2] py-3 rounded-full bg-[#fa7150] text-white text-xs font-bold hover:bg-[#fa7150]/90 transition-all disabled:opacity-50 cursor-pointer text-center"
+              >
+                {submitting ? 'Đang lưu...' : 'Lưu thời khóa biểu'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-2xl text-center space-y-4 border border-emerald-100">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 size={36} />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-[#303330]">Thành công!</h3>
+              <p className="text-xs text-[#8a7e75] mt-1 leading-relaxed">
+                {successMessage || 'Thao tác đã được thực hiện thành công!'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 cursor-pointer"
+            >
+              Hoàn tất
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[65] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-2xl text-center space-y-4 border border-rose-100">
+            <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+              <AlertCircle size={36} />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-[#303330]">Thông báo lỗi</h3>
+              <p className="text-xs text-[#8a7e75] mt-1 leading-relaxed">
+                {errorMessage || 'Đã có lỗi xảy ra. Vui lòng kiểm tra lại.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowErrorModal(false)}
+              className="w-full py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 cursor-pointer"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
+
+      {confirmConfig.isOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[65] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-2xl text-center space-y-4 border border-[#e1e3df]">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-inner ${confirmConfig.isDanger ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+              <AlertTriangle size={36} />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-[#303330]">{confirmConfig.title}</h3>
+              <p className="text-xs text-[#8a7e75] mt-1 leading-relaxed">
+                {confirmConfig.message}
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+                className="flex-1 py-3 rounded-2xl border border-[#e1e3df] text-xs font-bold text-[#8a7e75] hover:bg-stone-50 transition-all cursor-pointer text-center"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmConfig(prev => ({ ...prev, isOpen: false }))
+                  confirmConfig.onConfirm()
+                }}
+                className={`flex-1 py-3 rounded-2xl text-white text-xs font-bold transition-all shadow-md cursor-pointer text-center ${
+                  confirmConfig.isDanger
+                    ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                    : 'bg-[#fa7150] hover:bg-[#a43e24] shadow-[#fa7150]/20'
+                }`}
+              >
+                Xác nhận
               </button>
             </div>
           </div>
