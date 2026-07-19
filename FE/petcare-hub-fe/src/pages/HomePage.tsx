@@ -175,6 +175,7 @@ export const HomePage = () => {
   }, [])
 
   const [selectedPetType, setSelectedPetType] = useState('DOG')
+  const [showPetTypeDropdown, setShowPetTypeDropdown] = useState(false)
   const [slideshowIndex, setSlideshowIndex] = useState(0)
   const [roomTypes, setRoomTypes] = useState<any[]>([])
   const [roomIndex, setRoomIndex] = useState(0)
@@ -342,21 +343,65 @@ export const HomePage = () => {
               Khu nghỉ dưỡng đặc biệt được thiết kế riêng cho sự thoải mái, an toàn và niềm vui của những người bạn nhỏ đáng yêu. Vì chúng cũng xứng đáng có một kỳ nghỉ tuyệt vời.
             </motion.p>
  
-            {/* Quick Search Bar */}
+             {/* Quick Search Bar */}
             <motion.div variants={itemVariants} className="glass-card sunlight-shadow p-4 rounded-3xl md:rounded-full flex flex-col md:flex-row gap-4 items-center border border-white/40 glass-card-glow">
-              <div className="flex-1 w-full flex items-center gap-3 px-4">
+              <div className="flex-1 w-full flex items-center gap-3 px-4 relative">
                 <PawPrint className="text-[#a43e24]" size={24} />
-                <div className="flex flex-col">
+                <div className="flex flex-col text-left">
                   <span className="text-[10px] uppercase font-bold text-[#797b78]">Loại Thú Cưng</span>
-                  <select 
-                    value={selectedPetType} 
-                    onChange={(e) => setSelectedPetType(e.target.value)}
-                    className="bg-transparent border-none p-0 focus:ring-0 font-bold text-[#303330] cursor-pointer text-sm outline-none"
+                  <button
+                    onClick={() => setShowPetTypeDropdown(!showPetTypeDropdown)}
+                    className="bg-transparent border-none p-0 focus:ring-0 font-bold text-[#303330] cursor-pointer text-sm outline-none text-left flex items-center gap-1 hover:text-[#a43e24] transition-colors"
                   >
-                    <option value="DOG">Chó Cưng</option>
-                    <option value="CAT">Mèo Cưng</option>
-                    <option value="SMALL">Thú Cưng Nhỏ</option>
-                  </select>
+                    {selectedPetType === 'DOG' ? '🐕 Chó Cưng' :
+                     selectedPetType === 'CAT' ? '🐈 Mèo Cưng' :
+                     '🐹 Thú Cưng Nhỏ'}
+                  </button>
+                  
+                  {showPetTypeDropdown && (
+                    <>
+                      {/* Invisible backdrop to dismiss dropdown */}
+                      <div className="fixed inset-0 z-40" onClick={() => setShowPetTypeDropdown(false)} />
+                      <div className="absolute top-full left-0 mt-3 w-56 bg-white border border-[#e1e3df] rounded-3xl shadow-xl z-50 p-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <button
+                          onClick={() => { setSelectedPetType('DOG'); setShowPetTypeDropdown(false); }}
+                          className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-3 transition-colors ${
+                            selectedPetType === 'DOG' ? 'bg-[#feeadb]/40 text-[#a43e24]' : 'text-[#303330] hover:bg-stone-50'
+                          }`}
+                        >
+                          <span className="text-base">🐕</span>
+                          <div>
+                            <p className="font-bold text-xs">Chó Cưng</p>
+                            <p className="text-[9px] text-[#8a7e75] font-medium mt-0.5">Dành cho các giống chó lớn nhỏ</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => { setSelectedPetType('CAT'); setShowPetTypeDropdown(false); }}
+                          className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-3 transition-colors ${
+                            selectedPetType === 'CAT' ? 'bg-[#feeadb]/40 text-[#a43e24]' : 'text-[#303330] hover:bg-stone-50'
+                          }`}
+                        >
+                          <span className="text-base">🐈</span>
+                          <div>
+                            <p className="font-bold text-xs">Mèo Cưng</p>
+                            <p className="text-[9px] text-[#8a7e75] font-medium mt-0.5">Dành cho mèo hoàng gia</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => { setSelectedPetType('SMALL'); setShowPetTypeDropdown(false); }}
+                          className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-3 transition-colors ${
+                            selectedPetType === 'SMALL' ? 'bg-[#feeadb]/40 text-[#a43e24]' : 'text-[#303330] hover:bg-stone-50'
+                          }`}
+                        >
+                          <span className="text-base">🐹</span>
+                          <div>
+                            <p className="font-bold text-xs">Thú Cưng Nhỏ</p>
+                            <p className="text-[9px] text-[#8a7e75] font-medium mt-0.5">Hamster, thỏ, chim cảnh...</p>
+                          </div>
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="h-8 w-[1px] bg-[#b1b2af]/30 hidden md:block"></div>

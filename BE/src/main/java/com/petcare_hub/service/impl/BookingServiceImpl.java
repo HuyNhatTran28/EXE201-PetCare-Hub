@@ -215,8 +215,8 @@ public class BookingServiceImpl implements BookingService {
                 .checkInDate(request.getCheckInDate())
                 .checkOutDate(request.getCheckOutDate())
                 .bookingType(request.getBookingType())
-                .dropOffTime(request.getBookingType() == BookingType.DAYCARE ? request.getDropOffTime() : null)
-                .pickUpTime(request.getBookingType() == BookingType.DAYCARE ? request.getPickUpTime() : null)
+                .dropOffTime(request.getDropOffTime())
+                .pickUpTime(request.getPickUpTime())
                 .totalAmount(totalAmount)
                 .commissionRate(DEFAULT_COMMISSION_RATE)
                 .commissionFee(commissionFee)
@@ -340,9 +340,51 @@ public class BookingServiceImpl implements BookingService {
                 HttpStatus.BAD_REQUEST);
         }
 
+        LocalDate scheduledCheckOut = booking.getCheckOutDate();
+        LocalDate actualCheckOut = LocalDate.now();
+
         booking.setStatus(BookingStatus.COMPLETED);
-        booking.setCheckOutDate(LocalDate.now());
-        log.info("Booking {} đã COMPLETED tại ngày thực tế: {}", bookingId, LocalDate.now());
+        booking.setCheckOutDate(actualCheckOut);
+
+        // Tính toán phụ thu đón trễ nếu ngày thực tế trễ hơn ngày đăng ký
+        if (scheduledCheckOut != null && actualCheckOut.isAfter(scheduledCheckOut)) {
+            long extraUnits = java.time.temporal.ChronoUnit.DAYS.between(scheduledCheckOut, actualCheckOut);
+            if (extraUnits > 0) {
+                com.petcare_hub.enums.BookingType bType = booking.getBookingType();
+                if (bType == null) {
+                    bType = com.petcare_hub.enums.BookingType.OVERNIGHT;
+                }
+
+                BigDecimal unitRate = BigDecimal.ZERO;
+                if (booking.getRoomType() != null) {
+                    if (bType == com.petcare_hub.enums.BookingType.DAYCARE) {
+                        unitRate = booking.getRoomType().getDayRate() != null 
+                                ? booking.getRoomType().getDayRate() 
+                                : BigDecimal.ZERO;
+                    } else {
+                        unitRate = booking.getRoomType().getPricePerNight() != null 
+                                ? booking.getRoomType().getPricePerNight() 
+                                : BigDecimal.ZERO;
+                    }
+                }
+
+                BigDecimal extraCharge = unitRate.multiply(BigDecimal.valueOf(extraUnits));
+                BigDecimal extraVat = extraCharge.multiply(BigDecimal.valueOf(0.08)).setScale(0, RoundingMode.HALF_UP);
+                BigDecimal totalExtra = extraCharge.add(extraVat);
+
+                if (booking.getTotalAmount() != null) {
+                    booking.setTotalAmount(booking.getTotalAmount().add(totalExtra));
+                }
+                if (booking.getVatAmount() != null) {
+                    booking.setVatAmount(booking.getVatAmount().add(extraVat));
+                }
+
+                log.info("Booking {} đón trễ {} ngày/đêm. Phụ thu thêm: {} VNĐ (gồm 8% VAT)",
+                        bookingId, extraUnits, totalExtra);
+            }
+        }
+
+        log.info("Booking {} đã COMPLETED tại ngày thực tế: {}", bookingId, actualCheckOut);
 
         // partnerShare = totalAmount − commissionFee, đọc rate từ snapshot
         BigDecimal totalAmount = booking.getTotalAmount();

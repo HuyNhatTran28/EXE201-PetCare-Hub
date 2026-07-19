@@ -7,10 +7,11 @@ import { useChatSocket, type MessageResponse } from '@/hooks/useChatSocket'
 interface Props {
   conversationId: string
   hotelName: string
+  bookingStatus?: string
   onClose: () => void
 }
 
-export const BookingChatModal = ({ conversationId, hotelName, onClose }: Props) => {
+export const BookingChatModal = ({ conversationId, hotelName, bookingStatus, onClose }: Props) => {
   const currentUserId = useAuthStore(s => s.user?.id)
   const [messages, setMessages] = useState<MessageResponse[]>([])
   const [input, setInput] = useState('')
@@ -149,27 +150,33 @@ export const BookingChatModal = ({ conversationId, hotelName, onClose }: Props) 
         </div>
 
         {/* Input */}
-        <div className="px-4 py-3 border-t border-[#e5d8d0] flex gap-2 items-end bg-white rounded-b-3xl">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={status === 'connected' ? 'Nhắn tin...' : 'Đang kết nối...'}
-            rows={1}
-            disabled={status !== 'connected'}
-            className="flex-1 resize-none border border-[#e5d8d0] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#a43e24] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            style={{ maxHeight: '80px' }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || status !== 'connected'}
-            className="p-2.5 rounded-xl text-white flex-shrink-0 transition-all disabled:opacity-40"
-            style={{ backgroundColor: '#a43e24' }}
-          >
-            <Send size={14} />
-          </button>
-        </div>
+        {bookingStatus === 'COMPLETED' || bookingStatus === 'CANCELLED' ? (
+          <div className="px-5 py-4 bg-[#faf9f6] border-t border-[#e5d8d0] text-center text-xs text-[#8a7e75] font-bold select-none leading-relaxed rounded-b-3xl shrink-0">
+            🔒 Cuộc trò chuyện đã kết thúc do lượt lưu trú đã {bookingStatus === 'COMPLETED' ? 'hoàn thành' : 'bị hủy'}.
+          </div>
+        ) : (
+          <div className="px-4 py-3 border-t border-[#e5d8d0] flex gap-2 items-end bg-white rounded-b-3xl">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={status === 'connected' ? 'Nhắn tin...' : 'Đang kết nối...'}
+              rows={1}
+              disabled={status !== 'connected'}
+              className="flex-1 resize-none border border-[#e5d8d0] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#a43e24] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              style={{ maxHeight: '80px' }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || status !== 'connected'}
+              className="p-2.5 rounded-xl text-white flex-shrink-0 transition-all disabled:opacity-40"
+              style={{ backgroundColor: '#a43e24' }}
+            >
+              <Send size={14} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
