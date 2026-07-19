@@ -421,7 +421,7 @@ export const PetProfilePage = () => {
         ageYears: Number(editPet.ageYears) || 0,
         weightKg: Number(editPet.weightKg) || 0,
         isVaccinated: editPet.isVaccinated || false,
-        avatarUrl: editPet.avatarUrl
+        avatarUrl: editPet.avatarUrl ?? undefined
       }
       setEditPet(null)
       showAlert('Thành công', 'Đã cập nhật hồ sơ thú cưng thành công!', 'success', updatedPetData)
@@ -1586,13 +1586,13 @@ export const PetProfilePage = () => {
                                 ...editPet,
                                 medicalRecord: {
                                   ...med,
-                                  vaccines: vaccines.filter((_, idx) => idx !== i)
+                                  vaccines: vaccines.filter((_: any, idx: number) => idx !== i)
                                 }
                               })
                             } else {
                               setForm({
                                 ...form,
-                                vaccines: form.vaccines.filter((_, idx) => idx !== i)
+                                vaccines: form.vaccines.filter((_: any, idx: number) => idx !== i)
                               })
                             }
                           }}
