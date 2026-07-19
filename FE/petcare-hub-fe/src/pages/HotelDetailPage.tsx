@@ -2723,7 +2723,7 @@ export const HotelDetailPage = () => {
                       
                       {parsed.schedule && parsed.schedule.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs text-[#5d605c] font-semibold">
-                          {parsed.schedule.map((item, idx) => (
+                          {parsed.schedule.map((item: { time: string; activity: string }, idx: number) => (
                             <div key={idx} className="flex items-start gap-2.5 p-2 bg-[#faf9f6] rounded-xl border border-[#eeeeea]">
                               <span className="text-[10px] font-black text-[#a43e24] bg-[#feeadb] px-2 py-0.5 rounded shrink-0">{item.time}</span>
                               <span className="leading-tight text-[#303330] mt-0.5">{item.activity}</span>
